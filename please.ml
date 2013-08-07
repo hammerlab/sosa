@@ -1,7 +1,7 @@
 #! /usr/bin/env ocaml
  open Printf
  module List = ListLabels
- let say fmt = ksprintf (printf "mk-> %s\n%!") fmt
+ let say fmt = ksprintf (printf "please.ml-> %s\n%!") fmt
  let cmdf fmt =
    ksprintf (fun s -> ignore (Sys.command s)) fmt
  let chain l =
