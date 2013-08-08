@@ -118,3 +118,59 @@ module Native_string : NATIVE_STRING = struct
   let concat ?(sep="") sl = concat ~sep sl
 
 end
+
+module List_of (Char: BASIC_CHAR) :
+  BASIC_STRING
+  with type character = Char.t
+  with type t = Char.t list = struct
+
+  type character = Char.t
+
+  type t = character list
+
+  let of_character c = [c]
+  let of_character_list cl = cl
+
+  let get sl ~index =
+    try Some (List.nth sl index) with _ -> None
+
+  let set s ~index ~v =
+    let rec loop n acc = function
+    | [] -> None
+    | q :: t when n = index ->
+      Some (List.rev_append acc (v :: t))
+    | q :: t ->
+      loop (n + 1) (q :: acc) t
+    in
+    loop 0 [] s
+
+  let to_ocaml_string l =
+    let length =
+      List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c) in
+    let buf = String.make length 'B' in
+    let index = ref 0 in
+    List.iter l ~f:begin fun c ->
+      match Char.write_to_ocaml_string c ~index:!index ~buf with
+      | `Ok () -> incr index
+      | `Error `out_of_bounds -> failwith "Bug in List_of.to_ocaml_string"
+    end;
+    buf
+
+  let to_string_hum l = sprintf "%S" (to_ocaml_string l)
+
+  let concat ?(sep=[]) ll =
+    match ll with
+    | [] -> []
+    | hh :: tt ->
+      let x = ref (List.rev hh) in
+      List.iter tt ~f:(fun l ->
+        x := List.rev_append sep !x;
+        x := List.rev_append l !x;
+        );
+      List.rev !x
+
+  let length = List.length
+
+
+
+end
