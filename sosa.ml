@@ -12,9 +12,8 @@ module type BASIC_CHAR = sig
   val of_ocaml_char: char -> t option
   val of_int: int -> t option
 
-  val serialize: t -> (string * int)
-
-  val unserialize: string -> int -> ((t * int), [> `out_of_bounds]) result
+  val size: t -> int
+  val serialize: t -> string
 
   val to_string_hum: t -> String.t
 
@@ -23,17 +22,16 @@ end
 module type BASIC_STRING = sig
 
 
+  type character
   type t
 
-  module Char: BASIC_CHAR with type string = t
+  val of_character: character -> t
+  val of_character_list: character list -> t
 
-  val of_char: Char.t -> t
-  val of_char_list: Char.t list -> t
-
-  val get: t -> int -> Char.t option
+  val get: t -> index:int -> character option
   (** Get the n-th char, not necessarily bytes or bits. *)
 
-  val set: t -> int -> Char.t -> t option
+  val set: t -> index:int -> v:character -> t option
   (** String should not be mutable. *)
 
   val length: t -> int
