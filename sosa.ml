@@ -4,25 +4,28 @@ type ('a, 'b) result = [
   | `Error of 'b
 ]
 
+module type BASIC_CHAR = sig
+
+  type string
+  type t
+
+  val of_ocaml_char: char -> t option
+  val of_int: int -> t option
+
+  val serialize: t -> (string * int)
+
+  val unserialize: string -> int -> ((t * int), [> `out_of_bounds]) result
+
+  val to_string_hum: t -> String.t
+
+end
+
 module type BASIC_STRING = sig
 
 
   type t
 
-  module Char: sig
-    type string = t
-    type t
-
-    val of_ocaml_char: char -> t option
-    val of_int: int -> t option
-
-    val serialize: t -> (string * int)
-
-    val unserialize: string -> int -> ((t * int), [> `out_of_bounds]) result
-
-    val to_string_hum: t -> String.t
-
-  end
+  module Char: BASIC_CHAR with type string = t
 
   val of_char: Char.t -> t
   val of_char_list: Char.t list -> t
