@@ -43,19 +43,22 @@ let do_basic_test (module Test : TEST_STRING) =
   let one =
     Str.of_character_list
       (List.filter_map ['a'; 'A'; 'B'; '\000'] Ch.of_ocaml_char) in
-  say "";
-  say "    one: %s, length: %d"
+  say "basic_test: one: %s, length: %d"
     (Str.to_string_hum one) (Str.length one);
   let sep = Str.of_character (Option.value_exn (Ch.of_ocaml_char '-')) in
   let two = Str.concat ~sep [one;one;one] in
-  say "    two: %s, length: %d"
-    (Str.to_string_hum two) (Str.length two);
+  let verif = Str.to_ocaml_string two in
+  assert (verif = "aAB\000-aAB\000-aAB\000");
   ()
 
 let () =
   do_basic_test (module struct
     module Ch = Native_char
     module Str = Native_string
+  end);
+  do_basic_test (module struct
+    module Ch = Native_char
+    module Str = List_of (Native_char)
   end);
   eprintf "Hello %s!\n" (<:sexp_of<
                           [ `world | `planet ]
