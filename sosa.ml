@@ -46,14 +46,17 @@ end
 
 open Printf
 
-module List = ListLabels
-let return x : (_, _) result = `Ok x
-let fail x : (_, _) result = `Error x
-let bind x f =
-  match x with
-  | `Ok o -> f o
-  | `Error e -> fail e
-let (>>=) = bind
+module Internal_pervasives = struct
+  module List = ListLabels
+  let return x : (_, _) result = `Ok x
+  let fail x : (_, _) result = `Error x
+  let bind x f =
+    match x with
+    | `Ok o -> f o
+    | `Error e -> fail e
+  let (>>=) = bind
+end
+open Internal_pervasives
 
 
 module type NATIVE_CHAR = BASIC_CHAR with type t = char
