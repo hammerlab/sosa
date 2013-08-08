@@ -5,3 +5,4 @@ archive(byte,plugin) = "sosa.cma"
 archive(native) = "sosa.cmxa"
 archive(native, plugin) = "sosa.cmxs"
 exists_if = "sosa.cma"
+

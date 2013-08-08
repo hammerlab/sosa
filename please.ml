@@ -30,11 +30,10 @@ let build () =
       chain [
         "pwd";
         "cp ../sosa.ml .";
-        "ocamlc -c sosa.ml -annot -o _build/sosa.cmo";
-        "ocamlopt -c sosa.ml -annot -o _build/sosa.cmx";
+        "ocamlfind ocamlc  -c sosa.ml -annot -o sosa.cmo";
+        "ocamlfind ocamlopt  -c sosa.ml -annot -o sosa.cmx";
         "ocamlc sosa.cmo -a -o sosa.cma";
         "ocamlopt sosa.cmx -a -o sosa.cmxa";
-        "ocamlopt sosa.cmx -a -o sosa.a";
         "ocamlopt sosa.cmx -shared -o sosa.cmxs";
       ];
     )
@@ -42,33 +41,35 @@ let build () =
 let install () =
     in_build_directory (fun () ->
         chain [
-          "ocamlfind install sosa ../META sosa.cmx sosa.cmo sosa.cma sosa.cmi sosa.cmxa sosa.cmxs sosa.a"
+          "ocamlfind install sosa ../META sosa.cmx sosa.cmo sosa.cma sosa.cmi sosa.cmxa sosa.cmxs sosa.a sosa.o"
+        ])
+
+let build_doc () =
+    in_build_directory (fun () ->
+        chain [
+          sprintf "ocamlfind ocamldoc  -charset UTF-8 -colorize-code -html sosa.ml";
         ])
 
 let name = "sosa"
 let () =
   match args with
-  | exec :: []
-  | exec :: "build" :: [] ->
+  | _ :: "build" :: [] ->
     say "Building.";
     build ();
     say "Done."
-  | exec :: "doc" :: [] ->
+  | _ :: "build_doc" :: [] ->
     say "Building the documentation.";
-    in_build_directory (fun () ->
-        chain [
-          sprintf "ocamldoc -charset UTF-8 -colorize-code -html %s.ml" name;
-        ])
-  | exec :: "install" :: [] ->
+    build_doc ()
+  | _ :: "install" :: [] ->
     say "Installing";
     install ();
-      | exec :: "uninstall" :: [] ->
+  | _ :: "uninstall" :: [] ->
     chain [
       sprintf "ocamlfind remove %s" name
     ]
-  | exec :: "clean" :: []
-  | exec :: "C" :: [] ->
+  | _ :: "clean" :: []
+  | _ :: "C" :: [] ->
     cmdf "rm -fr _build"
   | _ ->
-    say "usage: ocaml %s [build|test|install|uninstall|clean]" Sys.argv.(0)
+    say "usage: ocaml %s [build|build_doc|install|uninstall|clean]" Sys.argv.(0)
 
