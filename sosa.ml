@@ -6,14 +6,12 @@ type ('a, 'b) result = [
 
 module type BASIC_CHAR = sig
 
-  type string
   type t
 
   val of_ocaml_char: char -> t option
   val of_int: int -> t option
 
   val size: t -> int
-  val serialize: t -> string
 
   val to_string_hum: t -> String.t
 
@@ -62,7 +60,6 @@ module type NATIVE_STRING = sig
     with type character = char
 
   module Char: BASIC_CHAR
-    with type string = t
     with type t = char
 
 end
@@ -74,7 +71,6 @@ module Native_string : NATIVE_STRING = struct
 
   module Char = struct
 
-    type string = t
     type t = char
 
     let of_ocaml_char x = Some x
@@ -82,11 +78,10 @@ module Native_string : NATIVE_STRING = struct
       try Some (char_of_int x) with _ -> None
 
     let size _ = 1
-    let serialize x = String.make 1 x
 
     let is_print t = ' ' <= t && t <= '~'
     let to_string_hum x =
-      if is_print x then serialize x
+      if is_print x then String.make 1 x
       else sprintf "0x%2x" (int_of_char x)
 
   end
