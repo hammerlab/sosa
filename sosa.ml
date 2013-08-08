@@ -13,7 +13,9 @@ module type BASIC_CHAR = sig
 
   val size: t -> int
 
+  val to_ocaml_string: t -> String.t
   val to_string_hum: t -> String.t
+  val write_to_ocaml_string: t -> buf:String.t -> index:int -> (unit, [> `out_of_bounds]) result
 
 end
 
@@ -53,23 +55,16 @@ let bind x f =
   | `Error e -> fail e
 let (>>=) = bind
 
-module type NATIVE_STRING = sig
 
+module type NATIVE_CHAR = BASIC_CHAR with type t = char
+
+module type NATIVE_STRING = sig
   include BASIC_STRING
     with type t = String.t
     with type character = char
-
-  module Char: BASIC_CHAR
-    with type t = char
-
 end
 
-module Native_string : NATIVE_STRING = struct
-
-  include StringLabels
-  type character = char
-
-  module Char = struct
+module Native_char : NATIVE_CHAR = struct
 
     type t = char
 
@@ -80,11 +75,22 @@ module Native_string : NATIVE_STRING = struct
     let size _ = 1
 
     let is_print t = ' ' <= t && t <= '~'
+    let to_ocaml_string x = String.make 1 x
     let to_string_hum x =
       if is_print x then String.make 1 x
       else sprintf "0x%2x" (int_of_char x)
 
-  end
+    let write_to_ocaml_string c ~buf ~index =
+      try buf.[index] <- c; return ()
+      with _ -> fail `out_of_bounds
+
+end
+
+module Native_string : NATIVE_STRING = struct
+
+  include StringLabels
+  type character = char
+
 
   let of_character = String.make 1
   let of_character_list cl =
