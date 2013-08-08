@@ -44,6 +44,9 @@ module type BASIC_STRING = sig
 
 end
 
+open Printf
+
+module List = ListLabels
 let return x : (_, _) result = `Ok x
 let fail x : (_, _) result = `Error x
 let bind x f =
@@ -51,3 +54,66 @@ let bind x f =
   | `Ok o -> f o
   | `Error e -> fail e
 let (>>=) = bind
+
+module type NATIVE_STRING = sig
+
+  include BASIC_STRING
+    with type t = String.t
+    with type character = char
+
+  module Char: BASIC_CHAR
+    with type string = t
+    with type t = char
+
+end
+
+module Native_string : NATIVE_STRING = struct
+
+  include StringLabels
+  type character = char
+
+  module Char = struct
+
+    type string = t
+    type t = char
+
+    let of_ocaml_char x = Some x
+    let of_int x =
+      try Some (char_of_int x) with _ -> None
+
+    let size _ = 1
+    let serialize x = String.make 1 x
+
+    let is_print t = ' ' <= t && t <= '~'
+    let to_string_hum x =
+      if is_print x then serialize x
+      else sprintf "0x%2x" (int_of_char x)
+
+  end
+
+  let of_character = String.make 1
+  let of_character_list cl =
+    let length = List.length cl in
+    let buf = String.make length '\x00' in
+    List.iteri cl ~f:(fun i c -> buf.[i] <- c);
+    buf
+
+  let get s ~index =
+    try Some (s.[index])
+    with _ -> None
+
+  let set s ~index ~v =
+    if index > String.length s - 1
+    then None
+    else begin
+      let cop = String.copy s in
+      cop.[index] <- v;
+      Some cop
+    end
+
+  let to_ocaml_string x = String.copy x
+  let to_string_hum x = sprintf "%S" x
+
+  let concat ?(sep="") sl = concat ~sep sl
+
+end
