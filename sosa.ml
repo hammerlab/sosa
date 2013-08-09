@@ -38,6 +38,7 @@ module type BASIC_STRING = sig
 
   val concat: ?sep:t -> t list -> t
 
+  val of_ocaml_string: string -> (t, [> `wrong_char of char ]) result
   val to_ocaml_string: t -> string
   val to_string_hum: t -> string
 
@@ -48,6 +49,7 @@ open Printf
 
 module Internal_pervasives = struct
   module List = ListLabels
+  module String = StringLabels
   let return x : (_, _) result = `Ok x
   let fail x : (_, _) result = `Error x
   let bind x f =
@@ -116,6 +118,7 @@ module Native_string : NATIVE_STRING = struct
     end
 
   let to_ocaml_string x = String.copy x
+  let of_ocaml_string x = return (String.copy x)
   let to_string_hum x = sprintf "%S" x
 
   let concat ?(sep="") sl = concat ~sep sl
@@ -146,6 +149,22 @@ module List_of (Char: BASIC_CHAR) :
       loop (n + 1) (q :: acc) t
     in
     loop 0 [] s
+
+  let of_ocaml_string s =
+    let module With_exn = struct
+      exception WChar of char
+      let f s =
+        let x = ref [] in
+        try
+          String.iter s ~f:(fun c ->
+              match (Char.of_ocaml_char c) with
+              | Some s -> x := s :: !x
+              | None -> raise (WChar c)
+            );
+          return (List.rev !x)
+        with WChar c -> fail (`wrong_char c)
+    end in
+    With_exn.f s
 
   let to_ocaml_string l =
     let length =
