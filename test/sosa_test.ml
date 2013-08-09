@@ -42,6 +42,9 @@ end
 let test_assert msg cond =
   if not cond then say ">> TEST FAILED: [%s]" msg else ()
 
+let test_assertf cond fmt =
+  ksprintf (fun s -> test_assert s cond) fmt
+
 let random_string i =
   let length = Random.int i in
   String.init length (fun _ -> Char.of_int_exn (Random.int 256))
@@ -52,22 +55,17 @@ let random_strings =
 
 let do_basic_test (module Test : TEST_STRING) =
   let open Test in
+  say "### Test %S" test_name;
 
   let test_ofto s =
     begin match Str.of_ocaml_string s with
     | `Ok s2 ->
       let back = Str.to_ocaml_string s2 in
       test_assert (sprintf "test_ofto %S <> %S" s back) (s = back)
-    | `Error (`wrong_char c) ->
-      test_assert (sprintf "test_ofto %S -> wrong char %c" s c)
-        (Chr.of_ocaml_char c = None)
+    | `Error (`wrong_char_at i) ->
+      test_assert (sprintf "test_ofto %S -> wrong char at index %d" s i)
+        (Chr.read_from_ocaml_string ~buf:s ~index:i = None)
     end;
-    let as_list = String.to_list s in
-    let s3 =
-      Str.of_character_list (List.filter_map as_list Chr.of_ocaml_char) in
-    test_assert (sprintf "test_ofto %S -> with lists" s)
-      (Str.to_ocaml_string s3
-       = (String.filter s (fun c -> Chr.of_ocaml_char c <> None)));
   in
   List.iter random_strings test_ofto;
 
@@ -82,7 +80,7 @@ let do_basic_test (module Test : TEST_STRING) =
           List.filter_map random_strings (fun s ->
               match Str.of_ocaml_string s with
               | `Ok s2 ->  Some (s, s2)
-              | `Error (`wrong_char c) -> None)
+              | `Error (`wrong_char_at c) -> None)
           |> List.unzip
         in
         let concated = String.concat ~sep viable_strings in
@@ -95,6 +93,37 @@ let do_basic_test (module Test : TEST_STRING) =
   try_separators 300;
   ()
 
+
+let utf8_specific_test () =
+  let module Utf8 = Int_utf8_character in
+  say "### UTF-8 Test";
+  let ground_truth = [
+    "$", 0x24; (* ASCII *)
+    "¢", 0xA2; (* Latin-something *)
+    "€", 0x20AC; (* Multi-byte *)
+    "\xF0\xA4\xAD\xA2", 0x24B62; (* Another example from Wikipedia *)
+    "í", 0xED; (* Spanish stuff *)
+    "œ", 0x153; (* French stuff *)
+    "ß", 0xDF; (* German Stuff *)
+  ] in
+  List.iter ground_truth (fun (s, i) ->
+      let actual_test = Utf8.to_ocaml_string i in
+      test_assertf (actual_test = s) "utf8_specific_test: (%S, %d) Vs %S"
+        s i actual_test;
+      begin match Utf8.read_from_ocaml_string ~buf:s ~index:0 with
+      | Some (v, sz) ->
+        test_assertf (v = i)
+          "utf8_specific_test: Utf8.read_from_ocaml_string: %d <> %d" v i;
+        test_assertf (sz = String.length s)
+          "utf8_specific_test: Utf8.read_from_ocaml_string: size %d Vs %S" sz s;
+      | None ->
+        test_assertf false "utf8_specific_test: Utf8.read_from_ocaml_string fail"
+      end
+    );
+  ()
+
+
+
 let () =
   do_basic_test (module struct
       let test_name = "Both natives"
@@ -105,4 +134,10 @@ let () =
       let test_name = "List of natives"
       module Chr = Native_char
       module Str = List_of (Native_char)
-  end)
+  end);
+  do_basic_test (module struct
+      let test_name = "List of UTF-8 Integers"
+      module Chr = Int_utf8_character
+      module Str = List_of (Int_utf8_character)
+  end);
+  utf8_specific_test ()
