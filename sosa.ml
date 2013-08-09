@@ -16,6 +16,7 @@ module type BASIC_CHAR = sig
   val to_ocaml_string: t -> String.t
   val to_string_hum: t -> String.t
   val write_to_ocaml_string: t -> buf:String.t -> index:int -> (unit, [> `out_of_bounds]) result
+  val read_from_ocaml_string: buf:String.t -> index:int -> (t * int) option
 
 end
 
@@ -38,7 +39,7 @@ module type BASIC_STRING = sig
 
   val concat: ?sep:t -> t list -> t
 
-  val of_ocaml_string: string -> (t, [> `wrong_char of char ]) result
+  val of_ocaml_string: string -> (t, [> `wrong_char_at of int ]) result
   val to_ocaml_string: t -> string
   val to_string_hum: t -> string
 
@@ -50,6 +51,7 @@ open Printf
 module Internal_pervasives = struct
   module List = ListLabels
   module String = StringLabels
+  let (|>) x f = f x
   let return x : (_, _) result = `Ok x
   let fail x : (_, _) result = `Error x
   let bind x f =
@@ -57,6 +59,7 @@ module Internal_pervasives = struct
     | `Ok o -> f o
     | `Error e -> fail e
   let (>>=) = bind
+  let dbg fmt = eprintf ("DBG: " ^^ fmt ^^ "\n%!")
 end
 open Internal_pervasives
 
@@ -88,6 +91,10 @@ module Native_char : NATIVE_CHAR = struct
     let write_to_ocaml_string c ~buf ~index =
       try buf.[index] <- c; return ()
       with _ -> fail `out_of_bounds
+
+    let read_from_ocaml_string ~buf ~index =
+      try Some (buf.[index], 1)
+      with _ -> None
 
 end
 
@@ -152,17 +159,22 @@ module List_of (Char: BASIC_CHAR) :
 
   let of_ocaml_string s =
     let module With_exn = struct
-      exception WChar of char
-      let f s =
+      exception WChar of int
+      let f buf =
         let x = ref [] in
         try
-          String.iter s ~f:(fun c ->
-              match (Char.of_ocaml_char c) with
-              | Some s -> x := s :: !x
-              | None -> raise (WChar c)
-            );
+          let rec loop index =
+            if index < String.length buf
+            then
+              begin match Char.read_from_ocaml_string ~buf ~index with
+              | Some (s, size) ->  x := s :: !x; loop (index + size)
+              | None -> raise (WChar index)
+              end
+            else ()
+          in
+          loop 0;
           return (List.rev !x)
-        with WChar c -> fail (`wrong_char c)
+        with WChar c -> fail (`wrong_char_at c)
     end in
     With_exn.f s
 
@@ -173,7 +185,7 @@ module List_of (Char: BASIC_CHAR) :
     let index = ref 0 in
     List.iter l ~f:begin fun c ->
       match Char.write_to_ocaml_string c ~index:!index ~buf with
-      | `Ok () -> incr index
+      | `Ok () ->  index := !index + Char.size c
       | `Error `out_of_bounds -> failwith "Bug in List_of.to_ocaml_string"
     end;
     buf
