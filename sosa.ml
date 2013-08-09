@@ -1,47 +1,97 @@
+(** Sane OCaml String API *)
 
 type ('a, 'b) result = [
   | `Ok of 'a
   | `Error of 'b
 ]
+(** The type [result] is a reusable version the classical [Result.t]
+    type. *)
 
 module type BASIC_CHAR = sig
+  (** The minimal API implemented by characters. *)
 
   type t
+  (** The type representing the character. *)
 
   val of_ocaml_char: char -> t option
+  (** Import a native [char], returns [None] if the character is not
+      representable. *)
+
   val of_int: int -> t option
+  (** Import an integer, returns [None] if there is no character for
+      that value. *)
 
   val size: t -> int
+  (** Get the size of the character, the exact semantics are
+      implementation-specific (c.f. {!write_to_ocaml_string}) *)
+
+
+  val write_to_ocaml_string: t -> buf:String.t -> index:int -> (unit, [> `out_of_bounds]) result
+  (** [write_to_ocaml_string c ~buf ~index] serializes
+      the character [c] at position [index] in the native string
+      [buf] (writing [size c] units). Note, as with {!size} that the
+      meaning of [index] is implementation dependent (can be the {i
+      index-th} byte, the {i index-th} bit, etc.). *)
 
   val to_ocaml_string: t -> String.t
-  val to_string_hum: t -> String.t
-  val write_to_ocaml_string: t -> buf:String.t -> index:int -> (unit, [> `out_of_bounds]) result
+  (** [to_ocaml_string c] creates a string containing the
+      serialization of the character [c] (if [size c] is not a
+      multiple of 8, the end-padding is undefined). *)
+
   val read_from_ocaml_string: buf:String.t -> index:int -> (t * int) option
+  (** Read a character at a given [index] in a native string, returns
+      [Some (c, s)], the character [c] and the number of units read [s],
+      or [None] if there is no representable/valid character at that
+      index. *)
+
+  val to_string_hum: t -> String.t
+  (** Convert the character to a human-readable native string (in the
+      spirit of [sprintf "%s"]). *)
 
 end
 
 module type BASIC_STRING = sig
-
+  (** The minimal API implemented by string modules. *)
 
   type character
+  (** A string is a string of characters. *)
+
   type t
-
-  val of_character: character -> t
-  val of_character_list: character list -> t
-
-  val get: t -> index:int -> character option
-  (** Get the n-th char, not necessarily bytes or bits. *)
-
-  val set: t -> index:int -> v:character -> t option
-  (** String should not be mutable. *)
+  (** The type of the string. *)
 
   val length: t -> int
+  (** Get the length of the string (i.e. the number of characters). *)
+
+  val of_character: character -> t
+  (** Make a string with one character. *)
+
+  val of_character_list: character list -> t
+  (** Make a string out of a list of characters. *)
+
+  val get: t -> index:int -> character option
+  (** Get the n-th char, indexes are not necessarily bytes, they can
+      be bits. [get] returns [None] when [index] is out of bounds. *)
+
+  val set: t -> index:int -> v:character -> t option
+  (** [set str ~index ~v] creates a new string equal to [t] with
+      character [v] at position [index]. [set] returns [None] when
+      [index] is out of bounds. *)
 
   val concat: ?sep:t -> t list -> t
+  (** The classical [concat] function. *)
 
   val of_ocaml_string: string -> (t, [> `wrong_char_at of int ]) result
+  (** Convert a native string to the current reprensentation.
+      [of_ocaml_string] returns [`Error (`wrong_char_at index)]
+      when the native string contains a character not representable
+      with the type [character]. *)
+
   val to_ocaml_string: t -> string
+  (** Serialize the string to a native string. *)
+
   val to_string_hum: t -> string
+  (** Convert the string to a human-readable native string (à la
+      [sprintf "%s"]). *)
 
 
 end
@@ -66,11 +116,10 @@ open Internal_pervasives
 
 module type NATIVE_CHAR = BASIC_CHAR with type t = char
 
-module type NATIVE_STRING = sig
-  include BASIC_STRING
-    with type t = String.t
-    with type character = char
-end
+module type NATIVE_STRING =
+  BASIC_STRING
+  with type t = String.t
+  with type character = char
 
 module Native_char : NATIVE_CHAR = struct
 
