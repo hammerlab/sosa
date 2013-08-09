@@ -34,32 +34,75 @@ open Sosa
 let say fmt = printf (fmt ^^ "\n%!")
 
 module type TEST_STRING = sig
-  module Ch: BASIC_CHAR
-  module Str: BASIC_STRING with type character = Ch.t
+  val test_name: string
+  module Chr: BASIC_CHAR
+  module Str: BASIC_STRING with type character = Chr.t
 end
+
+let test_assert msg cond =
+  if not cond then say ">> TEST FAILED: [%s]" msg else ()
+
+let random_string i =
+  let length = Random.int i in
+  String.init length (fun _ -> Char.of_int_exn (Random.int 256))
+
+
+let random_strings =
+  List.init 200 (fun i -> random_string (i * 4 + 1))
 
 let do_basic_test (module Test : TEST_STRING) =
   let open Test in
-  let one =
-    Str.of_character_list
-      (List.filter_map ['a'; 'A'; 'B'; '\000'] Ch.of_ocaml_char) in
-  say "basic_test: one: %s, length: %d"
-    (Str.to_string_hum one) (Str.length one);
-  let sep = Str.of_character (Option.value_exn (Ch.of_ocaml_char '-')) in
-  let two = Str.concat ~sep [one;one;one] in
-  let verif = Str.to_ocaml_string two in
-  assert (verif = "aAB\000-aAB\000-aAB\000");
+
+  let test_ofto s =
+    begin match Str.of_ocaml_string s with
+    | `Ok s2 ->
+      let back = Str.to_ocaml_string s2 in
+      test_assert (sprintf "test_ofto %S <> %S" s back) (s = back)
+    | `Error (`wrong_char c) ->
+      test_assert (sprintf "test_ofto %S -> wrong char %c" s c)
+        (Chr.of_ocaml_char c = None)
+    end;
+    let as_list = String.to_list s in
+    let s3 =
+      Str.of_character_list (List.filter_map as_list Chr.of_ocaml_char) in
+    test_assert (sprintf "test_ofto %S -> with lists" s)
+      (Str.to_ocaml_string s3
+       = (String.filter s (fun c -> Chr.of_ocaml_char c <> None)));
+  in
+  List.iter random_strings test_ofto;
+
+  let rec try_separators n =
+    let sep = random_string n in
+    if n = 0
+    then say "WARNING: %s -> try_separators did not try anything" test_name
+    else
+      begin match Str.of_ocaml_string sep with
+      | `Ok csep ->
+        let viable_strings, converted =
+          List.filter_map random_strings (fun s ->
+              match Str.of_ocaml_string s with
+              | `Ok s2 ->  Some (s, s2)
+              | `Error (`wrong_char c) -> None)
+          |> List.unzip
+        in
+        let concated = String.concat ~sep viable_strings in
+        let concated2 = Str.concat ~sep:csep converted in
+        test_assert (sprintf "try_separators %d" n)
+          (Str.to_ocaml_string concated2 = concated)
+      | `Error _ -> try_separators (n - 1)
+      end
+  in
+  try_separators 300;
   ()
 
 let () =
   do_basic_test (module struct
-    module Ch = Native_char
-    module Str = Native_string
-  end);
+      let test_name = "Both natives"
+      module Chr = Native_char
+      module Str = Native_string
+    end);
   do_basic_test (module struct
-    module Ch = Native_char
-    module Str = List_of (Native_char)
-  end);
-  eprintf "Hello %s!\n" (<:sexp_of<
-                          [ `world | `planet ]
-                        >> `world |> Sexp.to_string_hum)
+      let test_name = "List of natives"
+      module Chr = Native_char
+      module Str = List_of (Native_char)
+  end)
