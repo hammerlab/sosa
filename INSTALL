@@ -1,0 +1,14 @@
+Installation Instructions
+=========================
+
+Build & Install
+---------------
+
+     ocaml please.ml build
+     ocaml please.ml install
+
+Uninstall
+---------
+
+    ocaml please.ml uninstall
+
