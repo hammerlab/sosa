@@ -13,7 +13,12 @@ The implementations are so far:
 
 ### Native OCaml Chars
 
+The `Native_char` module implements `BASIC_CHAR` with OCaml's `char` type.
+
 ### Native OCaml Strings
+
+The `Native_string` module implements `BASIC_STRING` with OCaml's
+`string` type (and hence `Native_char`).
 
 ### Lists
 
@@ -21,9 +26,10 @@ The implementations are so far:
 
 ### Integer UTF-8 Characters
 
-Utf8 Chars represented by native integers (we force the handling
-of not more than 31 bits, even if
-[RFC 3629][RFC3629] restricts them to end at U+10FFFF).
+The `Int_utf8_character` module implements `BASIC_CHAR` with OCaml
+integers (`int`) representing Utf8 characters (we force the handling
+of not more than 31 bits, even if [RFC 3629][RFC3629] restricts them
+to end at U+10FFFF, c.f. also [wikipedia][wikipedia:UTF-8]).
 
 [wikipedia:UTF-8]: http://en.wikipedia.org/wiki/UTF-8
 [RFC3629]: http://tools.ietf.org/html/rfc3629
