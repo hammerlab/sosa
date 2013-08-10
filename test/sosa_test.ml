@@ -39,8 +39,14 @@ module type TEST_STRING = sig
   module Str: BASIC_STRING with type character = Chr.t
 end
 
+let return_code = ref 0
+let should_not_return_zero () = return_code := 5
+
 let test_assert msg cond =
-  if not cond then say ">> TEST FAILED: [%s]" msg else ()
+  if not cond then (
+    should_not_return_zero ();
+    say ">> TEST FAILED: [%s]" msg
+  ) else ()
 
 let test_assertf cond fmt =
   ksprintf (fun s -> test_assert s cond) fmt
@@ -140,4 +146,5 @@ let () =
       module Chr = Int_utf8_character
       module Str = List_of (Int_utf8_character)
   end);
-  utf8_specific_test ()
+  utf8_specific_test ();
+  exit !return_code
