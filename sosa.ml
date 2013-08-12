@@ -26,7 +26,7 @@ module type BASIC_CHAR = sig
       implementation-specific (c.f. {!write_to_ocaml_string}) *)
 
 
-  val write_to_ocaml_string: t -> buf:String.t -> index:int -> (unit, [> `out_of_bounds]) result
+  val write_to_ocaml_string: t -> buf:String.t -> index:int -> (int, [> `out_of_bounds]) result
   (** [write_to_ocaml_string c ~buf ~index] serializes
       the character [c] at position [index] in the native string
       [buf] (writing [size c] units). Note, as with {!size} that the
@@ -138,7 +138,7 @@ module Native_char : NATIVE_CHAR = struct
       else sprintf "0x%2x" (int_of_char x)
 
     let write_to_ocaml_string c ~buf ~index =
-      try buf.[index] <- c; return ()
+      try buf.[index] <- c; return 1
       with _ -> fail `out_of_bounds
 
     let read_from_ocaml_string ~buf ~index =
@@ -234,7 +234,7 @@ module List_of (Char: BASIC_CHAR) :
     let index = ref 0 in
     List.iter l ~f:begin fun c ->
       match Char.write_to_ocaml_string c ~index:!index ~buf with
-      | `Ok () ->  index := !index + Char.size c
+      | `Ok siz ->  index := !index + siz
       | `Error `out_of_bounds -> failwith "Bug in List_of.to_ocaml_string"
     end;
     buf
@@ -299,7 +299,7 @@ module Int_utf8_character : BASIC_CHAR with type t = int = struct
             ((c lsr (6 * (i - 2))) land 0b0011_1111) lor 0b1000_0000 in
           buf.[index + sz - i + 1] <- char_of_int ith_byte;
         done;
-        return ()
+        return sz
       with _ -> fail `out_of_bounds
 
     let read_from_ocaml_string ~buf ~index =
@@ -335,7 +335,7 @@ module Int_utf8_character : BASIC_CHAR with type t = int = struct
     let to_ocaml_string x =
       let buf = String.make (size x) 'B' in
       begin match write_to_ocaml_string x ~buf ~index:0 with
-      | `Ok () -> ()
+      | `Ok _ -> ()
       | `Error e -> assert false
       end;
       buf
