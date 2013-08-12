@@ -63,6 +63,13 @@ let do_basic_test (module Test : TEST_STRING) =
   let open Test in
   say "### Test %S" test_name;
 
+  test_assertf (Str.length Str.empty = 0) "(length empty)";
+  test_assertf (Str.is_empty Str.empty) "(is_empty empty)";
+  begin match Str.of_ocaml_string "" with
+  | `Ok o -> test_assertf (Str.is_empty o) "(is_empty \"\")";
+  | `Error _ -> test_assertf false "Str.of_ocaml_string %S -> Error" ""
+  end;
+
   let test_ofto s =
     begin match Str.of_ocaml_string s with
     | `Ok s2 ->
