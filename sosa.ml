@@ -59,6 +59,12 @@ module type BASIC_STRING = sig
   type t
   (** The type of the string. *)
 
+  val empty: t
+  (** An “empty” string. *)
+
+  val is_empty: t -> bool
+  (** Test whether a string is empty. *)
+
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
 
@@ -152,6 +158,8 @@ module Native_string : NATIVE_STRING = struct
   include StringLabels
   type character = char
 
+  let empty = ""
+  let is_empty t = (compare "" t = 0)
 
   let of_character = String.make 1
   let of_character_list cl =
@@ -189,6 +197,9 @@ module List_of (Char: BASIC_CHAR) :
   type character = Char.t
 
   type t = character list
+
+  let empty = []
+  let is_empty = (=) []
 
   let of_character c = [c]
   let of_character_list cl = cl
