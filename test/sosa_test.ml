@@ -185,6 +185,20 @@ let do_basic_test (module Test : TEST_STRING) =
   in
   try_separators 300;
 
+  (* This tests `make` against `length` and `get`:  *)
+  for i = 0 to 100 do
+    let seed = 50 * (i + 1) in
+    let char = Random.int seed in
+    let length = Random.int seed in
+    match Chr.of_int char with
+    | Some character ->
+      let s = Str.make length character in
+      test_assertf (Str.length s = length) "length of make";
+      for j = 0 to length - 1 do
+        test_assertf ((Str.get s j) = Some character) "nth char of make"
+      done;
+    | None -> ()
+  done;
   ()
 
 
