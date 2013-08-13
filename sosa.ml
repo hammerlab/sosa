@@ -99,6 +99,8 @@ module type BASIC_STRING = sig
   (** Convert the string to a human-readable native string (à la
       [sprintf "%s"]). *)
 
+  val fold: t -> init:'a -> f:('a -> character -> 'a) -> 'a
+  (** The standard [fold] function, see [List.fold_left] for example. *)
 
 end
 
@@ -187,6 +189,15 @@ module Native_string : NATIVE_STRING = struct
 
   let concat ?(sep="") sl = concat ~sep sl
 
+  let fold s ~init ~f =
+    let res = ref init in
+    for i = 0 to String.length s - 1 do
+      res := f !res s.[i];
+    done;
+    !res
+
+
+
 end
 
 module List_of (Char: BASIC_CHARACTER) :
@@ -266,6 +277,7 @@ module List_of (Char: BASIC_CHARACTER) :
   let length = List.length
 
 
+  let fold t ~init ~f = List.fold_left t ~init ~f
 
 end
 
