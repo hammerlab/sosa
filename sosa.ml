@@ -113,6 +113,13 @@ module type BASIC_STRING = sig
   val sub: t -> index:int -> length:int -> t option
   (** Get the sub-string of size [length] at position [index]. *)
 
+  val iter: t -> f:(character -> unit) -> unit
+  (** Apply [f] on every character successively. *)
+
+  val map: t -> f:(character -> character) -> t
+  (** Make a new string by applying [f] to all characters of the
+      input. *)
+
 end
 
 module type UNSAFELY_MUTABLE = sig
@@ -159,6 +166,46 @@ module Internal_pervasives = struct
     | `Error e -> fail e
   let (>>=) = bind
   let dbg fmt = eprintf ("DBG: " ^^ fmt ^^ "\n%!")
+
+  module Core_list_map = struct
+
+    let map_slow l ~f = List.rev (List.rev_map ~f l)
+
+    let rec count_map ~f l ctr =
+      match l with
+      | [] -> []
+      | [x1] ->
+        let f1 = f x1 in
+        [f1]
+      | [x1; x2] ->
+        let f1 = f x1 in
+        let f2 = f x2 in
+        [f1; f2]
+      | [x1; x2; x3] ->
+        let f1 = f x1 in
+        let f2 = f x2 in
+        let f3 = f x3 in
+        [f1; f2; f3]
+      | [x1; x2; x3; x4] ->
+        let f1 = f x1 in
+        let f2 = f x2 in
+        let f3 = f x3 in
+        let f4 = f x4 in
+        [f1; f2; f3; f4]
+      | x1 :: x2 :: x3 :: x4 :: x5 :: tl ->
+        let f1 = f x1 in
+        let f2 = f x2 in
+        let f3 = f x3 in
+        let f4 = f x4 in
+        let f5 = f x5 in
+        f1 :: f2 :: f3 :: f4 :: f5 ::
+          (if ctr > 1000
+           then map_slow ~f tl
+           else count_map ~f tl (ctr + 1))
+
+    let map l ~f = count_map ~f l 0
+
+  end
 end
 open Internal_pervasives
 
@@ -260,6 +307,8 @@ module Native_string : NATIVE_STRING = struct
     try blit_exn ~src ~src_index ~dst ~dst_index ~length; return ()
     with _ -> fail `out_of_bounds
 
+  let iter t ~f = String.iter t ~f
+  let map t ~f = String.map t ~f
 end
 
 module List_of (Char: BASIC_CHARACTER) :
@@ -339,7 +388,9 @@ module List_of (Char: BASIC_CHARACTER) :
   let length = List.length
 
 
+  let iter t ~f = List.iter t ~f
   let fold t ~init ~f = List.fold_left t ~init ~f
+  let map = Core_list_map.map
 
   let compare (a : Char.t list) (b: Char.t list) = compare a b
 
