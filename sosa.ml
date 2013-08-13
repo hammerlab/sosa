@@ -165,10 +165,16 @@ open Internal_pervasives
 
 module type NATIVE_CHARACTER = BASIC_CHARACTER with type t = char
 
-module type NATIVE_STRING =
-  BASIC_STRING
-  with type t = String.t
-  with type character = char
+module type NATIVE_STRING = sig
+
+  include BASIC_STRING
+    with type t = String.t
+    with type character = char
+
+  include UNSAFELY_MUTABLE
+    with type t := String.t
+    with type character := char
+end
 
 module Native_character : NATIVE_CHARACTER = struct
 
@@ -242,6 +248,17 @@ module Native_string : NATIVE_STRING = struct
     try Some (String.sub t index length)
     with e -> None
 
+  let mutate_exn t ~index c = String.set t index c
+
+  let mutate t ~index c =
+    try String.set t index c; return () with _ -> fail `out_of_bounds
+
+  let blit_exn ~src ~src_index ~dst ~dst_index ~length =
+    blit ~src ~src_pos:src_index ~dst ~dst_pos:dst_index ~len:length
+
+  let blit ~src ~src_index ~dst ~dst_index ~length =
+    try blit_exn ~src ~src_index ~dst ~dst_index ~length; return ()
+    with _ -> fail `out_of_bounds
 
 end
 
