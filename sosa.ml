@@ -110,6 +110,9 @@ module type BASIC_STRING = sig
   (** Comparison function (as expected by most common functors in the
       ecosystem). *)
 
+  val sub: t -> index:int -> length:int -> t option
+  (** Get the sub-string of size [length] at position [index]. *)
+
 end
 
 open Printf
@@ -205,6 +208,9 @@ module Native_string : NATIVE_STRING = struct
     done;
     !res
 
+  let sub t ~index ~length =
+    try Some (String.sub t index length)
+    with e -> None
 
 
 end
@@ -289,6 +295,23 @@ module List_of (Char: BASIC_CHARACTER) :
   let fold t ~init ~f = List.fold_left t ~init ~f
 
   let compare (a : Char.t list) (b: Char.t list) = compare a b
+
+  let sub t ~index ~length =
+    let r = ref [] in
+    let c = ref 0 in
+    try
+      List.iteri t ~f:(fun i a ->
+          if i >= index + length then raise Not_found;
+          if index <= i then (
+            r:= a :: !r;
+            incr c;
+          );
+        );
+      if !c = length then Some (List.rev !r) else None
+    with
+    | Not_found -> Some (List.rev !r)
+
+
 end
 
 module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
