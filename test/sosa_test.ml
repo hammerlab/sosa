@@ -73,9 +73,31 @@ let do_basic_test (module Test : TEST_STRING) =
   let test_ofto s =
     begin match Str.of_native_string s with
     | `Ok s2 ->
+      (* We test that when we can transform from `s2`, the opposite
+         conversion works: *)
       let back = Str.to_native_string s2 in
-      test_assert (sprintf "test_ofto %S <> %S" s back) (s = back)
+      test_assert (sprintf "test_ofto %S <> %S" s back) (s = back);
+
+      (* We test `Str.fold` against a potentially *very* slow
+         implementation using `Str.length` and `Str.get`. *)
+      let folding ~init ~f to_string =
+        let fold = Str.fold s2 ~init ~f in
+        let refold =
+          let r = ref init in
+          for i = 0 to Str.length s2 - 1 do
+            r := f !r (Option.value_exn (Str.get s2 ~index:i));
+          done;
+          !r in
+        test_assertf (fold = refold) "\nfold: %s\nrefold: %s"
+          (to_string fold) (to_string refold)
+      in
+      folding ~init:[] ~f:(fun p c -> c :: p)
+        (fun c -> String.concat ~sep:", " (List.map c Chr.to_string_hum));
+      folding ~init:42 ~f:(fun p c -> Hashtbl.hash (p, c)) (sprintf "%d");
+
     | `Error (`wrong_char_at i) ->
+      (* If the conversion fails, we check that the error value points
+         to an invalid character: *)
       test_assert (sprintf "test_ofto %S -> wrong char at index %d" s i)
         (Chr.read_from_native_string ~buf:s ~index:i = None)
     end;
@@ -104,6 +126,7 @@ let do_basic_test (module Test : TEST_STRING) =
       end
   in
   try_separators 300;
+
   ()
 
 
