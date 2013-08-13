@@ -95,6 +95,64 @@ let do_basic_test (module Test : TEST_STRING) =
         (fun c -> String.concat ~sep:", " (List.map c Chr.to_string_hum));
       folding ~init:42 ~f:(fun p c -> Hashtbl.hash (p, c)) (sprintf "%d");
 
+      (* This a function that displays an Str.t (extracts the
+         beginning and its size(s)) *)
+      let str_to_hum s =
+        sprintf "[%S.%d,%dB]"
+          (Str.to_native_string s |> sprintf "%s"
+           |> (fun s -> String.prefix s 10))
+          (Str.length s)
+          (Str.to_native_string s |> String.length) in
+
+
+      (* We test `Str.sub` by comparing it with an implementation
+         based on `Str.get`. *)
+      let subbing ~index ~length =
+        let subopt = Str.sub s2 ~index ~length in
+        let r = ref [] in
+        for i = index to index + length - 1 do
+          r := Str.get s2 ~index:i :: !r
+        done;
+        begin match subopt with
+        | Some sub ->
+          (* If `Str.sub` returned some then `r` contains all the
+             characters in reverse order: *)
+          let bus =
+            test_assertf (List.for_all !r ((<>) None)) "sub %d %d: r has a None"
+              index length;
+            Str.concat ~sep:Str.empty
+              (List.rev_map (List.filter_opt !r) ~f:(Str.of_character)) in
+          (* We compare the result `sub` and the re-computed version `bus`: *)
+          test_assertf (Str.compare sub bus = 0) "sub %s %d %d\n→ Some %s ≠ %s"
+            (str_to_hum s2) index length (str_to_hum sub) (str_to_hum bus)
+        | None ->
+          test_assertf (!r = [] || List.exists !r ((=) None))
+            "sub %s %d %d → None" (str_to_hum s2) index length
+        end
+      in
+      subbing ~index:0 ~length:0;
+      subbing ~index:0 ~length:(Str.length s2);
+      subbing ~index:2 ~length:(Str.length s2);
+      subbing ~index:4 ~length:(Str.length s2);
+      subbing ~index:5 ~length:(Str.length s2);
+      subbing ~index:0 ~length:1;
+      subbing ~index:0 ~length:3;
+      subbing ~index:0 ~length:30;
+      subbing ~index:1 ~length:30;
+      subbing ~index:2 ~length:30;
+      subbing ~index:4 ~length:3;
+      subbing ~index:40 ~length:3;
+      subbing ~index:400 ~length:3;
+      subbing ~index:0 ~length:(Str.length s2 - 0);
+      subbing ~index:2 ~length:(Str.length s2 - 2);
+      subbing ~index:4 ~length:(Str.length s2 - 4);
+      subbing ~index:5 ~length:(Str.length s2 - 5);
+      subbing ~index:0 ~length:(Str.length s2 - 0 - 1);
+      subbing ~index:2 ~length:(Str.length s2 - 2 - 1);
+      subbing ~index:4 ~length:(Str.length s2 - 4 - 1);
+      subbing ~index:5 ~length:(Str.length s2 - 5 - 1);
+
+
     | `Error (`wrong_char_at i) ->
       (* If the conversion fails, we check that the error value points
          to an invalid character: *)
