@@ -9,7 +9,19 @@ modules implementing one or more of those interfaces.
 The APIs define what a *character* and a *string of characters* should
 be.
 
-The implementations are so far:
+APIs / Module Types
+-------------------
+
+We have:
+
+- `BASIC_CHARACTER`: characters of any length.
+- `BASIC_STRING`: immutable strings of (potentially abstract) characters.
+- `UNSAFELY_MUTABLE`: mutability of some string implementations
+  (“unsafe” meaning that they break immutability
+  invariants/assumptions).
+
+The Implementations
+-------------------
 
 ### Native OCaml Chars
 
@@ -18,8 +30,9 @@ OCaml's `char` type.
 
 ### Native OCaml Strings
 
-The `Native_string` module implements `BASIC_STRING` with OCaml's
-`string` type (and hence `Native_character`).
+The `Native_string` module implements `BASIC_STRING` and
+`UNSAFELY_MUTABLE` with OCaml's `string` type (and hence
+`Native_character`).
 
 ### Lists
 
