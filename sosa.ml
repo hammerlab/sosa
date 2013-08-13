@@ -7,13 +7,13 @@ type ('a, 'b) result = [
 (** The type [result] is a reusable version the classical [Result.t]
     type. *)
 
-module type BASIC_CHAR = sig
+module type BASIC_CHARACTER = sig
   (** The minimal API implemented by characters. *)
 
   type t
   (** The type representing the character. *)
 
-  val of_ocaml_char: char -> t option
+  val of_native_char: char -> t option
   (** Import a native [char], returns [None] if the character is not
       representable. *)
 
@@ -23,22 +23,22 @@ module type BASIC_CHAR = sig
 
   val size: t -> int
   (** Get the size of the character, the exact semantics are
-      implementation-specific (c.f. {!write_to_ocaml_string}) *)
+      implementation-specific (c.f. {!write_to_native_string}) *)
 
 
-  val write_to_ocaml_string: t -> buf:String.t -> index:int -> (int, [> `out_of_bounds]) result
-  (** [write_to_ocaml_string c ~buf ~index] serializes
+  val write_to_native_string: t -> buf:String.t -> index:int -> (int, [> `out_of_bounds]) result
+  (** [write_to_native_string c ~buf ~index] serializes
       the character [c] at position [index] in the native string
       [buf] (writing [size c] units). Note, as with {!size} that the
       meaning of [index] is implementation dependent (can be the {i
       index-th} byte, the {i index-th} bit, etc.). *)
 
-  val to_ocaml_string: t -> String.t
-  (** [to_ocaml_string c] creates a string containing the
+  val to_native_string: t -> String.t
+  (** [to_native_string c] creates a string containing the
       serialization of the character [c] (if [size c] is not a
       multiple of 8, the end-padding is undefined). *)
 
-  val read_from_ocaml_string: buf:String.t -> index:int -> (t * int) option
+  val read_from_native_string: buf:String.t -> index:int -> (t * int) option
   (** Read a character at a given [index] in a native string, returns
       [Some (c, s)], the character [c] and the number of units read [s],
       or [None] if there is no representable/valid character at that
@@ -86,13 +86,13 @@ module type BASIC_STRING = sig
   val concat: ?sep:t -> t list -> t
   (** The classical [concat] function. *)
 
-  val of_ocaml_string: string -> (t, [> `wrong_char_at of int ]) result
+  val of_native_string: string -> (t, [> `wrong_char_at of int ]) result
   (** Convert a native string to the current reprensentation.
-      [of_ocaml_string] returns [`Error (`wrong_char_at index)]
+      [of_native_string] returns [`Error (`wrong_char_at index)]
       when the native string contains a character not representable
       with the type [character]. *)
 
-  val to_ocaml_string: t -> string
+  val to_native_string: t -> string
   (** Serialize the string to a native string. *)
 
   val to_string_hum: t -> string
@@ -120,34 +120,34 @@ end
 open Internal_pervasives
 
 
-module type NATIVE_CHAR = BASIC_CHAR with type t = char
+module type NATIVE_CHARACTER = BASIC_CHARACTER with type t = char
 
 module type NATIVE_STRING =
   BASIC_STRING
   with type t = String.t
   with type character = char
 
-module Native_char : NATIVE_CHAR = struct
+module Native_character : NATIVE_CHARACTER = struct
 
     type t = char
 
-    let of_ocaml_char x = Some x
+    let of_native_char x = Some x
     let of_int x =
       try Some (char_of_int x) with _ -> None
 
     let size _ = 1
 
     let is_print t = ' ' <= t && t <= '~'
-    let to_ocaml_string x = String.make 1 x
+    let to_native_string x = String.make 1 x
     let to_string_hum x =
       if is_print x then String.make 1 x
       else sprintf "0x%2x" (int_of_char x)
 
-    let write_to_ocaml_string c ~buf ~index =
+    let write_to_native_string c ~buf ~index =
       try buf.[index] <- c; return 1
       with _ -> fail `out_of_bounds
 
-    let read_from_ocaml_string ~buf ~index =
+    let read_from_native_string ~buf ~index =
       try Some (buf.[index], 1)
       with _ -> None
 
@@ -181,15 +181,15 @@ module Native_string : NATIVE_STRING = struct
       Some cop
     end
 
-  let to_ocaml_string x = String.copy x
-  let of_ocaml_string x = return (String.copy x)
+  let to_native_string x = String.copy x
+  let of_native_string x = return (String.copy x)
   let to_string_hum x = sprintf "%S" x
 
   let concat ?(sep="") sl = concat ~sep sl
 
 end
 
-module List_of (Char: BASIC_CHAR) :
+module List_of (Char: BASIC_CHARACTER) :
   BASIC_STRING
   with type character = Char.t
   with type t = Char.t list = struct
@@ -217,7 +217,7 @@ module List_of (Char: BASIC_CHAR) :
     in
     loop 0 [] s
 
-  let of_ocaml_string s =
+  let of_native_string s =
     let module With_exn = struct
       exception WChar of int
       let f buf =
@@ -226,7 +226,7 @@ module List_of (Char: BASIC_CHAR) :
           let rec loop index =
             if index < String.length buf
             then
-              begin match Char.read_from_ocaml_string ~buf ~index with
+              begin match Char.read_from_native_string ~buf ~index with
               | Some (s, size) ->  x := s :: !x; loop (index + size)
               | None -> raise (WChar index)
               end
@@ -238,19 +238,19 @@ module List_of (Char: BASIC_CHAR) :
     end in
     With_exn.f s
 
-  let to_ocaml_string l =
+  let to_native_string l =
     let length =
       List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c) in
     let buf = String.make length 'B' in
     let index = ref 0 in
     List.iter l ~f:begin fun c ->
-      match Char.write_to_ocaml_string c ~index:!index ~buf with
+      match Char.write_to_native_string c ~index:!index ~buf with
       | `Ok siz ->  index := !index + siz
-      | `Error `out_of_bounds -> failwith "Bug in List_of.to_ocaml_string"
+      | `Error `out_of_bounds -> failwith "Bug in List_of.to_native_string"
     end;
     buf
 
-  let to_string_hum l = sprintf "%S" (to_ocaml_string l)
+  let to_string_hum l = sprintf "%S" (to_native_string l)
 
   let concat ?(sep=[]) ll =
     match ll with
@@ -269,11 +269,11 @@ module List_of (Char: BASIC_CHAR) :
 
 end
 
-module Int_utf8_character : BASIC_CHAR with type t = int = struct
+module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
 
     type t = int
 
-    let of_ocaml_char x = Some (int_of_char x)
+    let of_native_char x = Some (int_of_char x)
 
     let of_int x =
       if x land 0x7FFF_FFFF = x then Some x else None
@@ -292,7 +292,7 @@ module Int_utf8_character : BASIC_CHAR with type t = int = struct
       if is_print x then String.make 1 (char_of_int x)
       else sprintf "&#x%X;" x
 
-    let write_to_ocaml_string c ~buf ~index =
+    let write_to_native_string c ~buf ~index =
       let sz = size c in
       try
         let first_byte =
@@ -313,7 +313,7 @@ module Int_utf8_character : BASIC_CHAR with type t = int = struct
         return sz
       with _ -> fail `out_of_bounds
 
-    let read_from_ocaml_string ~buf ~index =
+    let read_from_native_string ~buf ~index =
       (* dbg "buf: %S" buf; *)
       try
         let first_char = buf.[index] |> int_of_char in
@@ -343,9 +343,9 @@ module Int_utf8_character : BASIC_CHAR with type t = int = struct
         Some (!the_int, size)
       with _ -> None
 
-    let to_ocaml_string x =
+    let to_native_string x =
       let buf = String.make (size x) 'B' in
-      begin match write_to_ocaml_string x ~buf ~index:0 with
+      begin match write_to_native_string x ~buf ~index:0 with
       | `Ok _ -> ()
       | `Error e -> assert false
       end;

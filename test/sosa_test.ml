@@ -35,7 +35,7 @@ let say fmt = printf (fmt ^^ "\n%!")
 
 module type TEST_STRING = sig
   val test_name: string
-  module Chr: BASIC_CHAR
+  module Chr: BASIC_CHARACTER
   module Str: BASIC_STRING with type character = Chr.t
 end
 
@@ -65,19 +65,19 @@ let do_basic_test (module Test : TEST_STRING) =
 
   test_assertf (Str.length Str.empty = 0) "(length empty)";
   test_assertf (Str.is_empty Str.empty) "(is_empty empty)";
-  begin match Str.of_ocaml_string "" with
+  begin match Str.of_native_string "" with
   | `Ok o -> test_assertf (Str.is_empty o) "(is_empty \"\")";
-  | `Error _ -> test_assertf false "Str.of_ocaml_string %S -> Error" ""
+  | `Error _ -> test_assertf false "Str.of_native_string %S -> Error" ""
   end;
 
   let test_ofto s =
-    begin match Str.of_ocaml_string s with
+    begin match Str.of_native_string s with
     | `Ok s2 ->
-      let back = Str.to_ocaml_string s2 in
+      let back = Str.to_native_string s2 in
       test_assert (sprintf "test_ofto %S <> %S" s back) (s = back)
     | `Error (`wrong_char_at i) ->
       test_assert (sprintf "test_ofto %S -> wrong char at index %d" s i)
-        (Chr.read_from_ocaml_string ~buf:s ~index:i = None)
+        (Chr.read_from_native_string ~buf:s ~index:i = None)
     end;
   in
   List.iter random_strings test_ofto;
@@ -87,11 +87,11 @@ let do_basic_test (module Test : TEST_STRING) =
     if n = 0
     then say "WARNING: %s -> try_separators did not try anything" test_name
     else
-      begin match Str.of_ocaml_string sep with
+      begin match Str.of_native_string sep with
       | `Ok csep ->
         let viable_strings, converted =
           List.filter_map random_strings (fun s ->
-              match Str.of_ocaml_string s with
+              match Str.of_native_string s with
               | `Ok s2 ->  Some (s, s2)
               | `Error (`wrong_char_at c) -> None)
           |> List.unzip
@@ -99,7 +99,7 @@ let do_basic_test (module Test : TEST_STRING) =
         let concated = String.concat ~sep viable_strings in
         let concated2 = Str.concat ~sep:csep converted in
         test_assert (sprintf "try_separators %d" n)
-          (Str.to_ocaml_string concated2 = concated)
+          (Str.to_native_string concated2 = concated)
       | `Error _ -> try_separators (n - 1)
       end
   in
@@ -120,17 +120,17 @@ let utf8_specific_test () =
     "ß", 0xDF; (* German Stuff *)
   ] in
   List.iter ground_truth (fun (s, i) ->
-      let actual_test = Utf8.to_ocaml_string i in
+      let actual_test = Utf8.to_native_string i in
       test_assertf (actual_test = s) "utf8_specific_test: (%S, %d) Vs %S"
         s i actual_test;
-      begin match Utf8.read_from_ocaml_string ~buf:s ~index:0 with
+      begin match Utf8.read_from_native_string ~buf:s ~index:0 with
       | Some (v, sz) ->
         test_assertf (v = i)
-          "utf8_specific_test: Utf8.read_from_ocaml_string: %d <> %d" v i;
+          "utf8_specific_test: Utf8.read_from_native_string: %d <> %d" v i;
         test_assertf (sz = String.length s)
-          "utf8_specific_test: Utf8.read_from_ocaml_string: size %d Vs %S" sz s;
+          "utf8_specific_test: Utf8.read_from_native_string: size %d Vs %S" sz s;
       | None ->
-        test_assertf false "utf8_specific_test: Utf8.read_from_ocaml_string fail"
+        test_assertf false "utf8_specific_test: Utf8.read_from_native_string fail"
       end
     );
   ()
@@ -140,13 +140,13 @@ let utf8_specific_test () =
 let () =
   do_basic_test (module struct
       let test_name = "Both natives"
-      module Chr = Native_char
+      module Chr = Native_character
       module Str = Native_string
     end);
   do_basic_test (module struct
       let test_name = "List of natives"
-      module Chr = Native_char
-      module Str = List_of (Native_char)
+      module Chr = Native_character
+      module Str = List_of (Native_character)
   end);
   do_basic_test (module struct
       let test_name = "List of UTF-8 Integers"
