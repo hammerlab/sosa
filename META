@@ -1,4 +1,4 @@
-version = "0.0.1"
+version = "0.0.1-dev"
 description = "Sane OCaml String API"
 archive(byte) = "sosa.cma"
 archive(byte,plugin) = "sosa.cma"
