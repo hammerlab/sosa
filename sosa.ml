@@ -106,6 +106,10 @@ module type BASIC_STRING = sig
   val fold: t -> init:'a -> f:('a -> character -> 'a) -> 'a
   (** The standard [fold] function, see [List.fold_left] for example. *)
 
+  val compare: t -> t -> int
+  (** Comparison function (as expected by most common functors in the
+      ecosystem). *)
+
 end
 
 open Printf
@@ -284,6 +288,7 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let fold t ~init ~f = List.fold_left t ~init ~f
 
+  let compare (a : Char.t list) (b: Char.t list) = compare a b
 end
 
 module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
