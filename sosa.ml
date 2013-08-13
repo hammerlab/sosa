@@ -115,6 +115,36 @@ module type BASIC_STRING = sig
 
 end
 
+module type UNSAFELY_MUTABLE = sig
+  (** This interface defines functions that may be implemented by
+      particular string types that are actually mutable.
+
+      They are considered “unsafe” because they break the immutability
+      invariants assumed by the rest of this library; you'd better
+      know what you're doing. *)
+
+  type t
+  type character
+
+  val mutate: t -> index:int -> character -> (unit, [> `out_of_bounds ]) result
+  (** Set the [index]-th character of the string. *)
+
+  val mutate_exn: t -> index:int -> character -> unit
+  (** Set the [index]-th character of the string, but fail with a
+      non-specified exception. *)
+
+  val blit:
+    src:t -> src_index:int -> dst:t -> dst_index:int -> length:int ->
+    (unit, [> `out_of_bounds ]) result
+  (** Copy [length] characters from [src] (starting at [src_index]) to
+      [dst] (starting at [dst_index]). *)
+
+  val blit_exn:
+    src:t -> src_index:int -> dst:t -> dst_index:int -> length:int -> unit
+  (** Like {!blit} but fail with a non-specified exception. *)
+
+end
+
 open Printf
 
 module Internal_pervasives = struct
