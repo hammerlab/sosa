@@ -48,6 +48,10 @@ module type BASIC_CHARACTER = sig
   (** Convert the character to a human-readable native string (in the
       spirit of [sprintf "%s"]). *)
 
+  val compare: t -> t -> int
+  (** Comparison function (as expected by most common functors in the
+      ecosystem). *)
+
 end
 
 module type BASIC_STRING = sig
@@ -136,6 +140,7 @@ module Native_character : NATIVE_CHARACTER = struct
     let of_native_char x = Some x
     let of_int x =
       try Some (char_of_int x) with _ -> None
+    let compare = Char.compare
 
     let size _ = 1
 
@@ -287,6 +292,7 @@ module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
 
     let of_native_char x = Some (int_of_char x)
 
+    let compare (i: int) (j : int) = compare i j
     let of_int x =
       if x land 0x7FFF_FFFF = x then Some x else None
 
