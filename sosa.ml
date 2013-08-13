@@ -69,6 +69,9 @@ module type BASIC_STRING = sig
   val is_empty: t -> bool
   (** Test whether a string is empty. *)
 
+  val make: int -> character -> t
+  (** Build a new string like [String.make]. *)
+
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
 
@@ -322,6 +325,12 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let empty = []
   let is_empty = (=) []
+
+  let make length c =
+    let rec loop n acc =
+      if n >= length then acc else loop (n + 1) (c :: acc)
+    in
+    loop 0 []
 
   let of_character c = [c]
   let of_character_list cl = cl
