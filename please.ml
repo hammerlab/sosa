@@ -25,6 +25,7 @@
    Sys.chdir "../";
    ()
 
+
 let build () =
   in_build_directory (fun () ->
       chain [
@@ -38,11 +39,21 @@ let build () =
       ];
     )
 
+
 let install () =
     in_build_directory (fun () ->
         chain [
           "ocamlfind install sosa ../META sosa.cmx sosa.cmo sosa.cma sosa.cmi sosa.cmxa sosa.cmxs sosa.a sosa.o"
         ])
+
+
+let merlinize () =
+    chain [
+      "echo 'S .' > .merlin";
+      "echo 'B _build' >> .merlin";
+      
+     ]
+
 
 let build_doc () =
     in_build_directory (fun () ->
@@ -51,7 +62,9 @@ let build_doc () =
                        sprintf "ocamlfind ocamldoc  -charset UTF-8 -keep-code -colorize-code -html sosa.ml -d doc/";
         ])
 
+
 let name = "sosa"
+
 let () =
   match args with
   | _ :: "build" :: [] ->
@@ -68,6 +81,7 @@ let () =
     chain [
       sprintf "ocamlfind remove %s" name
     ]
+  | _ :: "merlinize" :: [] -> merlinize ()
   | _ :: "clean" :: []
   | _ :: "C" :: [] ->
     cmdf "rm -fr _build"
@@ -77,3 +91,4 @@ let () =
     say "usage: ocaml %s [build|build_doc|install|uninstall|clean]" Sys.argv.(0);
     exit 1
     
+
