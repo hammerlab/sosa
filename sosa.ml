@@ -7,6 +7,14 @@ type ('a, 'b) result = [
 (** The type [result] is a reusable version the classical [Result.t]
     type. *)
 
+module type OUTPUT_MODEL = sig
+  type ('a, 'b, 'c) thread
+  type ('a, 'b, 'c) channel
+  val return: 'a -> ('a, 'b, 'c) thread
+  val bind: ('a, 'b, 'c) thread -> ('a -> ('d, 'b, 'c) thread) -> ('d, 'b, 'c) thread
+  val output: ('a, 'b, 'c) channel -> String.t -> (unit, 'e, 'f) thread
+end
+
 module type BASIC_CHARACTER = sig
   (** The minimal API implemented by characters. *)
 
@@ -122,6 +130,11 @@ module type BASIC_STRING = sig
   val map: t -> f:(character -> character) -> t
   (** Make a new string by applying [f] to all characters of the
       input. *)
+
+  module Make_output: functor (
+    Model: OUTPUT_MODEL) -> sig
+    val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
+  end
 
 end
 
@@ -312,6 +325,9 @@ module Native_string : NATIVE_STRING = struct
 
   let iter t ~f = String.iter t ~f
   let map t ~f = String.map t ~f
+
+  module Make_output (Model: OUTPUT_MODEL) = Model
+
 end
 
 module List_of (Char: BASIC_CHARACTER) :
@@ -418,6 +434,16 @@ module List_of (Char: BASIC_CHARACTER) :
     with
     | Not_found -> Some (List.rev !r)
 
+  module Make_output (Model: OUTPUT_MODEL) = struct
+
+    let (>>=) = Model.bind
+
+    let output chan l =
+      List.fold_left l ~init:(Model.return ()) ~f:(fun prev_m c ->
+          prev_m >>= fun () ->
+          Model.output chan (Char.to_native_string c))
+
+  end
 
 end
 
