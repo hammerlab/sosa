@@ -199,6 +199,36 @@ let do_basic_test (module Test : TEST_STRING) =
       done;
     | None -> ()
   done;
+
+  (* We test the`Str.Make_output` functor with `Buffer.t` by writing
+     directly the transformable functions and though Out.output and
+     comparing the resulting buffer contents.
+  *)
+  let module Out = Str.Make_output(struct
+      type ('a, 'b, 'c) thread = 'a
+      type ('a, 'b, 'c) channel = Buffer.t
+      let return x = x
+      let bind x f = f x
+      let output buf s =
+        (* say "adding %S" s;; *)
+        Buffer.add_string buf s
+    end)
+  in
+  let buf_ground = Buffer.create 42 in
+  let buf_through_str = Buffer.create 42 in
+  let there_was_an_error = ref None in
+  List.iter random_strings (fun s ->
+      match Str.of_native_string s with
+      | `Ok o ->
+        Out.output buf_through_str o;
+        Buffer.add_string buf_ground s;
+      | `Error (`wrong_char_at i) ->
+        there_was_an_error := Some i);
+  test_assertf (Buffer.contents buf_ground = Buffer.contents buf_through_str)
+    "Str.Make_output test %S, %S"
+    (Buffer.contents buf_ground)
+    (Buffer.contents buf_through_str);
+
   ()
 
 
