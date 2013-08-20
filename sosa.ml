@@ -107,6 +107,11 @@ module type BASIC_STRING = sig
       when the native string contains a character not representable
       with the type [character]. *)
 
+  val of_native_substring: string -> offset:int -> length:int ->
+    (t, [> `wrong_char_at of int | `out_of_bounds ]) result
+  (** Convert a native string like [of_native_string] but take a
+      subset of the string. *)
+
   val to_native_string: t -> string
   (** Serialize the string to a native string. *)
 
@@ -302,6 +307,12 @@ module Native_string : NATIVE_STRING = struct
 
   let to_native_string x = String.copy x
   let of_native_string x = return (String.copy x)
+  let of_native_substring x ~offset ~length =
+    if length = 0 then return ""
+    else
+      try return (String.sub x offset length)
+      with e -> fail `out_of_bounds
+
   let to_string_hum x = sprintf "%S" x
 
   let concat ?(sep="") sl = concat ~sep sl
@@ -379,26 +390,43 @@ module List_of (Char: BASIC_CHARACTER) :
     in
     loop 0 [] s
 
+  let of_native_substring s ~offset ~length =
+    if length = 0 then return empty
+    else
+      begin
+        (if offset + length > String.length s
+         then fail `out_of_bounds
+         else return ())
+        >>= fun () ->
+        let module With_exn = struct
+          exception WChar of int
+          let f buf =
+            let x = ref [] in
+            try
+              let rec loop index =
+                if index < offset + length
+                then
+                  begin match Char.read_from_native_string ~buf ~index with
+                  | Some (s, size) when index + size <= offset + length ->
+                    x := s :: !x; loop (index + size)
+                  | Some (_, _ (* too big size *))
+                  | None -> raise (WChar index)
+                  end
+                else ()
+              in
+              loop offset;
+              return (List.rev !x)
+            with
+            | WChar c -> fail (`wrong_char_at c)
+        end in
+        With_exn.f s
+      end
+
   let of_native_string s =
-    let module With_exn = struct
-      exception WChar of int
-      let f buf =
-        let x = ref [] in
-        try
-          let rec loop index =
-            if index < String.length buf
-            then
-              begin match Char.read_from_native_string ~buf ~index with
-              | Some (s, size) ->  x := s :: !x; loop (index + size)
-              | None -> raise (WChar index)
-              end
-            else ()
-          in
-          loop 0;
-          return (List.rev !x)
-        with WChar c -> fail (`wrong_char_at c)
-    end in
-    With_exn.f s
+    match of_native_substring s ~offset:0 ~length:(String.length s) with
+    | `Ok o -> return o
+    | `Error (`wrong_char_at c) -> fail (`wrong_char_at c)
+    | `Error `out_of_bounds -> (* There is a bug ! *) assert false
 
   let to_native_string l =
     let length =
