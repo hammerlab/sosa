@@ -229,6 +229,29 @@ let do_basic_test (module Test : TEST_STRING) =
     (Buffer.contents buf_ground)
     (Buffer.contents buf_through_str);
 
+  (* Some tests of `for_all` and `exists`: *)
+  List.iter random_strings (fun str ->
+      match Str.of_native_string str with
+      | `Ok o ->
+        test_assertf (Str.for_all o (fun _ -> true) = true) "∀ true = true";
+        test_assertf (Str.for_all o (fun _ -> false) = false || Str.is_empty o)
+          "∀ false in %S = false" str;
+        test_assertf (Str.exists o (fun _ -> true) = true || Str.is_empty o)
+          "∃ true => true";
+        test_assertf (Str.exists o (fun _ -> false) = false)
+          "∃ false in %S = false" str;
+        let i_did_false = ref false in
+        let comp = Str.for_all o (fun _ ->
+            if Random.bool () then true else (i_did_false := true; false)) in
+        test_assertf (comp = not !i_did_false) "random test for_all";
+        let i_did_true = ref false in
+        let comp = Str.exists o (fun _ ->
+            if Random.bool () then (i_did_true := true; true) else false) in
+        test_assertf (comp = !i_did_true) "random test exists";
+      | `Error (`wrong_char_at i) -> ()
+    );
+
+
   ()
 
 
