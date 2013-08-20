@@ -61,7 +61,7 @@ let test_native_subjects =
   "" :: "A" :: "\x00" :: "Invalid UTF-8: \197"
   :: "Invalid UTF-8 again: \197\000"
   :: "Invalid UTF-8 again: \197\000 "
-  :: List.init 200 (fun i -> random_string (i * 4 + 1))
+  :: List.init 50 (fun i -> random_string (i * 4 + 1))
 
 let do_basic_test (module Test : TEST_STRING) =
   let open Test in
@@ -290,6 +290,63 @@ let do_basic_test (module Test : TEST_STRING) =
   test_assertf (!i_have_been_to_wrong_char || not can_have_wrong_char)
     "i_have_been_to_wrong_char";
   test_assertf !i_have_been_to_out_of_bounds "i_have_been_to_out_of_bounds";
+
+
+  (* A test of index_of_character and index_of_character_reverse, we
+     create a big cartesian product
+     (nat_string, (from_index, char_to_find)) and we run both searches. *)
+  let froms = List.init 10 (fun i -> Random.int (i + 1)) in
+  let chars = List.init 10 (fun i -> Chr.of_int i) |> List.filter_opt in
+  let to_do =
+    List.(cartesian_product test_native_subjects (cartesian_product froms chars))
+  in
+  let i_went_to_some_index = ref 0 in
+  let i_went_to_none_from_length = ref 0 in
+  let i_went_to_none_from_absent = ref 0 in
+  let rev_i_went_to_some_index = ref 0 in
+  let rev_i_went_to_none_from_length = ref 0 in
+  let rev_i_went_to_none_from_absent = ref 0 in
+  List.iter to_do (fun (nat, (from, char)) ->
+      match Str.of_native_string nat with
+      | `Ok o ->
+        begin match Str.index_of_character o ~from char with
+        | Some index ->
+          incr i_went_to_some_index;
+          test_assertf (Str.get o index = Some char) "find | get";
+        | None ->
+          if from > Str.length o - 1 then (incr i_went_to_none_from_length)
+          else begin
+            for i = from to Str.length o - 1 do
+              test_assertf (Str.get o i <> Some char)
+                "not found => can't find, i: %d, from : %d, length: %d"
+                i from (Str.length o);
+            done;
+            incr i_went_to_none_from_absent;
+          end
+        end;
+        begin match Str.index_of_character_reverse o ~from char with
+        | Some index ->
+          incr rev_i_went_to_some_index;
+          test_assertf (Str.get o index = Some char) "rev, find | get";
+        | None ->
+          if from > Str.length o - 1 then (incr rev_i_went_to_none_from_length)
+          else begin
+            for i = from downto 0 do
+              test_assertf (Str.get o i <> Some char)
+                "rev, not found => can't find, i: %d, from : %d, length: %d"
+                i from (Str.length o);
+            done;
+            incr rev_i_went_to_none_from_absent;
+          end;
+        end;
+      | _ -> ());
+  test_assertf (!i_went_to_some_index > 0) "";
+  test_assertf (!i_went_to_none_from_length > 0) "";
+  test_assertf (!i_went_to_none_from_absent > 0) "";
+  test_assertf (!rev_i_went_to_some_index > 0) "";
+  test_assertf (!rev_i_went_to_none_from_length > 0) "";
+  test_assertf (!rev_i_went_to_none_from_absent > 0) "";
+
 
   ()
 
