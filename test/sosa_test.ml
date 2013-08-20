@@ -35,6 +35,7 @@ let say fmt = printf (fmt ^^ "\n%!")
 
 module type TEST_STRING = sig
   val test_name: string
+  val can_have_wrong_char: bool
   module Chr: BASIC_CHARACTER
   module Str: BASIC_STRING with type character = Chr.t
 end
@@ -251,6 +252,41 @@ let do_basic_test (module Test : TEST_STRING) =
       | `Error (`wrong_char_at i) -> ()
     );
 
+  (* First some basic tests of Str.of_native_substring, then the
+     bigger test with all the test strings. *)
+  test_assertf (Str.of_native_substring "" ~offset:0 ~length:0 = `Ok Str.empty)
+    "sub '' 0 0 = ''";
+  test_assertf (Str.of_native_substring "" ~offset:0 ~length:1 = `Error `out_of_bounds)
+    "sub '' 0 1 → out_of_bounds";
+  test_assertf (Str.of_native_substring "" ~offset:1 ~length:0 = `Ok Str.empty)
+    "sub '' 1 0 → ''";
+  test_assertf (Str.of_native_substring "" ~offset:1 ~length:1 = `Error `out_of_bounds)
+    "sub '' 1 1 → out_of_bounds";
+  let i_have_been_to_ok = ref false in
+  let i_have_been_to_wrong_char = ref false in
+  let i_have_been_to_out_of_bounds = ref false in
+  List.iter random_strings begin fun str ->
+    let offset = Random.int 42 in
+    let length = Random.int 42 in
+    let substr = try (String.sub str offset length) with _ -> "" in
+    begin match Str.of_native_substring str ~offset ~length with
+    | `Ok _ as o ->
+      i_have_been_to_ok := true;
+      test_assertf (o = (Str.of_native_string substr))
+        "sub %S %d %d → Ok" str offset length;
+    | `Error (`wrong_char_at c) ->
+      i_have_been_to_wrong_char := true;
+      test_assertf (Str.of_native_string substr = `Error (`wrong_char_at (c - offset)))
+        "sub %S %d %d → Ok" str offset length;
+    | `Error `out_of_bounds ->
+      i_have_been_to_out_of_bounds := true;
+      test_assertf (substr = "") "sub out_of_bounds"
+    end;
+  end;
+  test_assertf !i_have_been_to_ok "i_have_been_to_ok";
+  test_assertf (!i_have_been_to_wrong_char || not can_have_wrong_char)
+    "i_have_been_to_wrong_char";
+  test_assertf !i_have_been_to_out_of_bounds "i_have_been_to_out_of_bounds";
 
   ()
 
@@ -288,16 +324,19 @@ let utf8_specific_test () =
 let () =
   do_basic_test (module struct
       let test_name = "Both natives"
+      let can_have_wrong_char = false
       module Chr = Native_character
       module Str = Native_string
     end);
   do_basic_test (module struct
       let test_name = "List of natives"
+      let can_have_wrong_char = false
       module Chr = Native_character
       module Str = List_of (Native_character)
   end);
   do_basic_test (module struct
       let test_name = "List of UTF-8 Integers"
+      let can_have_wrong_char = true
       module Chr = Int_utf8_character
       module Str = List_of (Int_utf8_character)
   end);
