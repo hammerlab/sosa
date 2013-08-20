@@ -143,6 +143,14 @@ module type BASIC_STRING = sig
   (** Return [true] if-and-only-if [f] returns [true] on at least one
       character. *)
 
+  val index_of_character: t -> ?from:int -> character -> int option
+  (** Find the first occurrence of a character in the string (starting
+      at position [from]). *)
+
+  val index_of_character_reverse: t -> ?from:int -> character -> int option
+  (** Do like [index_of_character] but start from the end of the string. *)
+
+
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
   end
@@ -351,6 +359,13 @@ module Native_string : NATIVE_STRING = struct
     try (iter t (fun x -> if f x then raise Not_found else ()); false)
     with Not_found -> true
 
+  let index_of_character t ?(from=0) c =
+    try Some (String.index_from t from c)
+    with _ -> None
+
+  let index_of_character_reverse t ?(from=0) c =
+    try Some (String.rindex_from t from c)
+    with _ -> None
 
   module Make_output (Model: OUTPUT_MODEL) = Model
 
@@ -478,6 +493,32 @@ module List_of (Char: BASIC_CHARACTER) :
       if !c = length then Some (List.rev !r) else None
     with
     | Not_found -> Some (List.rev !r)
+
+  let index_of_character t ?(from=0) c =
+    let index = ref 0 in
+    try begin
+      List.iter t ~f:(fun x ->
+          if !index >= from
+          then
+            if x = c
+            then failwith "found"
+            else incr index
+          else incr index);
+      None
+    end
+    with _ -> Some !index
+
+  let index_of_character_reverse t ?(from=0) c =
+    let length, rev =
+      let rec loop lgth acc = function
+      | [] -> (lgth, acc)
+      | h :: t -> loop (lgth + 1) (h :: acc) t in
+      loop 0 [] t
+    in
+    match index_of_character rev ~from:(length - from - 1) c with
+    | Some c -> Some (length - c - 1)
+    | None -> None
+
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
