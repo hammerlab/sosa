@@ -86,9 +86,9 @@ let () =
   | _ :: "C" :: [] ->
     cmdf "rm -fr _build"
   | _ :: "help" :: [] ->
-    say "usage: ocaml %s [build|build_doc|install|uninstall|clean]" Sys.argv.(0);
+    say "usage: ocaml %s [build|build_doc|install|uninstall|clean|merlinize]" Sys.argv.(0);
   | _ ->
-    say "usage: ocaml %s [build|build_doc|install|uninstall|clean]" Sys.argv.(0);
+    say "usage: ocaml %s [build|build_doc|install|uninstall|clean|merlinize]" Sys.argv.(0);
     exit 1
     
 
