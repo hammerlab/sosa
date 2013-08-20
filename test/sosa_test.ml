@@ -57,8 +57,11 @@ let random_string i =
   String.init length (fun _ -> Char.of_int_exn (Random.int 256))
 
 
-let random_strings =
-  List.init 200 (fun i -> random_string (i * 4 + 1))
+let test_native_subjects =
+  "" :: "A" :: "\x00" :: "Invalid UTF-8: \197"
+  :: "Invalid UTF-8 again: \197\000"
+  :: "Invalid UTF-8 again: \197\000 "
+  :: List.init 200 (fun i -> random_string (i * 4 + 1))
 
 let do_basic_test (module Test : TEST_STRING) =
   let open Test in
@@ -161,7 +164,7 @@ let do_basic_test (module Test : TEST_STRING) =
         (Chr.read_from_native_string ~buf:s ~index:i = None)
     end;
   in
-  List.iter random_strings test_ofto;
+  List.iter test_native_subjects test_ofto;
 
   let rec try_separators n =
     let sep = random_string n in
@@ -171,7 +174,7 @@ let do_basic_test (module Test : TEST_STRING) =
       begin match Str.of_native_string sep with
       | `Ok csep ->
         let viable_strings, converted =
-          List.filter_map random_strings (fun s ->
+          List.filter_map test_native_subjects (fun s ->
               match Str.of_native_string s with
               | `Ok s2 ->  Some (s, s2)
               | `Error (`wrong_char_at c) -> None)
@@ -218,7 +221,7 @@ let do_basic_test (module Test : TEST_STRING) =
   let buf_ground = Buffer.create 42 in
   let buf_through_str = Buffer.create 42 in
   let there_was_an_error = ref None in
-  List.iter random_strings (fun s ->
+  List.iter test_native_subjects (fun s ->
       match Str.of_native_string s with
       | `Ok o ->
         Out.output buf_through_str o;
@@ -231,7 +234,7 @@ let do_basic_test (module Test : TEST_STRING) =
     (Buffer.contents buf_through_str);
 
   (* Some tests of `for_all` and `exists`: *)
-  List.iter random_strings (fun str ->
+  List.iter test_native_subjects (fun str ->
       match Str.of_native_string str with
       | `Ok o ->
         test_assertf (Str.for_all o (fun _ -> true) = true) "∀ true = true";
@@ -265,7 +268,7 @@ let do_basic_test (module Test : TEST_STRING) =
   let i_have_been_to_ok = ref false in
   let i_have_been_to_wrong_char = ref false in
   let i_have_been_to_out_of_bounds = ref false in
-  List.iter random_strings begin fun str ->
+  List.iter test_native_subjects begin fun str ->
     let offset = Random.int 42 in
     let length = Random.int 42 in
     let substr = try (String.sub str offset length) with _ -> "" in
