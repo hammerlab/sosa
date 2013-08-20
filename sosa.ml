@@ -131,8 +131,14 @@ module type BASIC_STRING = sig
   (** Make a new string by applying [f] to all characters of the
       input. *)
 
-  module Make_output: functor (
-    Model: OUTPUT_MODEL) -> sig
+  val for_all: t -> f:(character -> bool) -> bool
+  (** Return [true] if-and-only-if [f] returns [true] on all characters. *)
+
+  val exists: t -> f:(character -> bool) -> bool
+  (** Return [true] if-and-only-if [f] returns [true] on at least one
+      character. *)
+
+  module Make_output: functor (Model: OUTPUT_MODEL) -> sig
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
   end
 
@@ -326,6 +332,15 @@ module Native_string : NATIVE_STRING = struct
   let iter t ~f = String.iter t ~f
   let map t ~f = String.map t ~f
 
+  let for_all t ~f =
+    try (iter t (fun x -> if not (f x) then raise Not_found else ()); true)
+    with Not_found -> false
+
+  let exists t ~f =
+    try (iter t (fun x -> if f x then raise Not_found else ()); false)
+    with Not_found -> true
+
+
   module Make_output (Model: OUTPUT_MODEL) = Model
 
 end
@@ -416,6 +431,8 @@ module List_of (Char: BASIC_CHARACTER) :
   let iter t ~f = List.iter t ~f
   let fold t ~init ~f = List.fold_left t ~init ~f
   let map = Core_list_map.map
+  let for_all t ~f = List.for_all t ~f
+  let exists t ~f = List.exists t ~f
 
   let compare (a : Char.t list) (b: Char.t list) = compare a b
 
