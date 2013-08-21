@@ -15,6 +15,30 @@ module type OUTPUT_MODEL = sig
   val output: ('a, 'b, 'c) channel -> String.t -> (unit, 'e, 'f) thread
 end
 
+module type NATIVE_CONVERSIONS = sig
+  (** API definition of conversions from native OCaml strings to a
+      given string type or vice-versa. *)
+
+  type t
+  (** The string type. *)
+
+  val of_native_string: string -> (t, [> `wrong_char_at of int ]) result
+  (** Convert a native string to the current reprensentation.
+      [of_native_string] returns [`Error (`wrong_char_at index)]
+      when the native string contains a character not representable
+      with the type [character]. *)
+
+  val of_native_substring: string -> offset:int -> length:int ->
+    (t, [> `wrong_char_at of int | `out_of_bounds ]) result
+  (** Convert a native string like [of_native_string] but take a
+      subset of the string. *)
+
+  val to_native_string: t -> string
+  (** Serialize the string to a native string. *)
+
+end
+
+
 module type BASIC_CHARACTER = sig
   (** The minimal API implemented by characters. *)
 
@@ -101,6 +125,8 @@ module type BASIC_STRING = sig
   val concat: ?sep:t -> t list -> t
   (** The classical [concat] function. *)
 
+  include NATIVE_CONVERSIONS with type t := t
+    (*
   val of_native_string: string -> (t, [> `wrong_char_at of int ]) result
   (** Convert a native string to the current reprensentation.
       [of_native_string] returns [`Error (`wrong_char_at index)]
@@ -114,6 +140,7 @@ module type BASIC_STRING = sig
 
   val to_native_string: t -> string
   (** Serialize the string to a native string. *)
+  *)
 
   val to_string_hum: t -> string
   (** Convert the string to a human-readable native string (à la
@@ -371,6 +398,74 @@ module Native_string : NATIVE_STRING = struct
 
 end
 
+(* Module to help build `of_native_substring` and
+   `of_native_string` functions, while being aware of variable sized
+   characters. *)
+module Make_native_conversions = struct
+
+
+  let of_native_substring
+      ~empty ~init ~on_new_character ~finalize
+      ~read_character_from_native_string
+      s ~offset ~length =
+    if length = 0 then return empty
+    else
+      begin
+        (if offset + length > String.length s
+         then fail `out_of_bounds
+         else return ())
+        >>= fun () ->
+        let module With_exn = struct
+          exception WChar of int
+          let f buf =
+            let x = init () in
+            try
+              let rec loop index =
+                if index < offset + length
+                then
+                  begin match read_character_from_native_string ~buf ~index with
+                  | Some (s, size) when index + size <= offset + length ->
+                    on_new_character x s;
+                    loop (index + size)
+                  | Some (_, _ (* too big size *))
+                  | None -> raise (WChar index)
+                  end
+                else ()
+              in
+              loop offset;
+              return (finalize x)
+            with
+            | WChar c -> fail (`wrong_char_at c)
+        end in
+        With_exn.f s
+      end
+
+  let of_native_string of_native_substring s =
+    match of_native_substring s ~offset:0 ~length:(String.length s) with
+    | `Ok o -> return o
+    | `Error (`wrong_char_at c) -> fail (`wrong_char_at c)
+    | `Error `out_of_bounds -> (* There is a bug ! *) assert false
+
+
+  let to_native_string_knowing_size
+      ~future_size ~iter ~write_char_to_native_string l =
+    let length = future_size l in
+    let buf = String.make length 'B' in
+    let index = ref 0 in
+    iter l ~f:begin fun c ->
+      match write_char_to_native_string c ~buf ~index:!index with
+      | `Ok siz ->  index := !index + siz
+      | `Error `out_of_bounds ->
+        failwith "Bug in Make_native_conversions.to_native_string"
+    end;
+    buf
+
+end
+
+
+
+
+
 module List_of (Char: BASIC_CHARACTER) :
   BASIC_STRING
   with type character = Char.t
@@ -405,45 +500,32 @@ module List_of (Char: BASIC_CHARACTER) :
     in
     loop 0 [] s
 
+  let iter t ~f = List.iter t ~f
+  let fold t ~init ~f = List.fold_left t ~init ~f
+  let map = Core_list_map.map
+  let for_all t ~f = List.for_all t ~f
+  let exists t ~f = List.exists t ~f
+
+  let compare (a : Char.t list) (b: Char.t list) = compare a b
   let of_native_substring s ~offset ~length =
-    if length = 0 then return empty
-    else
-      begin
-        (if offset + length > String.length s
-         then fail `out_of_bounds
-         else return ())
-        >>= fun () ->
-        let module With_exn = struct
-          exception WChar of int
-          let f buf =
-            let x = ref [] in
-            try
-              let rec loop index =
-                if index < offset + length
-                then
-                  begin match Char.read_from_native_string ~buf ~index with
-                  | Some (s, size) when index + size <= offset + length ->
-                    x := s :: !x; loop (index + size)
-                  | Some (_, _ (* too big size *))
-                  | None -> raise (WChar index)
-                  end
-                else ()
-              in
-              loop offset;
-              return (List.rev !x)
-            with
-            | WChar c -> fail (`wrong_char_at c)
-        end in
-        With_exn.f s
-      end
+    Make_native_conversions.of_native_substring
+      ~empty ~init:(fun () -> ref [])
+      ~on_new_character:(fun x c -> x := c :: !x)
+      ~finalize:(fun x -> List.rev !x)
+      ~read_character_from_native_string:Char.read_from_native_string
+      s ~offset ~length
 
   let of_native_string s =
-    match of_native_substring s ~offset:0 ~length:(String.length s) with
-    | `Ok o -> return o
-    | `Error (`wrong_char_at c) -> fail (`wrong_char_at c)
-    | `Error `out_of_bounds -> (* There is a bug ! *) assert false
+    Make_native_conversions.of_native_string
+      of_native_substring s
 
   let to_native_string l =
+    Make_native_conversions.to_native_string_knowing_size
+      ~future_size:(fun l ->
+          List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c))
+      ~iter ~write_char_to_native_string:Char.write_to_native_string
+      l
+      (*
     let length =
       List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c) in
     let buf = String.make length 'B' in
@@ -454,6 +536,7 @@ module List_of (Char: BASIC_CHARACTER) :
       | `Error `out_of_bounds -> failwith "Bug in List_of.to_native_string"
     end;
     buf
+  *)
 
   let to_string_hum l = sprintf "%S" (to_native_string l)
 
@@ -471,13 +554,6 @@ module List_of (Char: BASIC_CHARACTER) :
   let length = List.length
 
 
-  let iter t ~f = List.iter t ~f
-  let fold t ~init ~f = List.fold_left t ~init ~f
-  let map = Core_list_map.map
-  let for_all t ~f = List.for_all t ~f
-  let exists t ~f = List.exists t ~f
-
-  let compare (a : Char.t list) (b: Char.t list) = compare a b
 
   let sub t ~index ~length =
     let r = ref [] in
@@ -616,5 +692,166 @@ module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
       end;
       buf
 
+end
 
+
+module type MINIMALISTIC_MUTABLE_STRING = sig
+  type character
+  type t
+
+  val empty: t
+  val make: int -> character -> t
+  val length: t -> int
+  val compare: t -> t -> int
+  val get: t -> int -> character
+  val set: t -> int -> character -> unit
+  val blit: src:t -> src_pos:int -> dst:t -> dst_pos:int -> len:int -> unit
+
+  include NATIVE_CONVERSIONS with type t := t
+end
+
+module Of_mutable
+    (S: MINIMALISTIC_MUTABLE_STRING) :
+  BASIC_STRING
+  with type character = S.character
+  with type t = S.t = struct
+
+  include S
+  let is_empty s =
+    try ignore (S.get s 0); false with _ -> true
+
+  let get t ~index = try Some (get t index) with _ -> None
+  let set t ~index ~v:c =
+    let lgth = length t in
+    if index < 0 || lgth <= index then None
+    else Some (
+        let res = make lgth (S.get t 0) in
+        blit ~dst:res ~dst_pos:0 ~src:t ~src_pos:0 ~len:lgth;
+        S.set res index c;
+        res)
+
+
+  let of_character c = make 1 c
+  let of_character_list cl =
+    match cl with
+    | [] -> empty
+    | one :: more ->
+      let res = make (List.length cl) one in
+      List.iteri more ~f:(fun  i c -> S.set res i c);
+      res
+
+  let rec concat  ?(sep=empty) tl =
+    match tl with
+    | [] -> empty
+    | one :: more ->
+      begin try
+        let first_char =
+          try S.get one 0
+          with _ -> S.get sep 0
+        in
+        (* dbg "got first_char"; *)
+        let sep_length = S.length sep in
+        let total_length =
+          List.fold_left ~init:(S.length one) more ~f:(fun prev s ->
+              prev + sep_length + S.length s) in
+        let dst = make total_length first_char in
+        let index = ref 0 in
+        blit ~dst ~dst_pos:!index ~src:one ~src_pos:0 ~len:(length one);
+        index := !index + (length one);
+        (* dbg "index: %d total_length: %d" !index total_length; *)
+        List.iter more ~f:(fun s ->
+            blit ~dst ~dst_pos:!index ~src:sep ~src_pos:0 ~len:sep_length;
+            index := !index + sep_length;
+            (* dbg "index: %d" !index; *)
+            blit ~dst ~dst_pos:!index ~src:s ~src_pos:0 ~len:(length s);
+            index := !index + (length s);
+            (* dbg "index: %d lgth_s: %d" !index (length s); *)
+          );
+        (* dbg "returning"; *)
+        dst
+      with _ ->
+        (* dbg "rec concat"; *)
+        concat more ~sep (* both one and sep are empty *)
+      end
+
+  let iter t ~f =
+    for i = 0 to length t - 1 do
+      f (S.get t i)
+    done
+
+  let fold t ~init ~f =
+    let x = ref init in
+    for i = 0 to length t - 1 do
+      x := f !x (S.get t i)
+    done;
+    !x
+
+  let map t ~f =
+    let lgth = (length t) in
+    if lgth = 0
+    then empty
+    else begin
+      let res = make lgth (S.get t 0) in
+      for i = 1 to lgth - 1 do
+        S.set res i (f (S.get t i))
+      done;
+      res
+    end
+
+  let for_all t ~f =
+    try
+      iter t (fun c -> if not (f c) then raise Not_found);
+      true
+    with _ -> false
+
+  let exists t ~f =
+    try
+      iter t (fun c -> if (f c) then raise Not_found);
+      false
+    with _ -> true
+
+  let sub t ~index ~length =
+    let lgth = S.length t in
+    if lgth = 0
+    then if length = 0 then Some empty else None
+    else begin
+      try
+        let res = make length (S.get t index) in
+        for i = 1 to length - 1 do
+          S.set res i (S.get t (index + i))
+        done;
+        Some res
+      with _ -> None
+    end
+
+  let to_string_hum t = to_native_string t |> sprintf "%S"
+
+  let index_of_character t ?(from=0) c =
+    let res = ref None in
+    try
+      for i = from to length t - 1 do
+        if S.get t i = c then (res:= Some i; raise Not_found)
+      done;
+      None
+    with _ -> !res
+
+  let index_of_character_reverse t ?from c =
+    let from = match from with Some s -> s  | None -> length t - 1 in
+    let res = ref None in
+    try
+      for i = from downto 0 do
+        if S.get t i = c then (res:= Some i; raise Not_found)
+      done;
+      None
+    with _ -> !res
+
+
+  module Make_output (Model: OUTPUT_MODEL) = struct
+
+    let (>>=) = Model.bind
+
+    let output chan t =
+      Model.output chan (to_native_string t)
+
+  end
 end
