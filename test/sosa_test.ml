@@ -166,15 +166,22 @@ let do_basic_test (module Test : TEST_STRING) =
   in
   List.iter test_native_subjects test_ofto;
 
+  let tried_separators = ref 0 in
   let rec try_separators n =
-    let sep = random_string n in
     if n = 0
-    then say "WARNING: %s -> try_separators did not try anything" test_name
+    then
+      if !tried_separators < 10 then
+        say "WARNING: %s -> try_separators did not try much (%d separators)"
+          test_name !tried_separators
+      else ()
     else
+      let sep = random_string n in
       begin match Str.of_native_string sep with
       | `Ok csep ->
+        let selection =
+          List.filter test_native_subjects (fun _ -> Random.bool ()) in
         let viable_strings, converted =
-          List.filter_map test_native_subjects (fun s ->
+          List.filter_map selection (fun s ->
               match Str.of_native_string s with
               | `Ok s2 ->  Some (s, s2)
               | `Error (`wrong_char_at c) -> None)
@@ -182,12 +189,18 @@ let do_basic_test (module Test : TEST_STRING) =
         in
         let concated = String.concat ~sep viable_strings in
         let concated2 = Str.concat ~sep:csep converted in
-        test_assert (sprintf "try_separators %d" n)
-          (Str.to_native_string concated2 = concated)
+        (* say "separators %S" sep; *)
+        incr tried_separators;
+        test_assertf (Str.to_native_string concated2 = concated)
+          "try_separators %d (%dth): %S %s →\n  %S Vs\n  %s" n !tried_separators sep
+          (String.concat ~sep:", " (List.map viable_strings (sprintf "%S")))
+          concated
+          (Str.to_string_hum concated2);
+        try_separators (n - 1)
       | `Error _ -> try_separators (n - 1)
       end
   in
-  try_separators 300;
+  try_separators 400;
 
   (* This tests `make` against `length` and `get`:  *)
   for i = 0 to 100 do
