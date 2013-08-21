@@ -448,5 +448,57 @@ let () =
 
         end)
   end);
+  do_basic_test (module struct
+      let test_name = "Of_mutable((char, int8, C-Layout) Bigarray.Array1.t)"
+      let can_have_wrong_char = false
+      open Bigarray
+      type char_bigarray = (char, int8_unsigned_elt, c_layout) Array1.t
+      module Chr = Native_character
+      module Str = Of_mutable (struct
+          type character = Chr.t
+          type t = char_bigarray
+          let empty = Array1.create char c_layout 0
+          let length = Array1.dim
+          let make len c  =
+            let res = Array1.create char c_layout len in
+            Array1.fill res c;
+            res
+          let get t i = Array1.get t i
+          let set t i c = Array1.set t i c
+          let blit ~src ~src_pos ~dst ~dst_pos ~len =
+            Array1.(blit (sub src src_pos len) (sub dst dst_pos len))
+
+          let compare = compare
+
+          let of_native_substring natstr ~offset ~length =
+            Make_native_conversions.of_native_substring
+              ~empty ~init:(fun () -> ref [])
+              ~on_new_character:(fun x c -> x := c :: !x)
+              ~finalize:(fun x ->
+                  Array1.of_array char c_layout (List.rev !x |> Array.of_list))
+              ~read_character_from_native_string:Chr.read_from_native_string
+              natstr ~offset ~length
+
+          let of_native_substring natstr ~offset ~length =
+            try
+              let res = Array1.create char c_layout length in
+              for i = 0 to length - 1 do
+                Array1.set res i (natstr.[i + offset])
+              done;
+              `Ok res
+            with _ -> `Error `out_of_bounds
+
+          let of_native_string natstr =
+            Make_native_conversions.of_native_string of_native_substring natstr
+
+          let to_native_string l =
+            let s = String.make (Array1.dim l) '0' in
+            for i = 0 to (Array1.dim l) - 1 do
+              s.[i] <- Array1.get l i
+            done;
+            s
+
+        end)
+  end);
   utf8_specific_test ();
   exit !return_code
