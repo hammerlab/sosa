@@ -19,7 +19,7 @@ else
   echo "#$SKIP \"$0\"" > $ML_FILE
   tail -n +$SKIP $0 >> $ML_FILE
 
-  ocamlfind ocamlopt -I _build/ sosa.cmxa -thread -package $PACKAGES -syntax camlp4o -linkpkg -o $EXEC $ML_FILE \
+  ocamlfind ocamlopt -g -I _build/ sosa.cmxa -thread -package $PACKAGES -syntax camlp4o -linkpkg -o $EXEC $ML_FILE \
     && $EXEC $*
   RETURN_CODE=$?
 fi
