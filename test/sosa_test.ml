@@ -400,5 +400,40 @@ let () =
       module Chr = Int_utf8_character
       module Str = List_of (Int_utf8_character)
   end);
+  do_basic_test (module struct
+      let test_name = "Of_mutable(int array)"
+      let can_have_wrong_char = true
+      module Chr = Int_utf8_character
+      module Str = Of_mutable (struct
+          type character = Chr.t
+          type t = int array
+          let empty = [| |]
+          let length = Caml.Array.length
+          let make = Caml.Array.make
+          let get t i = t.(i)
+          let set t i c = t.(i) <- c
+          let blit = Array.blit
+          let compare = compare
+
+          let of_native_substring natstr ~offset ~length =
+            Make_native_conversions.of_native_substring
+              ~empty ~init:(fun () -> ref [])
+              ~on_new_character:(fun x c -> x := c :: !x)
+              ~finalize:(fun x -> List.rev !x |> Array.of_list)
+              ~read_character_from_native_string:Chr.read_from_native_string
+              natstr ~offset ~length
+          let of_native_string natstr =
+            Make_native_conversions.of_native_string
+              of_native_substring natstr
+          let to_native_string l =
+            Make_native_conversions.to_native_string_knowing_size
+              ~future_size:(fun l ->
+                  Array.fold l ~init:0 ~f:(fun sum c -> sum + Chr.size c))
+              ~iter:Array.iter
+              ~write_char_to_native_string:Chr.write_to_native_string
+              l
+
+        end)
+  end);
   utf8_specific_test ();
   exit !return_code
