@@ -8,11 +8,30 @@ type ('a, 'b) result = [
     type. *)
 
 module type OUTPUT_MODEL = sig
+  (** A monadic thread model (like [Lwt], [Async]) and an [output]
+  function. *)
+
   type ('a, 'b, 'c) thread
+  (** The type of the threads, the type parameters are there in case
+      the user needs up to 3 of them. For instance, if implement with
+      [Lwt], we will have [type ('a, 'b, 'c) thread = 'a Lwt.t], but with
+      [Pvem.DEFERRED_RESULT]:
+      [type ('a, 'b, 'c) thread = ('a, 'b) Deferred_result.t]. *)
+
+
   type ('a, 'b, 'c) channel
+  (** The of the channels, channels can have up to 3 type-parameters
+      too.  *)
+
   val return: 'a -> ('a, 'b, 'c) thread
+  (** The monadic [return]. *)
+
   val bind: ('a, 'b, 'c) thread -> ('a -> ('d, 'b, 'c) thread) -> ('d, 'b, 'c) thread
+  (** The monadic [bind]. *)
+
   val output: ('a, 'b, 'c) channel -> String.t -> (unit, 'e, 'f) thread
+  (** The function to output a given native string to a channel.  *)
+
 end
 
 module type NATIVE_CONVERSIONS = sig
@@ -126,25 +145,16 @@ module type BASIC_STRING = sig
   (** The classical [concat] function. *)
 
   include NATIVE_CONVERSIONS with type t := t
-    (*
-  val of_native_string: string -> (t, [> `wrong_char_at of int ]) result
-  (** Convert a native string to the current reprensentation.
-      [of_native_string] returns [`Error (`wrong_char_at index)]
-      when the native string contains a character not representable
-      with the type [character]. *)
-
-  val of_native_substring: string -> offset:int -> length:int ->
-    (t, [> `wrong_char_at of int | `out_of_bounds ]) result
-  (** Convert a native string like [of_native_string] but take a
-      subset of the string. *)
-
-  val to_native_string: t -> string
-  (** Serialize the string to a native string. *)
+  (** By including {!NATIVE_CONVERSIONS}, a
+      basic string provides
+      {!NATIVE_CONVERSIONS.of_native_string},
+      {!NATIVE_CONVERSIONS.of_native_substring}, and
+      {!NATIVE_CONVERSIONS.to_native_string}.
   *)
 
   val to_string_hum: t -> string
   (** Convert the string to a human-readable native string (à la
-      [sprintf "%s"]). *)
+      [sprintf "%S"]). *)
 
   val fold: t -> init:'a -> f:('a -> character -> 'a) -> 'a
   (** The standard [fold] function, see [List.fold_left] for example. *)
@@ -179,8 +189,13 @@ module type BASIC_STRING = sig
 
 
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
+
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
+    (** Output a string to a channel. *)
+
   end
+  (** [Make_output(Asynchronous_output_model)] provides a function
+      {!Make_output.output} given any {!OUTPUT_MODEL}. *)
 
 end
 
@@ -216,6 +231,8 @@ end
 
 open Printf
 
+(* Internal “Pervasives” module, tu be used in all the following
+   implementations. *)
 module Internal_pervasives = struct
   module List = ListLabels
   module String = StringLabels
@@ -229,6 +246,8 @@ module Internal_pervasives = struct
   let (>>=) = bind
   let dbg fmt = eprintf ("DBG: " ^^ fmt ^^ "\n%!")
 
+  (* The function `List.map` adapted from `Core_kernel`'s way of
+     unrolling the loops. *)
   module Core_list_map = struct
 
     let map_slow l ~f = List.rev (List.rev_map ~f l)
@@ -398,9 +417,9 @@ module Native_string : NATIVE_STRING = struct
 
 end
 
-(* Module to help build `of_native_substring` and
-   `of_native_string` functions, while being aware of variable sized
-   characters. *)
+(* Module to help build `{of,to}_native_[sub]string` functions.
+
+   It is most useful while using variable sized characters. *)
 module Make_native_conversions = struct
 
 
@@ -525,18 +544,6 @@ module List_of (Char: BASIC_CHARACTER) :
           List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c))
       ~iter ~write_char_to_native_string:Char.write_to_native_string
       l
-      (*
-    let length =
-      List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c) in
-    let buf = String.make length 'B' in
-    let index = ref 0 in
-    List.iter l ~f:begin fun c ->
-      match Char.write_to_native_string c ~index:!index ~buf with
-      | `Ok siz ->  index := !index + siz
-      | `Error `out_of_bounds -> failwith "Bug in List_of.to_native_string"
-    end;
-    buf
-  *)
 
   let to_string_hum l = sprintf "%S" (to_native_string l)
 
@@ -655,10 +662,8 @@ module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
       with _ -> fail `out_of_bounds
 
     let read_from_native_string ~buf ~index =
-      (* dbg "buf: %S" buf; *)
       try
         let first_char = buf.[index] |> int_of_char in
-        (* dbg "first_char lsr     5: %x" (first_char lsr     5); *)
         let size, mask =
           if first_char lsr 7 = 0 then (1, 0b0111_1111)
           else if first_char lsr     5 =     0b110 then (2, 0b0001_1111)
@@ -668,19 +673,14 @@ module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
           else if first_char lsr     1 = 0b1111110 then (6, 0b0000_0001)
           else raise Not_found
         in
-        (* dbg "first_char %d, size %d, mask %x" first_char  size mask; *)
         let the_int = ref (first_char land mask) in
-        (* dbg "the_int : %d, %x" !the_int !the_int; *)
         for i = 1 to size - 1 do
           let the_char = buf.[index + i] |> int_of_char in
-          (* dbg "(the_char lsr 6): %d" (the_char lsr 6); *)
           if (the_char lsr 6) = 0b10
           then (
             the_int := (!the_int lsl 6) lor (the_char land 0b0011_1111);
-            (* dbg "the_int : %d, %x" !the_int !the_int; *)
           ) else raise Not_found;
         done;
-        (* dbg "the_int : %d, %x" !the_int !the_int; *)
         Some (!the_int, size)
       with _ -> None
 
@@ -749,7 +749,6 @@ module Of_mutable
           try S.get one 0
           with _ -> S.get sep 0
         in
-        (* dbg "got first_char"; *)
         let sep_length = S.length sep in
         let total_length =
           List.fold_left ~init:(S.length one) more ~f:(fun prev s ->
@@ -758,19 +757,14 @@ module Of_mutable
         let index = ref 0 in
         blit ~dst ~dst_pos:!index ~src:one ~src_pos:0 ~len:(length one);
         index := !index + (length one);
-        (* dbg "index: %d total_length: %d" !index total_length; *)
         List.iter more ~f:(fun s ->
             blit ~dst ~dst_pos:!index ~src:sep ~src_pos:0 ~len:sep_length;
             index := !index + sep_length;
-            (* dbg "index: %d" !index; *)
             blit ~dst ~dst_pos:!index ~src:s ~src_pos:0 ~len:(length s);
             index := !index + (length s);
-            (* dbg "index: %d lgth_s: %d" !index (length s); *)
           );
-        (* dbg "returning"; *)
         dst
       with _ ->
-        (* dbg "rec concat"; *)
         concat more ~sep (* both one and sep are empty *)
       end
 

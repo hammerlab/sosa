@@ -26,7 +26,7 @@ We have:
   (“unsafe” meaning that they break immutability
   invariants/assumptions).
 - `MINIMALISTIC_MUTABLE_STRING`: abstract mutable string used as
-  argument of the `Of_module` functor.
+  argument of the `Of_mutable` functor.
 
 The Implementations
 -------------------
