@@ -15,10 +15,18 @@ APIs / Module Types
 We have:
 
 - `BASIC_CHARACTER`: characters of any length.
-- `BASIC_STRING`: immutable strings of (potentially abstract) characters.
+- `NATIVE_CONVERSIONS`: functions to transform from/to native OCaml
+  strings.
+- `BASIC_STRING`: immutable strings of (potentially abstract)
+  characters:
+    - includes `NATIVE_CONVERSIONS`,
+    - contains a functor to provide a thread agnostic `output` function:
+    `Make_output`: `OUTPUT_MODEL` → `sig val output: ... end`.
 - `UNSAFELY_MUTABLE`: mutability of some string implementations
   (“unsafe” meaning that they break immutability
   invariants/assumptions).
+- `MINIMALISTIC_MUTABLE_STRING`: abstract mutable string used as
+  argument of the `Of_module` functor.
 
 The Implementations
 -------------------
@@ -34,9 +42,14 @@ The `Native_string` module implements `BASIC_STRING` and
 `UNSAFELY_MUTABLE` with OCaml's `string` type (and hence
 `Native_character`).
 
-### Lists
+### Lists Of Arbitrary Characters
 
 `List_of` is a functor: `BASIC_CHARACTER` → `BASIC_STRING`
+
+### Build From Basic Mutable Data-structures
+
+The functor `Of_mutable` uses an implementation of
+`MINIMALISTIC_MUTABLE_STRING` to build a `BASIC_STRING`.
 
 ### Integer UTF-8 Characters
 
