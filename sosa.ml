@@ -170,7 +170,9 @@ module type BASIC_STRING = sig
       ecosystem). *)
 
   val sub: t -> index:int -> length:int -> t option
-  (** Get the sub-string of size [length] at position [index]. *)
+  (** Get the sub-string of size [length] at position [index]. If
+      [length] is 0, [sub] returns [Some empty] whatever the other
+      parameters. *)
 
   val iter: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively. *)
@@ -407,8 +409,9 @@ module Native_string : NATIVE_STRING = struct
     !res
 
   let sub t ~index ~length =
-    try Some (String.sub t index length)
-    with e -> None
+    if length = 0 then Some empty else
+      try Some (String.sub t index length)
+      with e -> None
 
   let mutate_exn t ~index c = String.set t index c
 
@@ -841,18 +844,21 @@ module Of_mutable
     with _ -> true
 
   let sub t ~index ~length =
-    let lgth = S.length t in
-    if lgth = 0
-    then if length = 0 then Some empty else None
-    else begin
-      try
-        let res = make length (S.get t index) in
-        for i = 1 to length - 1 do
-          S.set res i (S.get t (index + i))
-        done;
-        Some res
-      with _ -> None
-    end
+    if length = 0 then Some empty else
+      begin
+        let lgth = S.length t in
+        if lgth = 0
+        then None (* `length <> 0` *)
+        else begin
+          try
+            let res = make length (S.get t index) in
+            for i = 1 to length - 1 do
+              S.set res i (S.get t (index + i))
+            done;
+            Some res
+          with _ -> None
+        end
+      end
 
   let to_string_hum t = to_native_string t |> sprintf "%S"
 
