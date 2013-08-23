@@ -169,33 +169,23 @@ module type BASIC_STRING = sig
   (** Comparison function (as expected by most common functors in the
       ecosystem). *)
 
-  val compare_substring: t * int * int -> t * int * int -> int option
+  val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
-      (s1, index1, length1) (s2, index2, length2)]. Returns [None] in
-      case of “Out of bounds accesses” {b but}:
+      (s1, index1, length1) (s2, index2, length2)].
 
-      Note that not all out-of-bounds accesses will be reported: for
+      Note that out-of-bounds accesses will {b not} be reported: for
       performance reasons, if the result can be decided with the
       smallest sub-string then [compare_substring] won't look
-      further. For example:
+      further.
 
-      - [compare_substring ("", 0, 1) ("", 0, 1)] will return [None]
-      (because trying to access the empty string with [length] 1).
-      - [compare_substring ("", 0, 0) ("", 0, 1)] will return [Some (-1)]
-      (because the left empty string is “smaller”).
+      However, if [compare_substring_strict] returns [Some c] then
+      [compare_substring] {i must} return [d] such as [c] = [d] or
+      [c] × [d] > 0 (i.e. stricly same sign).
 
-
-      A (maybe approximate) definition can be:
-
-      [compare_substring (a, idxa, lena) (b, idxb, lenb)] would be equivalent
-      to
-      {[
-        let length_a = length a in
-        let length_b = length b in
-        compare
-          (sub a ~index:idxa ~length:(min lena (max 0 (length_a - idxa))))
-          (sub b ~index:idxb ~length:(min lenb (max 0 (length_b - idxb))))
-       ]}
+      In other words, is [sub a ~index:ia ~length:la] returns [Some suba] and
+      [sub b ~index:ib ~length:lb] returns [Some subb], then
+      [compare_substring (a, ia, la) (b, ib, lb)] will behave like
+      [compare suba subb] (again, with the same sign).
   *)
 
   val sub: t -> index:int -> length:int -> t option
@@ -402,19 +392,25 @@ module Native_string : NATIVE_STRING = struct
   let compare_substring (a, idxa, lena) (b, idxb, lenb) =
     let module With_exns = struct
       exception Return of int
+      exception Left_out of int
+      exception Right_out of int
       let f () =
         try
           let shortest = min lena lenb in
           for i = 0 to shortest - 1 do
-            let c = Char.compare a.[idxa + i] b.[idxb + i] in
+            let ca = try a.[idxa + i] with _ -> raise (Left_out i) in
+            let cb = try b.[idxb + i] with _ -> raise (Right_out i) in
+            let c = Char.compare  ca cb in
             if c <> 0
             then raise (Return c)
             else ()
           done;
-          Some (Pervasives.compare (lena : int) lenb)
+          (Pervasives.compare (lena : int) lenb)
         with
-        | Return c -> Some c
-        | _ -> None
+        | Return c -> c
+        | Left_out c -> (* a went out of bounds at 'c + idxa' *) -1
+        | Right_out _ -> (* b went out of bounds at 'c + idxb' *)
+          (* so, a is “longer” *) 1
     end in
     With_exns.f ()
 
@@ -669,33 +665,41 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let compare_substring (a, idxa, lena) (b, idxb, lenb) =
     let module With_exns = struct
-      let rec drop_until idx l =
+      exception Left
+      exception Right
+      let rec drop_until ~exn idx l =
         match idx, l with
         | 0, l -> l
-        | more, [] -> failwith "outofbounds"
-        | more, h :: t -> drop_until (more - 1) t
+        | more, [] -> raise exn
+        | more, h :: t -> drop_until ~exn (more - 1) t
       let f () =
         begin try
           let rec cmp l1 l2 len1 len2 =
-            if len1 < 0 || len2 < 0 then failwith "outofbounds2";
+            if len1 < 0 then raise Left;
+            if len2 < 0 then raise Right;
             match l1, l2 with
             | _, _ when len1 = 0 && len2 = 0 -> 0
             | _, _ when len1 = 0 -> -1
             | _, _ when len2 = 0 -> 1
             | [], [] when len1 = 0 || len2 = 0 -> Pervasives.compare lena lenb
-            | [], _ when len1 > 0 -> failwith "outofbounds3"
-            | _, [] when len2 > 0 -> failwith "outofbounds3"
+            | [], _ when len1 > 0 -> raise Left
+            | _, [] when len2 > 0 -> raise Right
             | h1 :: t1, h2 :: t2 when Char.compare h1 h2 = 0 ->
               cmp t1 t2 (len1 - 1) (len2 - 1)
             | h1 :: _, h2 :: _ -> Char.compare h1 h2
             | _, _ -> assert false (* calming down the warnings.. *)
           in
-          let aa = drop_until idxa a in
-          let bb = drop_until idxb b in
-          Some (cmp aa bb lena lenb)
-        with Failure s ->
+          if lena = 0 && lenb = 0 then 0
+          else (
+            let aa = drop_until ~exn:Left idxa a in
+            let bb = drop_until ~exn:Right idxb b in
+            (cmp aa bb lena lenb)
+          )
+        with
+        | Left -> -1
+        | Right -> 1
+        | Failure s -> 1
           (* dbg "(%d, %d/%d) Vs (%d, %d/%d) %s" idxa lena (length a) idxb lenb (length b) s; *)
-          None
         end
     end in
     With_exns.f ()
@@ -946,6 +950,30 @@ module Of_mutable
   let compare_substring (a, idxa, lena) (b, idxb, lenb) =
     let module With_exns = struct
       exception Return of int
+      exception Left_out of int
+      exception Right_out of int
+      let f () =
+        try
+          let shortest = min lena lenb in
+          for i = 0 to shortest - 1 do
+            let ca = try S.get a (idxa + i) with _ -> raise (Left_out i) in
+            let cb = try S.get b (idxb + i) with _ -> raise (Right_out i) in
+            let c = S.compare_char  ca cb in
+            if c <> 0
+            then raise (Return c)
+            else ()
+          done;
+          (Pervasives.compare (lena : int) lenb)
+        with
+        | Return c -> c
+        | Left_out c -> (* a went out of bounds at 'c + idxa' *) -1
+        | Right_out _ -> (* b went out of bounds at 'c + idxb' *)
+          (* so, a is “longer” *) 1
+    end in
+    With_exns.f ()
+      (*
+    let module With_exns = struct
+      exception Return of int
       let f () =
         try
           let shortest = min lena lenb in
@@ -961,6 +989,7 @@ module Of_mutable
         | _ -> None
     end in
     With_exns.f ()
+  *)
 
 
 

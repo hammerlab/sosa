@@ -363,37 +363,37 @@ let do_basic_test (module Test : TEST_STRING) =
 
   (* a first test of compare_substring with special cases, empty strings,
      and small strings, containing 'a', 'c', 'g', 't' → they should
-     convertible to any backend :) *)
+     be convertible to any backend :) *)
   let test_compare_substring (a, idxa, lena) (b, idxb, lenb) expected =
     match Str.of_native_string a, Str.of_native_string b with
     | `Ok aa, `Ok bb ->
       let res = Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
-      test_assertf (match res, expected with
-        | None, None -> true
-        | Some 0, Some 0 -> true
-        | Some r, Some e when r * e > 0 -> true (* i.e. same sign *)
-        | _, _ -> false)
-        "test_compare_substring (%S, %d, %d) (%S, %d, %d) = %s ≠ %s"
-        a idxa lena b idxb lenb
-        (Option.value_map ~default:"None" res ~f:(sprintf "Some %d"))
-        (Option.value_map ~default:"None" expected ~f:(sprintf "Some %d"))
-    | _, _ -> ()
+      test_assertf (res = expected || res * expected > 0) (* We test for the sign *)
+        "test_compare_substring (%S, %d, %d) (%S, %d, %d) = %d, × %d < 0"
+        a idxa lena b idxb lenb res expected;
+      (* and check commutativity: *)
+      let invres = Str.compare_substring (bb, idxb, lenb) (aa, idxa, lena) in
+      test_assertf (invres = (~- expected) || invres * expected < 0) (* We test for the sign *)
+        "test_compare_substring (%S, %d, %d) (%S, %d, %d) × -1 = %d, × %d < 0"
+        a idxa lena b idxb lenb res expected;
+    | _, _ -> test_assertf false "assumption about ACGT is wrong"
   in
-  test_compare_substring ("", 0, 0) ("", 0, 0)       (Some 0);
-  test_compare_substring ("", 0, 1) ("", 0, 1)       None;
-  test_compare_substring ("", 0, 1) ("", 0, 0)       (Some 1);
-  test_compare_substring ("", 0, 0) ("", 0, 1)       (Some (-1));
-  test_compare_substring ("aaa", 0, 0) ("", 0, 0)    (Some 0);
-  test_compare_substring ("aaa", 0, 0) ("ggg", 0, 0) (Some 0);
-  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) (Some 0);
-  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) (Some 0);
-  test_compare_substring ("aaa", 1, 1) ("ggg", 1, 1) (Some (-1));
-  test_compare_substring ("aga", 1, 1) ("ggc", 1, 1) (Some (0));
-  test_compare_substring ("aga", 1, 1) ("gag", 1, 1) (Some (1));
-  test_compare_substring ("aga", 1, 1) ("gcg", 1, 1) (Some (1));
+  (* Semantically well-defined tests: *)
+  test_compare_substring ("", 0, 0) ("", 0, 0)       ( 0);
+  test_compare_substring ("aaa", 0, 0) ("", 0, 0)    ( 0);
+  test_compare_substring ("aaa", 0, 0) ("ggg", 0, 0) ( 0);
+  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) ( 0);
+  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) ( 0);
+  test_compare_substring ("aaa", 0, 0) ("ggg", 0, 1) (-1);
+  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 1) (-1);
+  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 1) (-1);
+  test_compare_substring ("aaa", 1, 1) ("ggg", 1, 1) (-1);
+  test_compare_substring ("aga", 1, 1) ("ggc", 1, 1) ( 0);
+  test_compare_substring ("aga", 1, 1) ("gag", 1, 1) ( 1);
+  test_compare_substring ("aga", 1, 1) ("gcg", 1, 1) ( 1);
+
 
   (* Now we run a bigger randomized test of compare_substring. *)
-  let been_to_none = ref 0 in
   let been_to_some_0 = ref 0 in
   let been_to_some_m = ref 0 in
   List.iter test_native_subjects (fun a ->
@@ -413,40 +413,24 @@ let do_basic_test (module Test : TEST_STRING) =
               let res =
                 Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
               begin match res with
-              | None ->
-                test_assertf (idxa > lena || idxb > lenb
-                              || lena > length_a || lenb > length_b
-                              || idxa + lena > length_a
-                              || idxb + lenb > length_b
-                             )
-                  "compare_substring: None idxa: %d, lena: %d length_a: %d \
-                  \                        idxb: %d, lenb: %d length_b: %d \
-                  " idxa lena length_a idxb lenb length_b;
-                incr been_to_none;
-              | Some 0 ->
+              | 0 -> (* EQUAL *)
+                test_assertf (lena = lenb)
+                  "compare_substring: equal but lengths %d ≠ %d" lena lenb;
                 for i = 0 to min lena lenb - 1 do
                   test_assertf ((Str.get aa (i + idxa)) = (Str.get bb (i + idxb)))
-                    "compare_substring: Some 0 but different"
+                    "compare_substring: equal but different …"
                 done;
                 incr been_to_some_0;
-              | Some m ->
-                let suba = Str.sub aa ~index:idxa ~length:(min lena (max 0 (length_a - idxa))) in
-                let subb = Str.sub bb ~index:idxb ~length:(min lenb (max 0 (length_b - idxb))) in
+              | m ->
+                let suba = Str.sub aa ~index:idxa ~length:(lena) in
+                let subb = Str.sub bb ~index:idxb ~length:(lenb) in
                 begin match suba, subb with
                 | Some sa, Some sb ->
-                  test_assertf (Str.compare sa sb * m > 0
-                                || (Str.compare sa sb * m = 0 && (compare lena lenb * m > 0)))
-                    "Some %d instead of %d sa: %s sb:%s" m (Str.compare sa sb)
-                    (Str.to_string_hum sa) (Str.to_string_hum sb);
-                | _, _ ->
-                  test_assertf false "not Str.sub %s %s"
-                    (Option.value_map ~default:"None" ~f:(Str.to_string_hum) suba)
-                    (Option.value_map ~default:"None" ~f:(Str.to_string_hum) subb)
-                  ;
-                  test_assertf false
-                  "compare_substring: None idxa: %d, lena: %d length_a: %d \
-                  \                        idxb: %d, lenb: %d length_b: %d \
-                  " idxa lena length_a idxb lenb length_b;
+                  (* Well defined case: "sub" returns something for both *)
+                  test_assertf (Str.compare sa sb * m > 0)
+                    "Some %d instead of %d sa: %s sb:%s (lena: %d, lenb: %d)" m (Str.compare sa sb)
+                    (Str.to_string_hum sa) (Str.to_string_hum sb) lena lenb;
+                | _, _ -> ()
                 end;
                 incr been_to_some_m;
                 ()
@@ -457,9 +441,8 @@ let do_basic_test (module Test : TEST_STRING) =
           | _, _ -> ()
         )
     );
-  test_assertf (!been_to_none > 3) "been_to_none: %d" !been_to_none;
-  test_assertf (!been_to_some_0 > 3) "been_to_some_0: %d" !been_to_some_0;
-  test_assertf (!been_to_some_m > 3) "been_to_some_m: %d" !been_to_some_m;
+  test_assertf (!been_to_some_0 > 5) "been_to_some_0: %d" !been_to_some_0;
+  test_assertf (!been_to_some_m > 5) "been_to_some_m: %d" !been_to_some_m;
 
 
 
