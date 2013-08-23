@@ -141,6 +141,12 @@ module type BASIC_STRING = sig
       character [v] at position [index]. [set] returns [None] when
       [index] is out of bounds. *)
 
+  val get_exn: t -> index:int -> character
+  (** Like [get] but fail with an exception *)
+
+  val set_exn: t -> index:int -> v:character -> t
+  (** Like [set] but fail with an exception *)
+
   val concat: ?sep:t -> t list -> t
   (** The classical [concat] function. *)
 
@@ -244,7 +250,7 @@ module Internal_pervasives = struct
     | `Ok o -> f o
     | `Error e -> fail e
   let (>>=) = bind
-  let dbg fmt = eprintf ("DBG: " ^^ fmt ^^ "\n%!")
+  let dbg fmt = printf ("DBG: " ^^ fmt ^^ "\n%!")
 
   (* The function `List.map` adapted from `Core_kernel`'s way of
      unrolling the loops. *)
@@ -358,6 +364,28 @@ module Native_string : NATIVE_STRING = struct
       cop.[index] <- v;
       Some cop
     end
+  let get_exn s ~index = s.[index]
+  let set_exn s ~index ~v =
+    match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
+
+  let compare_substring (a, idxa, lena) (b, idxb, lenb) =
+    let module With_exns = struct
+      exception Return of int
+      let f () =
+        try
+          let shortest = min lena lenb in
+          for i = 0 to shortest - 1 do
+            let c = Char.compare a.[idxa + i] b.[idxb + i] in
+            if c <> 0
+            then raise (Return c)
+            else ()
+          done;
+          Some (Pervasives.compare (lena : int) lenb)
+        with
+        | Return c -> Some c
+        | _ -> None
+    end in
+    With_exns.f ()
 
   let to_native_string x = String.copy x
   let of_native_string x = return (String.copy x)
@@ -518,6 +546,11 @@ module List_of (Char: BASIC_CHARACTER) :
       loop (n + 1) (q :: acc) t
     in
     loop 0 [] s
+
+  let get_exn s ~index =
+    match get s ~index with None -> failwith "get_exn" | Some s -> s
+  let set_exn s ~index ~v =
+    match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
 
   let iter t ~f = List.iter t ~f
   let fold t ~init ~f = List.fold_left t ~init ~f
@@ -730,6 +763,9 @@ module Of_mutable
         S.set res index c;
         res)
 
+  let get_exn s ~index = S.get s index
+  let set_exn s ~index ~v =
+    match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
 
   let of_character c = make 1 c
   let of_character_list cl =
