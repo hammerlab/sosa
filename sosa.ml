@@ -169,6 +169,35 @@ module type BASIC_STRING = sig
   (** Comparison function (as expected by most common functors in the
       ecosystem). *)
 
+  val compare_substring: t * int * int -> t * int * int -> int option
+  (** Comparison function for substrings: use as [compare_substring
+      (s1, index1, length1) (s2, index2, length2)]. Returns [None] in
+      case of “Out of bounds accesses” {b but}:
+
+      Note that not all out-of-bounds accesses will be reported: for
+      performance reasons, if the result can be decided with the
+      smallest sub-string then [compare_substring] won't look
+      further. For example:
+
+      - [compare_substring ("", 0, 1) ("", 0, 1)] will return [None]
+      (because trying to access the empty string with [length] 1).
+      - [compare_substring ("", 0, 0) ("", 0, 1)] will return [Some (-1)]
+      (because the left empty string is “smaller”).
+
+
+      A (maybe approximate) definition can be:
+
+      [compare_substring (a, idxa, lena) (b, idxb, lenb)] would be equivalent
+      to
+      {[
+        let length_a = length a in
+        let length_b = length b in
+        compare
+          (sub a ~index:idxa ~length:(min lena (max 0 (length_a - idxa))))
+          (sub b ~index:idxb ~length:(min lenb (max 0 (length_b - idxb))))
+       ]}
+  *)
+
   val sub: t -> index:int -> length:int -> t option
   (** Get the sub-string of size [length] at position [index]. If
       [length] is 0, [sub] returns [Some empty] whatever the other
@@ -638,6 +667,38 @@ module List_of (Char: BASIC_CHARACTER) :
     | Some c -> Some (length - c - 1)
     | None -> None
 
+  let compare_substring (a, idxa, lena) (b, idxb, lenb) =
+    let module With_exns = struct
+      let rec drop_until idx l =
+        match idx, l with
+        | 0, l -> l
+        | more, [] -> failwith "outofbounds"
+        | more, h :: t -> drop_until (more - 1) t
+      let f () =
+        begin try
+          let rec cmp l1 l2 len1 len2 =
+            if len1 < 0 || len2 < 0 then failwith "outofbounds2";
+            match l1, l2 with
+            | _, _ when len1 = 0 && len2 = 0 -> 0
+            | _, _ when len1 = 0 -> -1
+            | _, _ when len2 = 0 -> 1
+            | [], [] when len1 = 0 || len2 = 0 -> Pervasives.compare lena lenb
+            | [], _ when len1 > 0 -> failwith "outofbounds3"
+            | _, [] when len2 > 0 -> failwith "outofbounds3"
+            | h1 :: t1, h2 :: t2 when Char.compare h1 h2 = 0 ->
+              cmp t1 t2 (len1 - 1) (len2 - 1)
+            | h1 :: _, h2 :: _ -> Char.compare h1 h2
+            | _, _ -> assert false (* calming down the warnings.. *)
+          in
+          let aa = drop_until idxa a in
+          let bb = drop_until idxb b in
+          Some (cmp aa bb lena lenb)
+        with Failure s ->
+          (* dbg "(%d, %d/%d) Vs (%d, %d/%d) %s" idxa lena (length a) idxb lenb (length b) s; *)
+          None
+        end
+    end in
+    With_exns.f ()
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
@@ -739,6 +800,7 @@ module type MINIMALISTIC_MUTABLE_STRING = sig
   val make: int -> character -> t
   val length: t -> int
   val compare: t -> t -> int
+  val compare_char: character -> character -> int
   val get: t -> int -> character
   val set: t -> int -> character -> unit
   val blit: src:t -> src_pos:int -> dst:t -> dst_pos:int -> len:int -> unit
@@ -880,6 +942,26 @@ module Of_mutable
       done;
       None
     with _ -> !res
+
+  let compare_substring (a, idxa, lena) (b, idxb, lenb) =
+    let module With_exns = struct
+      exception Return of int
+      let f () =
+        try
+          let shortest = min lena lenb in
+          for i = 0 to shortest - 1 do
+            let c = S.compare_char (S.get a (idxa + i)) (S.get b (idxb + i)) in
+            if c <> 0
+            then raise (Return c)
+            else ()
+          done;
+          Some (Pervasives.compare (lena : int) lenb)
+        with
+        | Return c -> Some c
+        | _ -> None
+    end in
+    With_exns.f ()
+
 
 
   module Make_output (Model: OUTPUT_MODEL) = struct
