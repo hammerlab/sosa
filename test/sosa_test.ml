@@ -200,7 +200,7 @@ let do_basic_test (module Test : TEST_STRING) =
       | `Error _ -> try_separators (n - 1)
       end
   in
-  try_separators 400;
+  try_separators 450;
 
   (* This tests `make` against `length` and `get`:  *)
   for i = 0 to 100 do
@@ -361,6 +361,108 @@ let do_basic_test (module Test : TEST_STRING) =
   test_assertf (!rev_i_went_to_none_from_absent > 0) "";
 
 
+  (* a first test of compare_substring with special cases, empty strings,
+     and small strings, containing 'a', 'c', 'g', 't' → they should
+     convertible to any backend :) *)
+  let test_compare_substring (a, idxa, lena) (b, idxb, lenb) expected =
+    match Str.of_native_string a, Str.of_native_string b with
+    | `Ok aa, `Ok bb ->
+      let res = Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
+      test_assertf (match res, expected with
+        | None, None -> true
+        | Some 0, Some 0 -> true
+        | Some r, Some e when r * e > 0 -> true (* i.e. same sign *)
+        | _, _ -> false)
+        "test_compare_substring (%S, %d, %d) (%S, %d, %d) = %s ≠ %s"
+        a idxa lena b idxb lenb
+        (Option.value_map ~default:"None" res ~f:(sprintf "Some %d"))
+        (Option.value_map ~default:"None" expected ~f:(sprintf "Some %d"))
+    | _, _ -> ()
+  in
+  test_compare_substring ("", 0, 0) ("", 0, 0)       (Some 0);
+  test_compare_substring ("", 0, 1) ("", 0, 1)       None;
+  test_compare_substring ("", 0, 1) ("", 0, 0)       (Some 1);
+  test_compare_substring ("", 0, 0) ("", 0, 1)       (Some (-1));
+  test_compare_substring ("aaa", 0, 0) ("", 0, 0)    (Some 0);
+  test_compare_substring ("aaa", 0, 0) ("ggg", 0, 0) (Some 0);
+  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) (Some 0);
+  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) (Some 0);
+  test_compare_substring ("aaa", 1, 1) ("ggg", 1, 1) (Some (-1));
+  test_compare_substring ("aga", 1, 1) ("ggc", 1, 1) (Some (0));
+  test_compare_substring ("aga", 1, 1) ("gag", 1, 1) (Some (1));
+  test_compare_substring ("aga", 1, 1) ("gcg", 1, 1) (Some (1));
+
+  (* Now we run a bigger randomized test of compare_substring. *)
+  let been_to_none = ref 0 in
+  let been_to_some_0 = ref 0 in
+  let been_to_some_m = ref 0 in
+  List.iter test_native_subjects (fun a ->
+      List.iter test_native_subjects (fun b ->
+          match Str.of_native_string a, Str.of_native_string b with
+          | `Ok aa, `Ok bb ->
+            let rec test n =
+              let length_a = Str.length aa in
+              let length_b = Str.length bb in
+              let lena = Random.int (length_a + 5) in
+              let idxa = Random.int (lena + 5) in
+              let idxb, lenb =
+                if Random.bool ()
+                then  (Random.int (length_b + 5), Random.int (length_b + 5))
+                else (idxa, lena) (* half of the times with same params *)
+              in
+              let res =
+                Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
+              begin match res with
+              | None ->
+                test_assertf (idxa > lena || idxb > lenb
+                              || lena > length_a || lenb > length_b
+                              || idxa + lena > length_a
+                              || idxb + lenb > length_b
+                             )
+                  "compare_substring: None idxa: %d, lena: %d length_a: %d \
+                  \                        idxb: %d, lenb: %d length_b: %d \
+                  " idxa lena length_a idxb lenb length_b;
+                incr been_to_none;
+              | Some 0 ->
+                for i = 0 to min lena lenb - 1 do
+                  test_assertf ((Str.get aa (i + idxa)) = (Str.get bb (i + idxb)))
+                    "compare_substring: Some 0 but different"
+                done;
+                incr been_to_some_0;
+              | Some m ->
+                let suba = Str.sub aa ~index:idxa ~length:(min lena (max 0 (length_a - idxa))) in
+                let subb = Str.sub bb ~index:idxb ~length:(min lenb (max 0 (length_b - idxb))) in
+                begin match suba, subb with
+                | Some sa, Some sb ->
+                  test_assertf (Str.compare sa sb * m > 0
+                                || (Str.compare sa sb * m = 0 && (compare lena lenb * m > 0)))
+                    "Some %d instead of %d sa: %s sb:%s" m (Str.compare sa sb)
+                    (Str.to_string_hum sa) (Str.to_string_hum sb);
+                | _, _ ->
+                  test_assertf false "not Str.sub %s %s"
+                    (Option.value_map ~default:"None" ~f:(Str.to_string_hum) suba)
+                    (Option.value_map ~default:"None" ~f:(Str.to_string_hum) subb)
+                  ;
+                  test_assertf false
+                  "compare_substring: None idxa: %d, lena: %d length_a: %d \
+                  \                        idxb: %d, lenb: %d length_b: %d \
+                  " idxa lena length_a idxb lenb length_b;
+                end;
+                incr been_to_some_m;
+                ()
+              end;
+              if n > 0 then test (n - 1);
+            in
+            test 4
+          | _, _ -> ()
+        )
+    );
+  test_assertf (!been_to_none > 3) "been_to_none: %d" !been_to_none;
+  test_assertf (!been_to_some_0 > 3) "been_to_some_0: %d" !been_to_some_0;
+  test_assertf (!been_to_some_m > 3) "been_to_some_m: %d" !been_to_some_m;
+
+
+
   ()
 
 
@@ -427,6 +529,7 @@ let () =
           let set t i c = t.(i) <- c
           let blit = Array.blit
           let compare = compare
+          let compare_char = compare
 
           let of_native_substring natstr ~offset ~length =
             Make_native_conversions.of_native_substring
@@ -468,7 +571,21 @@ let () =
           let blit ~src ~src_pos ~dst ~dst_pos ~len =
             Array1.(blit (sub src src_pos len) (sub dst dst_pos len))
 
-          let compare = compare
+          let compare a b =
+            let len = min (length a) (length b) in
+            let res = ref 0 in
+            try
+              for i = 0 to len - 1 do
+                let cmp = compare (get a i) (get b i)  in
+                if cmp = 0
+                then ()
+                else (res := cmp; raise Not_found)
+              done;
+              compare (length a) (length b)
+            with _ -> !res
+
+
+          let compare_char = Char.compare
 
           let of_native_substring natstr ~offset ~length =
             Make_native_conversions.of_native_substring
