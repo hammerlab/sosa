@@ -169,6 +169,11 @@ module type BASIC_STRING = sig
   (** Comparison function (as expected by most common functors in the
       ecosystem). *)
 
+  val sub: t -> index:int -> length:int -> t option
+  (** Get the sub-string of size [length] at position [index]. If
+      [length] is 0, [sub] returns [Some empty] whichever the other
+      parameters are. *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -178,9 +183,9 @@ module type BASIC_STRING = sig
       smallest sub-string then [compare_substring] won't look
       further.
 
-      However, if [compare_substring_strict] returns [Some c] then
+      However, if {!compare_substring_strict} returns [Some c] then
       [compare_substring] {i must} return [d] such as [c] = [d] or
-      [c] × [d] > 0 (i.e. stricly same sign).
+      [c] × [d] > 0 (i.e. strictly same sign).
 
       In other words, is [sub a ~index:ia ~length:la] returns [Some suba] and
       [sub b ~index:ib ~length:lb] returns [Some subb], then
@@ -189,16 +194,14 @@ module type BASIC_STRING = sig
   *)
 
   val compare_substring_strict: t * int * int -> t * int * int -> int option
-  (** Do like [compare_substring] but return [Some _] only when all
-      parameters are valid. Depending on the backend implementation,
-      this function might be significantly slower than
-      [compare_substring] (for example when calls to [length] are not
-      {i O(1)}. *)
+  (** Do like {!compare_substring} but return [Some _] only when it is
+      well defined (same validity criteria as {!sub}: if [length]
+      is [0], [index] is irrelevant).
 
-  val sub: t -> index:int -> length:int -> t option
-  (** Get the sub-string of size [length] at position [index]. If
-      [length] is 0, [sub] returns [Some empty] whatever the other
-      parameters. *)
+      Depending on the backend implementation, this function might be
+      significantly slower than [compare_substring] (for example when
+      calls to [length] are not {i O(1)}. *)
+
 
   val iter: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively. *)
