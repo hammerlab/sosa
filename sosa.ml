@@ -188,6 +188,13 @@ module type BASIC_STRING = sig
       [compare suba subb] (again, with the same sign).
   *)
 
+  val compare_substring_strict: t * int * int -> t * int * int -> int option
+  (** Do like [compare_substring] but return [Some _] only when all
+      parameters are valid. Depending on the backend implementation,
+      this function might be significantly slower than
+      [compare_substring] (for example when calls to [length] are not
+      {i O(1)}. *)
+
   val sub: t -> index:int -> length:int -> t option
   (** Get the sub-string of size [length] at position [index]. If
       [length] is 0, [sub] returns [Some empty] whatever the other
@@ -358,6 +365,34 @@ module Native_character : NATIVE_CHARACTER = struct
 
 end
 
+
+(* This functor builds a `compare_substring_strict` function out of a
+   `compare_substring` function.
+
+   It may not be the optimal algorithm (it may call `length` on both
+   strings.)
+ *)
+module Compare_substring_strict_of_loose (S: sig
+    type t
+    val length: t -> int
+    val compare_substring: t * int * int -> t * int * int -> int
+  end) = struct
+  open S
+  let compare_substring_strict (a, idxa, lena) (b, idxb, lenb) =
+    let check_a = lazy (idxa >= 0 && lena >= 0 && idxa + lena <= (length a)) in
+    let check_b = lazy (idxb >= 0 && lenb >= 0 && idxb + lenb <= (length b)) in
+    if lena = 0 && lenb = 0 then Some 0
+    else
+      (if lena = 0 then (if Lazy.force check_b then Some (-1) else None)
+       else
+         (if lenb = 0 then (if Lazy.force check_a then Some (1) else None)
+          else
+            (if not (Lazy.force check_a) || not (Lazy.force check_b) then None
+             else
+               Some (compare_substring (a, idxa, lena) (b, idxb, lenb)))))
+end
+
+
 module Native_string : NATIVE_STRING = struct
 
   include StringLabels
@@ -413,6 +448,11 @@ module Native_string : NATIVE_STRING = struct
           (* so, a is “longer” *) 1
     end in
     With_exns.f ()
+
+  type s = t
+  include Compare_substring_strict_of_loose(struct
+      type t = s let length = length let compare_substring = compare_substring
+    end)
 
   let to_native_string x = String.copy x
   let of_native_string x = return (String.copy x)
@@ -704,6 +744,11 @@ module List_of (Char: BASIC_CHARACTER) :
     end in
     With_exns.f ()
 
+  type s = t
+  include Compare_substring_strict_of_loose(struct
+      type t = s let length = length let compare_substring = compare_substring
+    end)
+
   module Make_output (Model: OUTPUT_MODEL) = struct
 
     let (>>=) = Model.bind
@@ -971,26 +1016,11 @@ module Of_mutable
           (* so, a is “longer” *) 1
     end in
     With_exns.f ()
-      (*
-    let module With_exns = struct
-      exception Return of int
-      let f () =
-        try
-          let shortest = min lena lenb in
-          for i = 0 to shortest - 1 do
-            let c = S.compare_char (S.get a (idxa + i)) (S.get b (idxb + i)) in
-            if c <> 0
-            then raise (Return c)
-            else ()
-          done;
-          Some (Pervasives.compare (lena : int) lenb)
-        with
-        | Return c -> Some c
-        | _ -> None
-    end in
-    With_exns.f ()
-  *)
 
+  type s = t
+  include Compare_substring_strict_of_loose(struct
+      type t = s let length = length let compare_substring = compare_substring
+    end)
 
 
   module Make_output (Model: OUTPUT_MODEL) = struct
