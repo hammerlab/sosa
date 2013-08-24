@@ -414,6 +414,7 @@ let do_basic_test (module Test : TEST_STRING) =
   test_compare_substring ("aga", 1, 1) ("ggc", 1, 1) ( 0);
   test_compare_substring ("aga", 1, 1) ("gag", 1, 1) ( 1);
   test_compare_substring ("aga", 1, 1) ("gcg", 1, 1) ( 1);
+  test_compare_substring ("aagg", 2, 2) ("gg", 0, 2) ( 0);
 
   (* A test of the out-of-bounds behavior: *)
   let test_compare_substring_strictness (a, idxa, lena) =
@@ -497,7 +498,83 @@ let do_basic_test (module Test : TEST_STRING) =
   test_assertf (!been_to_some_0 > 5) "been_to_some_0: %d" !been_to_some_0;
   test_assertf (!been_to_some_m > 5) "been_to_some_m: %d" !been_to_some_m;
 
+  let test_index_of_string ?from ?sub_index ?sub_length s ~sub ~expect =
+    match Str.of_native_string s, Str.of_native_string sub with
+    | `Ok t, `Ok subt ->
+      let res = Str.index_of_string t ~sub:subt ?from ?sub_index ?sub_length in
+      let shopt = Option.value_map ~f:(sprintf "Some %d") ~default:"None" in
+      test_assertf (res = expect)
+        "Str.index_of_string %s ~sub:%s ?from:%s ?sub_index:%s ?sub_length:%s gave %s not %s"
+        s sub (shopt from) (shopt sub_index) (shopt sub_length)
+        (shopt res) (shopt expect)
+    | _, _ -> ()
+  in
 
+  test_index_of_string "aaaa" ~sub:"cc" ~expect:None;
+  test_index_of_string "aaaa" ~sub:"aa" ~expect:(Some 0);
+  test_index_of_string "ccaa" ~sub:"aa" ~expect:(Some 2);
+  test_index_of_string "cccca" ~sub:"aa" ~expect:(None);
+  test_index_of_string "aacca" ~from:1 ~sub:"aa" ~expect:(None);
+  test_index_of_string "aaccaa" ~from:1 ~sub:"aa" ~expect:(Some 4);
+  test_index_of_string "aacca" ~from:1 ~sub:"aa" ~sub_index:1 ~expect:(Some 1);
+  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_index:1 ~expect:(Some 4);
+  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:1 ~expect:(Some 4);
+  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:0 ~expect:(Some 2);
+  test_index_of_string "aacca" ~from:2 ~sub:""  ~expect:(Some 2);
+  test_index_of_string "aaaa" ~from:(-1) ~sub:"aa" ~expect:None;
+  test_index_of_string "aaaa" ~from:3 ~sub:"aa" ~expect:None;
+  test_index_of_string "aaaa" ~from:4 ~sub:"aa" ~expect:None;
+  test_index_of_string "aaaa" ~from:5 ~sub:"aa" ~expect:None;
+  test_index_of_string "aaaa" ~sub_index:(-1) ~sub:"aa" ~expect:None;
+  test_index_of_string "aaaa" ~sub_index:2 ~sub:"aa" ~expect:(Some 0); (* This is searching the empty string ! *)
+  test_index_of_string "aaaa" ~sub_index:3 ~sub:"aa" ~expect:(None); (* This is searching AFTER the empty string ! *)
+
+  let been_to_subsub = ref 0 in
+  let been_to_self_sub = ref 0 in
+  let been_to_none = ref 0 in
+  List.iter (List.cartesian_product
+               test_native_subjects test_native_subjects) (fun (s, _) ->
+      match Str.of_native_string s with
+      | `Ok o ->
+        let from = Random.int (Str.length o + 1) in
+        begin match Str.sub o ~index:from ~length:(Random.int (from + 1) + 4) with
+        | Some sub ->
+          let sub =
+            if Random.bool ()
+            then Str.set_exn sub ~index:(Random.int (Str.length sub)) ~v:(Str.get_exn sub ~index:0)
+            else sub in
+          let sub_length = (Random.int (Str.length sub)) in
+          let sub_index = Random.int 4 in
+          let from = Random.int (from + 1) in
+          begin match Str.index_of_string o ~sub ~from ~sub_index ~sub_length with
+          | Some i ->
+            begin match Str.sub o ~index:i ~length:sub_length,
+                        Str.sub sub ~index:sub_index ~length:sub_length with
+            | Some subo, Some subsub ->
+              incr been_to_subsub;
+              test_assertf (Str.compare subo subsub = 0)
+                "found but unequal: %s %s" (Str.to_string_hum subo) (Str.to_string_hum subsub)
+            | _, _ -> test_assertf false "index_of_string: can't sub"
+            end
+          | None ->
+            for i = 0 to Str.length o - 1 do
+              let cmp =
+                Str.compare_substring (o, i + from, sub_length)
+                  (sub, sub_index, sub_length) in
+              test_assertf (cmp <> 0) "index_of_string: None but cmp = 0"
+            done;
+            incr been_to_none;
+          end
+        | None ->
+          incr been_to_self_sub;
+          test_assertf (Str.index_of_string o ~sub:o = Some 0)
+            "index_of_string o o ≠ Some 0"
+        end
+      | `Error _ -> ());
+
+  test_assertf (!been_to_subsub > 4) "been_to_subsub: %d" !been_to_subsub;
+  test_assertf (!been_to_self_sub > 4) "been_to_self_sub: %d" !been_to_self_sub;
+  test_assertf (!been_to_none > 4) "been_to_none: %d" !been_to_none;
 
   ()
 
