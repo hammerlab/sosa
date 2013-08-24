@@ -224,6 +224,9 @@ module type BASIC_STRING = sig
   val index_of_character_reverse: t -> ?from:int -> character -> int option
   (** Do like [index_of_character] but start from the end of the string. *)
 
+  val index_of_string: ?from:int ->
+    ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
+
 
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
 
@@ -368,6 +371,11 @@ module Native_character : NATIVE_CHARACTER = struct
 
 end
 
+module type T_LENGTH_AND_COMPSUB = sig
+  type t
+  val length: t -> int
+  val compare_substring: t * int * int -> t * int * int -> int
+end
 
 (* This functor builds a `compare_substring_strict` function out of a
    `compare_substring` function.
@@ -375,11 +383,7 @@ end
    It may not be the optimal algorithm (it may call `length` on both
    strings.)
  *)
-module Compare_substring_strict_of_loose (S: sig
-    type t
-    val length: t -> int
-    val compare_substring: t * int * int -> t * int * int -> int
-  end) = struct
+module Compare_substring_strict_of_loose (S: T_LENGTH_AND_COMPSUB) = struct
   open S
   let compare_substring_strict (a, idxa, lena) (b, idxb, lenb) =
     let check_a = lazy (idxa >= 0 && lena >= 0 && idxa + lena <= (length a)) in
@@ -393,6 +397,46 @@ module Compare_substring_strict_of_loose (S: sig
             (if not (Lazy.force check_a) || not (Lazy.force check_b) then None
              else
                Some (compare_substring (a, idxa, lena) (b, idxb, lenb)))))
+end
+
+module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
+  open S
+  let index_of_string ?(from=0) ?(sub_index=0) ?sub_length t ~sub =
+    let module With_exn = struct
+      exception Found of int
+
+      let f () =
+        let length_of_sub =
+          match sub_length with Some s -> s | None -> length sub - sub_index in
+        if from < 0 || sub_index < 0 || length_of_sub < 0
+        then None
+        else
+          begin try
+            let length_of_t = length t in
+            for i = 0 to length_of_t - length_of_sub do
+            (*
+            dbg "i: %d, length_of_t: %d, length_of_sub: %d, compare: %d, strict: %s"
+              i length_of_t length_of_sub
+              (compare_substring
+                (t, i + from, length_of_sub)
+                (sub, sub_index, length_of_sub))
+              (compare_substring_strict
+                (t, i + from, length_of_sub)
+                (sub, sub_index, length_of_sub)
+               |> (function Some i -> sprintf "Some %d" i | None -> "None")) ;
+            *)
+              if compare_substring
+                  (t, i + from, length_of_sub)
+                  (sub, sub_index, length_of_sub) = 0
+              then raise (Found (i + from))
+            done;
+            None
+          with Found f -> Some f
+          end
+    end in
+    With_exn.f ()
+
+
 end
 
 
@@ -453,9 +497,12 @@ module Native_string : NATIVE_STRING = struct
     With_exns.f ()
 
   type s = t
-  include Compare_substring_strict_of_loose(struct
-      type t = s let length = length let compare_substring = compare_substring
-    end)
+  module T_length_and_compsub = struct
+    type t = s let length = length let compare_substring = compare_substring
+  end
+  include Compare_substring_strict_of_loose(T_length_and_compsub)
+  include Make_index_of_string(T_length_and_compsub)
+
 
   let to_native_string x = String.copy x
   let of_native_string x = return (String.copy x)
@@ -748,9 +795,11 @@ module List_of (Char: BASIC_CHARACTER) :
     With_exns.f ()
 
   type s = t
-  include Compare_substring_strict_of_loose(struct
-      type t = s let length = length let compare_substring = compare_substring
-    end)
+  module T_length_and_compsub = struct
+    type t = s let length = length let compare_substring = compare_substring
+  end
+  include Compare_substring_strict_of_loose(T_length_and_compsub)
+  include Make_index_of_string(T_length_and_compsub)
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
@@ -837,7 +886,10 @@ module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
       let buf = String.make (size x) 'B' in
       begin match write_to_native_string x ~buf ~index:0 with
       | `Ok _ -> ()
-      | `Error e -> assert false
+      | `Error e ->
+        dbg "buf: %S siz: %d x: %d" buf (size x) x;
+        assert false
+
       end;
       buf
 
@@ -1021,10 +1073,11 @@ module Of_mutable
     With_exns.f ()
 
   type s = t
-  include Compare_substring_strict_of_loose(struct
-      type t = s let length = length let compare_substring = compare_substring
-    end)
-
+  module T_length_and_compsub = struct
+    type t = s let length = length let compare_substring = compare_substring
+  end
+  include Compare_substring_strict_of_loose(T_length_and_compsub)
+  include Make_index_of_string(T_length_and_compsub)
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
