@@ -56,12 +56,23 @@ let random_string i =
   let length = Random.int i in
   String.init length (fun _ -> Char.of_int_exn (Random.int 256))
 
+let random_ascii_string i =
+  let length = Random.int i in
+  String.init length (fun _ -> Char.of_int_exn (Random.int 128))
+
+let random_utf8_string i =
+  let length = Random.int i in
+  List.init length (fun _ -> Random.int 0x10_FFFF)
+  |> List.map ~f:Int_utf8_character.to_native_string
+  |> String.concat ~sep:""
 
 let test_native_subjects =
   "" :: "A" :: "\x00" :: "Invalid UTF-8: \197"
   :: "Invalid UTF-8 again: \197\000"
   :: "Invalid UTF-8 again: \197\000 "
-  :: List.init 50 (fun i -> random_string (i * 4 + 1))
+  :: List.init 20 (fun i -> random_string (i * 4 + 1))
+  @  List.init 20 (fun i -> random_ascii_string (i * 4 + 1))
+  @  List.init 20 (fun i -> random_utf8_string (i * 4 + 1))
 
 let do_basic_test (module Test : TEST_STRING) =
   let open Test in
