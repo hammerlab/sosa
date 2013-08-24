@@ -564,8 +564,21 @@ let () =
           let get t i = t.(i)
           let set t i c = t.(i) <- c
           let blit = Array.blit
-          let compare = compare
-          let compare_char = compare
+          let compare a b =
+            let open Array in
+            let len = min (length a) (length b) in
+            let res = ref 0 in
+            try
+              for i = 0 to len - 1 do
+                let cmp = compare (get a i) (get b i)  in
+                if cmp = 0
+                then ()
+                else (res := cmp; raise Not_found)
+              done;
+              compare (length a) (length b)
+            with _ -> !res
+
+          let compare_char = Int.compare
 
           let of_native_substring natstr ~offset ~length =
             Make_native_conversions.of_native_substring
