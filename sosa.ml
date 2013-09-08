@@ -226,6 +226,8 @@ module type BASIC_STRING = sig
 
   val index_of_string: ?from:int ->
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
+  (** Find the first occurrence of the substring [(sub, sub_index,
+      sub_length)] in a given string, starting at index [from].  *)
 
 
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
