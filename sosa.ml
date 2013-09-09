@@ -229,6 +229,10 @@ module type BASIC_STRING = sig
   (** Find the first occurrence of the substring [(sub, sub_index,
       sub_length)] in a given string, starting at index [from].  *)
 
+  val index_of_string_reverse: ?from:int ->
+    ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
+  (** Do like [index_of_string] but start from the end of the string. *)
+
 
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
 
@@ -438,6 +442,29 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
     end in
     With_exn.f ()
 
+  let index_of_string_reverse ?(from=0) ?(sub_index=0) ?sub_length t ~sub =
+    let module With_exn = struct
+      exception Found of int
+
+      let f () =
+        let length_of_sub =
+          match sub_length with Some s -> s | None -> length sub - sub_index in
+        if from < 0 || sub_index < 0 || length_of_sub < 0
+        then None
+        else
+          begin try
+            let length_of_t = length t in
+            for i = length_of_t - length_of_sub downto from do
+              if compare_substring
+                  (t, i, length_of_sub)
+                  (sub, sub_index, length_of_sub) = 0
+              then raise (Found (i))
+            done;
+            None
+          with Found f -> Some f
+          end
+    end in
+    With_exn.f ()
 
 end
 
