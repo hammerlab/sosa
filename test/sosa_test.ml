@@ -498,7 +498,10 @@ let do_basic_test (module Test : TEST_STRING) =
   test_assertf (!been_to_some_0 > 5) "been_to_some_0: %d" !been_to_some_0;
   test_assertf (!been_to_some_m > 5) "been_to_some_m: %d" !been_to_some_m;
 
-  let test_index_of_string ?from ?sub_index ?sub_length s ~sub ~expect =
+  (* We test index_of_string and index_of_string_reverse, if we expect
+     the same result we may give only `~expect` if not, we use
+     `~expect_rev`. *)
+  let test_index_of_string ?from ?sub_index ?sub_length ?expect_rev s ~sub ~expect =
     match Str.of_native_string s, Str.of_native_string sub with
     | `Ok t, `Ok subt ->
       let res = Str.index_of_string t ~sub:subt ?from ?sub_index ?sub_length in
@@ -506,29 +509,39 @@ let do_basic_test (module Test : TEST_STRING) =
       test_assertf (res = expect)
         "Str.index_of_string %s ~sub:%s ?from:%s ?sub_index:%s ?sub_length:%s gave %s not %s"
         s sub (shopt from) (shopt sub_index) (shopt sub_length)
-        (shopt res) (shopt expect)
+        (shopt res) (shopt expect);
+      let erev = match expect_rev with None -> expect | Some opt -> opt in
+      let res = Str.index_of_string_reverse t ~sub:subt ?from ?sub_index ?sub_length in
+      test_assertf (res = erev)
+        "Str.index_of_string_reverse %s ~sub:%s ?from:%s ?sub_index:%s ?sub_length:%s gave %s not %s"
+        s sub (shopt from) (shopt sub_index) (shopt sub_length)
+        (shopt res) (shopt erev);
     | _, _ -> ()
   in
 
   test_index_of_string "aaaa" ~sub:"cc" ~expect:None;
-  test_index_of_string "aaaa" ~sub:"aa" ~expect:(Some 0);
+  test_index_of_string "aaaa" ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 2);
   test_index_of_string "ccaa" ~sub:"aa" ~expect:(Some 2);
   test_index_of_string "cccca" ~sub:"aa" ~expect:(None);
   test_index_of_string "aacca" ~from:1 ~sub:"aa" ~expect:(None);
   test_index_of_string "aaccaa" ~from:1 ~sub:"aa" ~expect:(Some 4);
-  test_index_of_string "aacca" ~from:1 ~sub:"aa" ~sub_index:1 ~expect:(Some 1);
+  test_index_of_string "aacca" ~from:1 ~sub:"aa" ~sub_index:1 ~expect:(Some 1) ~expect_rev:(Some 4);
   test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_index:1 ~expect:(Some 4);
   test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:1 ~expect:(Some 4);
-  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:0 ~expect:(Some 2);
-  test_index_of_string "aacca" ~from:2 ~sub:""  ~expect:(Some 2);
+  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:0 ~expect:(Some 2) ~expect_rev:(Some 5);
+  test_index_of_string "aacca" ~from:2 ~sub:""  ~expect:(Some 2) ~expect_rev:(Some 5);
   test_index_of_string "aaaa" ~from:(-1) ~sub:"aa" ~expect:None;
   test_index_of_string "aaaa" ~from:3 ~sub:"aa" ~expect:None;
   test_index_of_string "aaaa" ~from:4 ~sub:"aa" ~expect:None;
   test_index_of_string "aaaa" ~from:5 ~sub:"aa" ~expect:None;
   test_index_of_string "aaaa" ~sub_index:(-1) ~sub:"aa" ~expect:None;
-  test_index_of_string "aaaa" ~sub_index:2 ~sub:"aa" ~expect:(Some 0); (* This is searching the empty string ! *)
+  test_index_of_string "aaaa" ~sub_index:2 ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 4); (* This is searching the empty string ! *)
   test_index_of_string "aaaa" ~sub_index:3 ~sub:"aa" ~expect:(None); (* This is searching AFTER the empty string ! *)
 
+  (* We test `index_of_string{,_reverse}` with the cartesian product of
+     all the test subjects with themselves.
+     In the case `index_of_string_reverse`, when it succeed we only
+     check that it found a match *on or after* index_of_string. *)
   let been_to_subsub = ref 0 in
   let been_to_self_sub = ref 0 in
   let been_to_none = ref 0 in
@@ -548,6 +561,10 @@ let do_basic_test (module Test : TEST_STRING) =
           let from = Random.int (from + 1) in
           begin match Str.index_of_string o ~sub ~from ~sub_index ~sub_length with
           | Some i ->
+            let res_rev =
+              Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
+            test_assertf (match res_rev with Some ir when i <= ir -> true | _ -> false)
+              "index_of_string = None but index_of_string_reverse ≠ None";
             begin match Str.sub o ~index:i ~length:sub_length,
                         Str.sub sub ~index:sub_index ~length:sub_length with
             | Some subo, Some subsub ->
@@ -557,6 +574,10 @@ let do_basic_test (module Test : TEST_STRING) =
             | _, _ -> test_assertf false "index_of_string: can't sub"
             end
           | None ->
+            let res_rev =
+              Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
+            test_assertf (res_rev = None)
+              "index_of_string = None but index_of_string_reverse ≠ None";
             for i = 0 to Str.length o - 1 do
               let cmp =
                 Str.compare_substring (o, i + from, sub_length)
