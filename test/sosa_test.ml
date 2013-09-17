@@ -74,6 +74,54 @@ let test_native_subjects =
   @  List.init 20 (fun i -> random_ascii_string (i * 4 + 1))
   @  List.init 20 (fun i -> random_utf8_string (i * 4 + 1))
 
+module Benchmark = struct
+
+  let benchmarks_table = ref []
+
+  let add ~implementation ~experiment ~result =
+    match List.Assoc.find !benchmarks_table implementation with
+    | Some exps ->
+       exps := (experiment, result) :: !exps
+    | None ->
+       benchmarks_table := (implementation, ref [experiment, result]) :: !benchmarks_table
+
+  let to_string () =
+    let experiments =
+      List.map !benchmarks_table (fun (_, l) ->
+          List.map !l (fun (e, _) -> e))
+      |> List.concat |> List.dedup in
+    let first_row =
+      "Implementation" :: experiments
+    in
+    let row_widths =
+      List.map first_row (fun s -> ref (String.length s)) in
+    say "row widths: %s" (String.concat ~sep:", " (List.map row_widths (fun r -> sprintf "%d" !r)));
+    let other_rows =
+      List.map !benchmarks_table (fun (impl, l) ->
+          let w = List.nth_exn row_widths 0 in
+          w := max !w (String.length impl);
+          impl :: List.mapi experiments (fun i exp ->
+              let res = List.Assoc.find_exn !l exp in
+               let w = List.nth_exn row_widths (i  + 1) in
+              say "w: %d, i: %d lgth: %d" !w i (String.length res);
+              w := max !w (String.length res);
+              res)) in
+    let row_to_string row =
+      row
+      |> List.mapi ~f:(fun i c ->
+          say "%d %s %d %d" i c !(List.nth_exn row_widths i) (String.length c);
+          sprintf "%s%s" c
+            (String.make (1 + !(List.nth_exn row_widths i) - String.length c) ' '))
+      |> String.concat ~sep:"| "
+    in
+    sprintf "%s\n%s\n"
+      (first_row |> row_to_string)
+      (other_rows
+       |> List.map ~f:row_to_string
+       |> String.concat ~sep:"\n")
+
+end
+
 let do_basic_test (module Test : TEST_STRING) =
   let open Test in
   say "### Test %S" test_name;
@@ -765,4 +813,5 @@ let () =
         end)
   end);
   utf8_specific_test ();
+  say "## Benchmarks\n\n%s\n" (Benchmark.to_string ());
   exit !return_code
