@@ -101,7 +101,8 @@ module Benchmark = struct
     in
     let row_widths =
       List.map first_row (fun s -> ref (String.length s)) in
-    say "row widths: %s" (String.concat ~sep:", " (List.map row_widths (fun r -> sprintf "%d" !r)));
+    (* say "row widths: %s" (String.concat ~sep:", " 
+       (List.map row_widths (fun r -> sprintf "%d" !r))); *)
     let other_rows =
       List.map !benchmarks_table (fun (impl, l) ->
           let w = List.nth_exn row_widths 0 in
@@ -109,13 +110,13 @@ module Benchmark = struct
           impl :: List.mapi experiments (fun i exp ->
               let res = List.Assoc.find_exn !l exp in
                let w = List.nth_exn row_widths (i  + 1) in
-              say "w: %d, i: %d lgth: %d" !w i (String.length res);
+              (* say "w: %d, i: %d lgth: %d" !w i (String.length res); *)
               w := max !w (String.length res);
               res)) in
     let row_to_string row =
       row
       |> List.mapi ~f:(fun i c ->
-          say "%d %s %d %d" i c !(List.nth_exn row_widths i) (String.length c);
+          (* say "%d %s %d %d" i c !(List.nth_exn row_widths i) (String.length c); *)
           sprintf "%s%s" c
             (String.make (1 + !(List.nth_exn row_widths i) - String.length c) ' '))
       |> String.concat ~sep:"| "
@@ -653,14 +654,14 @@ let do_basic_test (module Test : TEST_STRING) =
 
   Benchmark.declare (fun () ->
       let implementation = test_name in
-      let experiment = "Concatenate all" in
+      let repeats = 6000 in
+      let experiment = sprintf "Concatenate all (%d reps)" repeats in
       let valid_subjects =
         List.filter_map test_native_subjects (fun s ->
             match Str.of_native_string s with
             | `Ok cs -> Some cs
             | `Error _ -> None) in
       let start = Time.(now () |> to_float) in
-      let repeats = 30 in
       for i = 1 to repeats do
         let _ =
           Str.concat ~sep:Str.empty valid_subjects in
@@ -668,7 +669,8 @@ let do_basic_test (module Test : TEST_STRING) =
       done;
       let stop = Time.(now () |> to_float) in
       let result =
-        sprintf "%d strings, %f s" (List.length valid_subjects)
+        sprintf "%d e, %.2f / %d = %f s"
+          (List.length valid_subjects) ((stop -. start)) repeats
           ((stop -. start) /. (float repeats)) in
       Benchmark.add ~implementation ~experiment ~result
     );
@@ -838,5 +840,5 @@ let () =
         end)
   end);
   utf8_specific_test ();
-  say "## Benchmarks\n\n%s\n" (Benchmark.to_string ());
+  say "\n## Benchmarks\n\n%s\n" (Benchmark.to_string ());
   exit !return_code
