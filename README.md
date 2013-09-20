@@ -59,5 +59,16 @@ handling of not more than 31 bits, even if [RFC 3629][RFC3629]
 restricts them to end at U+10FFFF, c.f. also
 [wikipedia][wikipedia:UTF-8]).
 
+Tests and Benchmarks
+--------------------
+
+You may run all the regression tests with:
+
+    ./test/sosa_test.ml
+
+and you may add the basic benchmarks to the process with:
+
+    ./test/sosa_test.ml bench
+
 [wikipedia:UTF-8]: http://en.wikipedia.org/wiki/UTF-8
 [RFC3629]: http://tools.ietf.org/html/rfc3629
