@@ -103,8 +103,20 @@ module Benchmark = struct
     | None ->
        benchmarks_table := (implementation, ref [experiment, result]) :: !benchmarks_table
        
-  let declare f = 
-    if should_do_benchmarks then f () else ()
+  let measure ?(repeats=1000) f =
+    let start = Time.(now () |> to_float) in
+    for i = 1 to repeats do
+      f ()
+    done;
+    let stop = Time.(now () |> to_float) in
+    (1000. *. (stop -. start) /. (float repeats))
+
+  let declare ~implementation ~experiment f = 
+    if should_do_benchmarks then 
+      let time = measure f in
+       let result = sprintf "%.3f ms" time in
+       add ~implementation ~experiment ~result
+    else ()
 
   let to_string () =
     let experiments =
@@ -678,27 +690,14 @@ let do_basic_test (module Test : TEST_STRING) =
       (List.length dna_test_subjects) (List.length all);
     all in
 
-  Benchmark.declare (fun () ->
-      let implementation = test_name in
-      let repeats = 1000 in
-      let experiment = sprintf "Concat all" in
-      let start = Time.(now () |> to_float) in
-      for i = 1 to repeats do
-        let _ =
-          Str.concat ~sep:Str.empty converted_dna_reads in
-        ()
-      done;
-      let stop = Time.(now () |> to_float) in
-      let result =
-        (* sprintf "%d e, %.2f / %d = %f s"
-          (List.length converted_dna_reads) ((stop -. start)) repeats
-          ((stop -. start) /. (float repeats)) *)
-        sprintf "%d e, %.2f ms"
-          (List.length converted_dna_reads)
-          (1000. *. (stop -. start) /. (float repeats))
-      in
-      Benchmark.add ~implementation ~experiment ~result
-    );
+  let implementation = test_name in
+  Benchmark.declare
+    ~experiment:(sprintf "Concat %d" (List.length converted_dna_reads))
+    ~implementation
+    (fun () ->
+       let _ =
+         Str.concat ~sep:Str.empty converted_dna_reads in
+       ());
 
   ()
 
