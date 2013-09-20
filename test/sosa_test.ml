@@ -146,10 +146,12 @@ module Benchmark = struct
           (* say "%d %s %d %d" i c !(List.nth_exn row_widths i) (String.length c); *)
           sprintf "%s%s" c
             (String.make (1 + !(List.nth_exn row_widths i) - String.length c) ' '))
-      |> String.concat ~sep:"| "
+      |> String.concat ~sep:"  "
     in
-    sprintf "%s\n%s\n"
+    sprintf "%s\n%s\n%s\n"
       (first_row |> row_to_string)
+      (List.map row_widths (fun s -> String.make (!s) '-')
+       |> String.concat ~sep:"   ")
       (other_rows
        |> List.map ~f:row_to_string
        |> String.concat ~sep:"\n")
@@ -824,7 +826,7 @@ let () =
         end)
   end);
   do_basic_test (module struct
-      let test_name = "Of_mutable((char, int8, C-Layout) Bigarray.Array1.t)"
+      let test_name = "Of_mutable(int8 Bigarray1.t)"
       let can_have_wrong_char = false
       open Bigarray
       type char_bigarray = (char, int8_unsigned_elt, c_layout) Array1.t
@@ -890,5 +892,8 @@ let () =
         end)
   end);
   utf8_specific_test ();
-  say "\n## Benchmarks\n\n%s\n" (Benchmark.to_string ());
+  say "\n## Benchmarks\n\n";
+  say "- `uname -a`: ";
+  ignore (Unix.system "uname -a");
+  say "- Word size: %d\n\n%s\n" Sys.word_size (Benchmark.to_string ());
   exit !return_code
