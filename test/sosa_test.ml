@@ -33,6 +33,9 @@ open Sosa
 
 let say fmt = printf (fmt ^^ "\n%!")
 
+let should_do_benchmarks =
+  try Sys.argv.(1) = "bench" with _ -> false
+
 module type TEST_STRING = sig
   val test_name: string
   val can_have_wrong_char: bool
@@ -84,6 +87,9 @@ module Benchmark = struct
        exps := (experiment, result) :: !exps
     | None ->
        benchmarks_table := (implementation, ref [experiment, result]) :: !benchmarks_table
+       
+  let declare f = 
+    if should_do_benchmarks then f () else ()
 
   let to_string () =
     let experiments =
@@ -645,27 +651,27 @@ let do_basic_test (module Test : TEST_STRING) =
   test_assertf (!been_to_self_sub > 4) "been_to_self_sub: %d" !been_to_self_sub;
   test_assertf (!been_to_none > 4) "been_to_none: %d" !been_to_none;
 
-  let () =
-    let implementation = test_name in
-    let experiment = "Concatenate all" in
-    let valid_subjects =
-      List.filter_map test_native_subjects (fun s ->
-          match Str.of_native_string s with
-          | `Ok cs -> Some cs
-          | `Error _ -> None) in
-    let start = Time.(now () |> to_float) in
-    let repeats = 30 in
-    for i = 1 to repeats do
-      let _ =
-        Str.concat ~sep:Str.empty valid_subjects in
-      ()
-    done;
-    let stop = Time.(now () |> to_float) in
-    let result =
-      sprintf "%d strings, %f s" (List.length valid_subjects)
-        ((stop -. start) /. (float repeats)) in
-    Benchmark.add ~implementation ~experiment ~result
-  in
+  Benchmark.declare (fun () ->
+      let implementation = test_name in
+      let experiment = "Concatenate all" in
+      let valid_subjects =
+        List.filter_map test_native_subjects (fun s ->
+            match Str.of_native_string s with
+            | `Ok cs -> Some cs
+            | `Error _ -> None) in
+      let start = Time.(now () |> to_float) in
+      let repeats = 30 in
+      for i = 1 to repeats do
+        let _ =
+          Str.concat ~sep:Str.empty valid_subjects in
+        ()
+      done;
+      let stop = Time.(now () |> to_float) in
+      let result =
+        sprintf "%d strings, %f s" (List.length valid_subjects)
+          ((stop -. start) /. (float repeats)) in
+      Benchmark.add ~implementation ~experiment ~result
+    );
 
   ()
 
