@@ -77,6 +77,21 @@ let test_native_subjects =
   @  List.init 20 (fun i -> random_ascii_string (i * 4 + 1))
   @  List.init 20 (fun i -> random_utf8_string (i * 4 + 1))
 
+(* This is a set of common denminator native strings, i.e., string that can be
+ * converted to every other representation. We call them DNA and use only 'A',
+ * 'C', 'G', 'T' for future implementations which will be using only 2 or 4
+ * bits percharacter. *)
+let dna_test_subjects =
+  let random_read _ =
+    String.init (Random.int 300 + 1) (fun _ ->
+        begin match Random.int 4 with
+        | 0 -> 'A'
+        | 1 -> 'C'
+        | 2 -> 'G'
+        | _ -> 'T'
+        end) in
+  List.init 200 random_read
+
 module Benchmark = struct
 
   let benchmarks_table = ref []
@@ -652,26 +667,36 @@ let do_basic_test (module Test : TEST_STRING) =
   test_assertf (!been_to_self_sub > 4) "been_to_self_sub: %d" !been_to_self_sub;
   test_assertf (!been_to_none > 4) "been_to_none: %d" !been_to_none;
 
+  let converted_dna_reads =
+    let all =
+      List.filter_map dna_test_subjects (fun s ->
+          match Str.of_native_string s with
+          | `Ok cs -> Some cs
+          | `Error _ -> None) in
+    test_assertf (List.length dna_test_subjects = List.length all)
+      "Convert DNA (common denominator) %d <> %d"
+      (List.length dna_test_subjects) (List.length all);
+    all in
+
   Benchmark.declare (fun () ->
       let implementation = test_name in
-      let repeats = 6000 in
-      let experiment = sprintf "Concatenate all (%d reps)" repeats in
-      let valid_subjects =
-        List.filter_map test_native_subjects (fun s ->
-            match Str.of_native_string s with
-            | `Ok cs -> Some cs
-            | `Error _ -> None) in
+      let repeats = 1000 in
+      let experiment = sprintf "Concat all" in
       let start = Time.(now () |> to_float) in
       for i = 1 to repeats do
         let _ =
-          Str.concat ~sep:Str.empty valid_subjects in
+          Str.concat ~sep:Str.empty converted_dna_reads in
         ()
       done;
       let stop = Time.(now () |> to_float) in
       let result =
-        sprintf "%d e, %.2f / %d = %f s"
-          (List.length valid_subjects) ((stop -. start)) repeats
-          ((stop -. start) /. (float repeats)) in
+        (* sprintf "%d e, %.2f / %d = %f s"
+          (List.length converted_dna_reads) ((stop -. start)) repeats
+          ((stop -. start) /. (float repeats)) *)
+        sprintf "%d e, %.2f ms"
+          (List.length converted_dna_reads)
+          (1000. *. (stop -. start) /. (float repeats))
+      in
       Benchmark.add ~implementation ~experiment ~result
     );
 
