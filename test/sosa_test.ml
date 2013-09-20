@@ -111,9 +111,9 @@ module Benchmark = struct
     let stop = Time.(now () |> to_float) in
     (1000. *. (stop -. start) /. (float repeats))
 
-  let declare ~implementation ~experiment f = 
+  let declare ?repeats ~implementation ~experiment f = 
     if should_do_benchmarks then 
-      let time = measure f in
+      let time = measure ?repeats f in
        let result = sprintf "%.3f ms" time in
        add ~implementation ~experiment ~result
     else ()
@@ -692,13 +692,39 @@ let do_basic_test (module Test : TEST_STRING) =
 
   let implementation = test_name in
   Benchmark.declare
-    ~experiment:(sprintf "Concat %d" (List.length converted_dna_reads))
+    ~experiment:(sprintf "Concat%d" (List.length converted_dna_reads))
     ~implementation
     (fun () ->
        let _ =
          Str.concat ~sep:Str.empty converted_dna_reads in
        ());
 
+  let cated =
+    Str.concat ~sep:Str.empty converted_dna_reads in
+  Benchmark.declare
+    ~experiment:(sprintf "Length")
+    ~implementation
+    ~repeats:10000
+    (fun () -> ignore (Str.length cated));
+  let sub =
+    List.nth_exn converted_dna_reads (List.length converted_dna_reads - 30) in
+  let sub_index = 1 in
+  let sub_length = Str.length sub - sub_index in
+  let from = 2 in
+  Benchmark.declare
+    ~experiment:(sprintf "Find")
+    ~implementation
+    ~repeats:5
+    (fun () -> ignore (
+         Str.index_of_string cated ~sub ~from ~sub_index ~sub_length
+       ));
+  Benchmark.declare
+    ~experiment:(sprintf "R-Find")
+    ~implementation
+    ~repeats:5
+    (fun () -> ignore (
+         Str.index_of_string_reverse cated ~sub ~from ~sub_index ~sub_length
+       ));
   ()
 
 let utf8_specific_test () =
@@ -749,7 +775,7 @@ let () =
       module Str = List_of (Int_utf8_character)
   end);
   do_basic_test (module struct
-      let test_name = "Of_mutable(int array)"
+      let test_name = "Of_mutable(utf8-int array)"
       let can_have_wrong_char = true
       module Chr = Int_utf8_character
       module Str = Of_mutable (struct
