@@ -174,6 +174,9 @@ module type BASIC_STRING = sig
       [length] is 0, [sub] returns [Some empty] whichever the other
       parameters are. *)
 
+  val sub_exn: t -> index:int -> length:int -> t
+  (** Do like [sub] but throw an exception instead of returning [None] *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -552,6 +555,9 @@ module Native_string : NATIVE_STRING = struct
     done;
     !res
 
+  let sub_exn t ~index ~length =
+    if length = 0 then empty else String.sub t index length
+
   let sub t ~index ~length =
     if length = 0 then Some empty else
       try Some (String.sub t index length)
@@ -756,6 +762,11 @@ module List_of (Char: BASIC_CHARACTER) :
       if !c = length then Some (List.rev !r) else None
     with
     | Not_found -> Some (List.rev !r)
+    
+  let sub_exn t ~index ~length =
+    match sub t ~index ~length with
+    | Some s -> s
+    | None -> ksprintf failwith "sub_exn(%d,%d)" index length
 
   let index_of_character t ?(from=0) c =
     let index = ref 0 in
@@ -1054,6 +1065,11 @@ module Of_mutable
           with _ -> None
         end
       end
+
+  let sub_exn t ~index ~length =
+    match sub t ~index ~length with
+    | Some s -> s
+    | None -> ksprintf failwith "sub_exn(%d,%d)" index length
 
   let to_string_hum t = to_native_string t |> sprintf "%S"
 
