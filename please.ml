@@ -47,6 +47,12 @@ let install () =
         ])
 
 
+let uninstall () =
+    chain [
+      "ocamlfind remove sosa"
+    ]
+
+
 let merlinize () =
     chain [
       "echo 'S .' > .merlin";
@@ -65,30 +71,41 @@ let build_doc () =
 
 let name = "sosa"
 
-let () =
-  match args with
-  | _ :: "build" :: [] ->
-    say "Building.";
-    build ();
-    say "Done."
-  | _ :: "build_doc" :: [] ->
-    say "Building the documentation.";
-    build_doc ()
-  | _ :: "install" :: [] ->
-    say "Installing";
-    install ();
-  | _ :: "uninstall" :: [] ->
-    chain [
-      sprintf "ocamlfind remove %s" name
-    ]
-  | _ :: "merlinize" :: [] -> merlinize ()
-  | _ :: "clean" :: []
-  | _ :: "C" :: [] ->
-    cmdf "rm -fr _build"
-  | _ :: "help" :: [] ->
-    say "usage: ocaml %s [build|build_doc|install|uninstall|clean|merlinize]" Sys.argv.(0);
-  | _ ->
-    say "usage: ocaml %s [build|build_doc|install|uninstall|clean|merlinize]" Sys.argv.(0);
-    exit 1
-    
+let () = begin
+match args with
+| _ :: "build" :: [] ->(
+say "Building";
+build ();
+say "Done."
+)
+| _ :: "build_doc" :: [] ->(
+say "Building Documentation";
+build_doc ();
+say "Done."
+)
+| _ :: "install" :: [] ->(
+say "Installing";
+install ();
+say "Done."
+)
+| _ :: "uninstall" :: [] ->(
+say "Uninstalling";
+uninstall ();
+say "Done."
+)
+| _ :: "merlinize" :: [] ->(
+say "Updating `.merlin` file";
+merlinize ();
+say "Done."
+)
+| _ :: "clean" :: [] ->(
+say "Cleaning";
+cmdf "rm -fr _build";
+say "Done."
+)
+| _ ->(
+say "usage: ocaml %s [build|install|uninstall|clean|build_doc|melinize]" Sys.argv.(0)
+)
+
+end
 

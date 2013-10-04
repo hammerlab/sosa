@@ -1,22 +1,26 @@
 Installation Instructions
 =========================
 
-Build & Install
----------------
+Build
+-----
 
-This library does not have dependencies:
+This package does not have dependencies, just do:
 
-     ocaml please.ml build
+    ocaml please.ml build
 
-Finally, you can install it with `ocamlfind`:
+Install
+-------
 
-     ocaml please.ml install
+You can install the library with `ocamlfind`:
 
-You may want to control the destination with the variable
-`OCAMLFIND_DESTDIR`.
+    ocaml please.ml install
+
+You may want to control the destination with the variable `OCAMLFIND_DESTDIR`.
 
 Uninstall
 ---------
+
+You can uninstall the library (also `ocamlfind`):
 
     ocaml please.ml uninstall
 
