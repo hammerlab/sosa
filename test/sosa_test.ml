@@ -729,7 +729,70 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
   in
 
+  let int_list_to_string l =
+    sprintf "[%s]"
+    (List.map ~f:Int.to_string l |> String.concat ~sep:",") in
+  (* Test the `split` function *)
+  let () =
+    let test l ~on ~expect =
+      let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
+      let on_converted =
+        match on with
+        | `C c -> 
+          `Character (Option.value_exn ~message:"Chr.of_int" (Chr.of_int c))
+        | `S l ->
+          `String (List.filter_map l Chr.of_int |>  Str.of_character_list)
+      in
+      let res = 
+        Str.split s ~on:on_converted in
+      let res_list = 
+        List.map  res
+          ~f:(fun s -> Str.to_character_list s |> List.map ~f:Chr.to_int)
+      in
+      test_assertf (res_list = expect) 
+        "split: l: %s = %s on:(%s)\n    expect: {%s}\n     res: {%s}: %s."
+        (int_list_to_string l)
+        (Str.to_string_hum s)
+        (match on with
+         | `C c -> sprintf "`Character %d"  c
+         | `S s -> sprintf "`String %s" (int_list_to_string s))
+        (List.map ~f:int_list_to_string expect |> String.concat ~sep:" -- ")
+        (List.map ~f:int_list_to_string res_list |> String.concat ~sep:" -- ")
+        (List.map ~f:Str.to_string_hum res |> String.concat ~sep:"; ")
+    in
+    let on_one t ~expect =
+      test t ~on:(`C 1) ~expect;
+      test t ~on:(`S [1]) ~expect;
+    in
+    on_one [] ~expect:[[]];
+    on_one [2;3;] ~expect:[[2;3]];
+    on_one [1] ~expect:[[]; []];
+    on_one [2;1;2;3;4] ~expect:[[2]; [2;3;4]];
+    on_one [2;1;2;3;4;1] ~expect:[[2]; [2;3;4]; []];
+    on_one [1;2;1;2;3;4;1] ~expect:[[]; [2]; [2;3;4]; []];
+    on_one [1;1;2;1;2;3;4;1] ~expect:[[]; []; [2]; [2;3;4]; []];
 
+    let on_123 t ~expect =
+      test t ~on:(`S [1;2;3]) ~expect;
+    in
+    on_123 [] ~expect:[ [] ];
+    on_123 [1] ~expect:[ [1] ];
+    on_123 [1;2;4;5] ~expect:[ [1;2;4;5;] ];
+    on_123 [1;2;3] ~expect:[[]; []];
+    on_123 [2;1;2;3;4] ~expect:[[2]; [4]];
+    on_123 [2;1;2;3;4;1] ~expect:[[2]; [4;1]];
+    on_123 [1;2;1;2;3;4;1] ~expect:[[1;2]; [4;1]];
+    on_123 [1;2;3;1;2;1;2;3;4;1] ~expect:[[]; [1;2]; [4;1]];
+
+    let on_empty t ~expect =
+      test t ~on:(`S []) ~expect;
+    in
+    on_empty [] ~expect:[ [] ];
+    on_empty [1] ~expect:[ [1] ];
+    on_empty [1;2;4;5] ~expect:[ [1]; [2]; [4]; [5] ];
+    
+
+  in
 
 
 
