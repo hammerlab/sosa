@@ -250,6 +250,13 @@ module type BASIC_STRING = sig
       default is to use the whole string, “wrong” values are restricted to
       [(from, length)]). *)
 
+  val split: t -> 
+    on:[ `Character of character | `String of t ] ->
+    t list
+  (** Split the string using [on] as separator. 
+      Splitting the empty string returns  [[empty]], splitting [on] the empty
+      string explodes the string into a list of one-character strings. *)
+
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
 
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
@@ -485,6 +492,59 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
 
 end
 
+(* This module type is a subset of `BASIC_STRING` for strings with a `length`
+   function, a `sub_exn` function, and the `index_of_*` functions *)
+module type T_LENGTH_SUB_AND_SEARCH = sig
+  type t
+  type character
+  val length: t -> int
+  val sub_exn: t -> index:int -> length:int -> t
+  val index_of_character: t -> ?from:int -> character -> int option
+  val index_of_string: ?from:int ->
+    ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
+end
+
+(* This functor implements the `BASIC_STRING.split` function out of a
+   `T_LENGTH_AND_SEARCH` *)
+module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
+
+  let split t ~on =
+    let length_of_t = S.length t in
+    begin match on with
+    | `Character c ->
+      let rec loop acc from =
+        match S.index_of_character t ~from c with
+        | Some index ->
+          loop (S.sub_exn t ~index:from ~length:(index - from) :: acc) 
+            (index + 1)
+        | None ->
+          (S.sub_exn t ~index:from ~length:(length_of_t - from) :: acc)
+      in
+      List.rev (loop [] 0)
+    | `String s ->
+      let length_of_s = S.length s in
+      let rec loop acc from =
+        match S.index_of_string t ~from ~sub:s with
+        | Some index ->
+          loop (S.sub_exn t ~index:from ~length:(index - from) :: acc) 
+            (index + length_of_s)
+        | None ->
+          (S.sub_exn t ~index:from ~length:(length_of_t - from) :: acc)
+      in
+      if length_of_s > 0 
+      then List.rev (loop [] 0)
+      else if length_of_t = 0
+      then [ t ]
+      else begin
+        let res = ref [] in
+        for index = length_of_t - 1 downto 0 do
+          res := S.sub_exn t ~index ~length:1 :: !res
+        done;
+        !res
+      end
+    end
+
+end
 
 module Native_string : NATIVE_STRING = struct
 
@@ -631,6 +691,15 @@ module Native_string : NATIVE_STRING = struct
       done;
       Buffer.contents b
     end
+
+  include Make_split_function(struct
+      type t = string
+      type character = char
+      let length = length
+      let sub_exn = sub_exn
+      let index_of_string = index_of_string
+      let index_of_character = index_of_character
+    end)
 
   module Make_output (Model: OUTPUT_MODEL) = Model
 
@@ -893,6 +962,15 @@ module List_of (Char: BASIC_CHARACTER) :
       end
     in
     filter_map_rec [] 0 t
+
+  include Make_split_function(struct
+      type t = Char.t list
+      type character = Char.t
+      let length = length
+      let sub_exn = sub_exn
+      let index_of_string = index_of_string
+      let index_of_character = index_of_character
+    end)
 
 
   module Make_output (Model: OUTPUT_MODEL) = struct
@@ -1200,6 +1278,15 @@ module Of_mutable
       | None -> ()
     done;
     of_character_list !res
+
+  include Make_split_function(struct
+      type t = S.t
+      type character = S.character
+      let length = length
+      let sub_exn = sub_exn
+      let index_of_string = index_of_string
+      let index_of_character = index_of_character
+    end)
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
