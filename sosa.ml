@@ -243,6 +243,12 @@ module type BASIC_STRING = sig
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
   (** Do like [index_of_string] but start from the end of the string. *)
 
+  val filter_map: ?from:int -> ?length:int -> t -> 
+    f:(character -> character option) -> t
+  (** Create a new string with the characters for which [f c] returned 
+      [Some c]. One can restrict to the sub-string [(from, length)] (the
+      default is to use the whole string, “wrong” values are restricted to
+      [(from, length)]). *)
 
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
 
@@ -609,6 +615,23 @@ module Native_string : NATIVE_STRING = struct
     try Some (String.rindex_from t from c)
     with _ -> None
 
+  let filter_map ?(from=0) ?length s ~f =
+    let length =
+      let of_s = String.length s in
+      match length with 
+      | Some l -> min l of_s
+      | None -> of_s in
+    if length = 0 then empty
+    else begin
+      let b = Buffer.create length in
+      for i = from to length - 1 do
+        match f (get_exn s i) with
+        | Some c -> Buffer.add_char b c
+        | None -> ()
+      done;
+      Buffer.contents b
+    end
+
   module Make_output (Model: OUTPUT_MODEL) = Model
 
 end
@@ -856,6 +879,21 @@ module List_of (Char: BASIC_CHARACTER) :
   end
   include Compare_substring_strict_of_loose(T_length_and_compsub)
   include Make_index_of_string(T_length_and_compsub)
+
+
+  let filter_map ?(from=0) ?length t ~f =
+    let rec filter_map_rec acc count = function
+    | [] -> List.rev acc
+    | _ when Some count = length -> List.rev acc
+    | _ :: t  when count < from -> filter_map_rec acc (count + 1) t
+    | h :: t -> 
+      begin match f h with
+      | Some o -> filter_map_rec (o :: acc) (count + 1) t
+      | None -> filter_map_rec acc (count + 1) t
+      end
+    in
+    filter_map_rec [] 0 t
+
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
@@ -1148,6 +1186,20 @@ module Of_mutable
   end
   include Compare_substring_strict_of_loose(T_length_and_compsub)
   include Make_index_of_string(T_length_and_compsub)
+
+  let filter_map ?(from=0) ?length s ~f =
+    let length =
+      let of_s = S.length s in
+      match length with 
+      | Some l -> min l of_s
+      | None -> of_s in
+    let res = ref [] in
+    for i = length - 1 downto from do
+      match f (S.get s i) with
+      | Some c -> res := c :: !res
+      | None -> ()
+    done;
+    of_character_list !res
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
