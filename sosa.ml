@@ -135,6 +135,10 @@ module type BASIC_STRING = sig
   val of_character_list: character list -> t
   (** Make a string out of a list of characters. *)
 
+  val to_character_list: t -> character list
+  (** Explode a string into a list of characters. *)
+
+
   val get: t -> index:int -> character option
   (** Get the n-th char, indexes are not necessarily bytes, they can
       be bits. [get] returns [None] when [index] is out of bounds. *)
@@ -491,6 +495,13 @@ module Native_string : NATIVE_STRING = struct
     List.iteri cl ~f:(fun i c -> buf.[i] <- c);
     buf
 
+  let to_character_list s =
+    let res = ref [] in
+    for i = length s - 1 downto 0 do
+      res := s.[i] :: !res
+    done;
+    !res
+
   let get s ~index =
     try Some (s.[index])
     with _ -> None
@@ -690,6 +701,7 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let of_character c = [c]
   let of_character_list cl = cl
+  let to_character_list cl = cl
 
   let get sl ~index =
     try Some (List.nth sl index) with _ -> None
@@ -981,13 +993,22 @@ module Of_mutable
     match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
 
   let of_character c = make 1 c
+
   let of_character_list cl =
     match cl with
     | [] -> empty
     | one :: more ->
       let res = make (List.length cl) one in
-      List.iteri more ~f:(fun  i c -> S.set res i c);
+      List.iteri more ~f:(fun  i c ->
+          S.set res (i + 1) c);
       res
+
+  let to_character_list s =
+    let res = ref [] in
+    for i = S.length s - 1 downto 0 do
+      res := S.get s i :: !res
+    done;
+    !res
 
   let rec concat  ?(sep=empty) tl =
     match tl with
