@@ -681,6 +681,58 @@ let do_basic_test (module Test : TEST_STRING) =
   test_assertf (!been_to_self_sub > 4) "been_to_self_sub: %d" !been_to_self_sub;
   test_assertf (!been_to_none > 4) "been_to_none: %d" !been_to_none;
 
+  (* Test `filter_map` *)
+  let () =
+    let test ?from ?length l ~f ~expect fmt =
+      let name = ksprintf ident fmt in
+      (* say "test: %s l : %d" name (List.length l); *)
+      let s = 
+        List.filter_map l Chr.of_int |>  Str.of_character_list in
+      (* say "test: %s s: %d" name (Str.length s); *)
+      let filtered =
+        Str.filter_map ?from ?length s ~f:(fun c ->
+            (* say "Chr: %d" (Chr.to_int c); *)
+            match f (Chr.to_int c) with
+            | Some i -> Chr.of_int i
+            | None -> None)
+      in
+      let res_ints =
+        Str.to_character_list filtered |> List.map ~f:Chr.to_int in
+      let before =
+        Str.to_character_list s |> List.map ~f:Chr.to_int in
+      test_assertf (expect = res_ints)
+        "test_filter_map: [%s=%s] → [%s] <> [%s] (%s)"
+        (List.map l (sprintf "%d") |> String.concat ~sep:",")
+        (List.map before (sprintf "%d") |> String.concat ~sep:",")
+        (List.map res_ints (sprintf "%d") |> String.concat ~sep:",")
+        (List.map expect (sprintf "%d") |> String.concat ~sep:",")
+        name;
+    in
+    test [] ~f:Option.some ~expect:[] "all empty";
+    test [1]  ~f:Option.some ~expect:[1] "some 1";
+    test [1;2;3]  ~f:Option.some ~expect:[1;2;3] "some 123";
+    test [1;1;1]  ~f:Option.some ~expect:[1;1;1] "some 111";
+    test []  ~f:(fun _ -> None) ~expect:[] "none";
+    test [1]  ~f:(fun _ -> None) ~expect:[] "none";
+    test [1;2;3]  ~f:(fun _ -> None) ~expect:[] "none";
+    let opt_of_cond c = fun x -> if c x then Some x else None in
+    test [1;2;3]  ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1";
+    test [1;2;3]  ~f:(opt_of_cond ((<) 2)) ~expect:[3] "opt_of_cond _ > 2";
+    test [1;2;3] ~from:1 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 from 1";
+    test [1;2;3] ~from:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1 from 2";
+    test [1;2;3] ~from:3 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 3";
+    test [1;2;3] ~from:4 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 4";
+    test [1;2;3]  ~length:0 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 0";
+    test [1;2;3]  ~length:1 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 1";
+    test [1;2;3]  ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[2] "opt_of_cond _ > 1 length 2";
+    test [1;2;3]  ~length:3 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 3";
+    test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
+  in
+
+
+
+
+
   let converted_dna_reads =
     let all =
       List.filter_map dna_test_subjects (fun s ->
