@@ -72,6 +72,9 @@ module type BASIC_CHARACTER = sig
   (** Import an integer, returns [None] if there is no character for
       that value. *)
 
+  val to_int: t -> int
+  (** Returns the integer representation of the chraracter. *)
+
   val size: t -> int
   (** Get the size of the character, the exact semantics are
       implementation-specific (c.f. {!write_to_native_string}) *)
@@ -360,6 +363,7 @@ module Native_character : NATIVE_CHARACTER = struct
     let of_native_char x = Some x
     let of_int x =
       try Some (char_of_int x) with _ -> None
+    let to_int = int_of_char
     let compare = Char.compare
 
     let size _ = 1
@@ -863,7 +867,7 @@ module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
     let compare (i: int) (j : int) = compare i j
     let of_int x =
       if x land 0x7FFF_FFFF = x then Some x else None
-
+    let to_int c = c
     let size x =
       if x <=        0x7f then 1 else
       if x <=       0x7ff then 2 else
