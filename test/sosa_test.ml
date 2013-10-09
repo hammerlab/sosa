@@ -738,6 +738,13 @@ let do_basic_test (module Test : TEST_STRING) =
   let int_list_to_string l =
     sprintf "[%s]"
     (List.map ~f:Int.to_string l |> String.concat ~sep:",") in
+
+  let str_to_int_list s =
+    Str.to_character_list s |> List.map ~f:Chr.to_int in
+
+  let int_option_to_string io =
+    Option.value_map ~default:"None" ~f:(sprintf "Some %d") io in
+
   begin (* Test the `split` function *)
     let test l ~on ~expect =
       let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
@@ -750,9 +757,7 @@ let do_basic_test (module Test : TEST_STRING) =
       in
       let res = 
         Str.split s ~on:on_converted in
-      let res_list = 
-        List.map  res
-          ~f:(fun s -> Str.to_character_list s |> List.map ~f:Chr.to_int)
+      let res_list = List.map  res ~f:str_to_int_list
       in
       test_assertf (res_list = expect) 
         "split: l: %s = %s on:(%s)\n    expect: {%s}\n     res: {%s}: %s."
@@ -797,6 +802,109 @@ let do_basic_test (module Test : TEST_STRING) =
     on_empty [1;2;4;5] ~expect:[ [1]; [2]; [4]; [5] ];
   end;    
 
+  begin (* Test `find` *)
+    let test ?from ?length ?should_find l ~f =
+      let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
+      let f x = f (Chr.to_int x) in
+      let res = Str.find ?from ?length s ~f in
+      test_assertf (res = should_find)
+        "find: %s (%s, %s) expects  %s but got %s"
+        (str_to_int_list s |> int_list_to_string)
+        (int_option_to_string from)
+        (int_option_to_string length) 
+        (int_option_to_string should_find)
+        (int_option_to_string res);
+      if from = None then (
+        let from = Some 0 in
+        let res = Str.find ?from ?length s ~f in
+        test_assertf (res = should_find)
+          "find: %s (%s →, %s) expects  %s but got %s"
+          (str_to_int_list s |> int_list_to_string)
+          (int_option_to_string from)
+          (int_option_to_string length) 
+          (int_option_to_string should_find)
+          (int_option_to_string res);
+      );
+    in
+    test [] ~f:(fun _ -> true);
+    test [] ~f:(fun _ -> false);
+    test [1] ~f:(fun _ -> true) ~should_find:0;
+    test [1] ~f:(fun _ -> false);
+    test [1;2;3] ~f:(fun _ -> true) ~should_find:0;
+    test [1;2;3] ~f:(fun _ -> false);
+    test [1;2;3] ~f:(fun x -> x > 1) ~should_find:1;
+    test [1;2;3] ~f:(fun x -> x < 1);
+    test [1;1;1;2;3] ~from:2 ~f:(fun x -> x > 1) ~should_find:3;
+    test [1;1;1;2;3] ~from:2 ~f:(fun x -> x < 1);
+    test [1;1;1;2;3] ~from:2 ~f:(fun x -> x <= 1) ~should_find:2;
+    test [1;2;3]     ~from:2 ~f:(fun _ -> true) ~should_find:2;
+    test [1;2;3]     ~from:3 ~f:(fun _ -> true);
+    test [1;2;3]     ~from:(-2) ~f:(fun _ -> true) ~should_find:0;
+    test [] ~length:0 ~f:(fun _ -> true);
+    test [] ~length:0 ~f:(fun _ -> false);
+    test [1;2;] ~length:0 ~f:(fun _ -> true);
+    test [1;2;] ~length:0 ~f:(fun _ -> false);
+    test [1;2;] ~length:1 ~f:(fun _ -> true) ~should_find:0;
+    test [1;2;] ~length:1 ~f:(fun _ -> false);
+    test [1;2;] ~from:1 ~length:1 ~f:(fun _ -> true) ~should_find:1;
+    test [1;2;] ~from:2 ~length:1 ~f:(fun _ -> true);
+    test [1;2;3;] ~from:2 ~length:1 ~f:(fun _ -> true) ~should_find:2;
+    test [1;2;] ~from:1 ~length:2 ~f:(fun _ -> true) ~should_find:1;
+    test [1;2;] ~from:0 ~length:(-1) ~f:(fun _ -> true);
+    test [1;2;3;4] ~from:3 ~length:2 ~f:(fun _ -> true) ~should_find:3;
+  end;
+
+  begin (* Test `find_reverse` *)
+    let test ?from ?length ?should_find l ~f =
+      let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
+      let f x = f (Chr.to_int x) in
+      let res = Str.find_reverse ?from ?length s ~f in
+      test_assertf (res = should_find)
+        "find_reverse: %s (%s, %s) expects  %s but got %s"
+        (str_to_int_list s |> int_list_to_string)
+        (int_option_to_string from)
+        (int_option_to_string length) 
+        (int_option_to_string should_find)
+        (int_option_to_string res);
+      if from = None then (
+        let from = Some (Str.length s - 1) in
+        let res = Str.find_reverse ?from ?length s ~f in
+        test_assertf (res = should_find)
+          "find_reverse: %s (%s → added, %s) expects  %s but got %s"
+          (str_to_int_list s |> int_list_to_string)
+          (int_option_to_string from)
+          (int_option_to_string length) 
+          (int_option_to_string should_find)
+          (int_option_to_string res);
+      );
+    in
+    test [] ~f:(fun _ -> true);
+    test [] ~f:(fun _ -> false);
+    test [1] ~f:(fun _ -> true) ~should_find:0;
+    test [1] ~f:(fun _ -> false);
+    test [1;2;3] ~f:(fun _ -> true) ~should_find:2;
+    test [1;2;3] ~f:(fun _ -> false);
+    test [1;2;3] ~f:(fun x -> x <= 2) ~should_find:1;
+    test [1;2;3] ~f:(fun x -> x < 1);
+    test [1;1;1;2;3] ~from:2 ~f:(fun x -> x > 1);
+    test [1;1;1;2;3] ~from:2 ~f:(fun x -> x < 1);
+    test [1;1;1;2;3] ~from:2 ~f:(fun x -> x <= 1) ~should_find:2;
+    test [1;2;3]     ~from:2 ~f:(fun _ -> true) ~should_find:2;
+    test [1;2;3]     ~from:3 ~f:(fun _ -> true) ~should_find:2;
+    test [1;2;3]     ~from:(-2) ~f:(fun _ -> true);
+    test [] ~length:0 ~f:(fun _ -> true);
+    test [] ~length:0 ~f:(fun _ -> false);
+    test [1;2;] ~length:0 ~f:(fun _ -> true);
+    test [1;2;] ~length:0 ~f:(fun _ -> false);
+    test [1;2;] ~length:1 ~f:(fun _ -> true) ~should_find:1;
+    test [1;2;] ~length:1 ~f:(fun _ -> false);
+    test [1;2;] ~from:1 ~length:1 ~f:(fun _ -> true) ~should_find:1;
+    test [1;2;] ~from:2 ~length:1 ~f:(fun _ -> true) ~should_find:1;
+    test [1;2;3;] ~from:2 ~length:1 ~f:(fun _ -> true) ~should_find:2;
+    test [1;2;] ~from:1 ~length:2 ~f:(fun _ -> true) ~should_find:1;
+    test [1;2;] ~from:0 ~length:(-1) ~f:(fun _ -> true);
+    test [1;2;3;4] ~from:3 ~length:2 ~f:(fun _ -> true) ~should_find:3;
+  end;
 
   (* #### BENCHMARKS #### *)
 
