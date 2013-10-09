@@ -693,7 +693,15 @@ module Native_string : NATIVE_STRING = struct
     try Some (String.index_from t from c)
     with _ -> None
 
-  let index_of_character_reverse t ?(from=0) c =
+  let index_of_character_reverse t ?from c =
+    let from =
+      let length_of_t = length t in
+      match from with
+      | None -> length_of_t - 1
+      | Some s when s < 0 -> -1
+      | Some s when s > length_of_t - 1 -> length_of_t - 1
+      | Some s -> s
+    in
     try Some (String.rindex_from t from c)
     with _ -> None
 
@@ -963,15 +971,22 @@ module List_of (Char: BASIC_CHARACTER) :
     end
     with _ -> Some !index
 
-  let index_of_character_reverse t ?(from=0) c =
-    let length, rev =
+  let index_of_character_reverse t ?from c =
+    let length_of_t, rev =
       let rec loop lgth acc = function
       | [] -> (lgth, acc)
       | h :: t -> loop (lgth + 1) (h :: acc) t in
       loop 0 [] t
     in
-    match index_of_character rev ~from:(length - from - 1) c with
-    | Some c -> Some (length - c - 1)
+    let from =
+      match from with
+      | None -> length_of_t - 1
+      | Some s when s < 0 -> -1
+      | Some s when s > length_of_t - 1 -> length_of_t - 1
+      | Some s -> s
+    in
+    match index_of_character rev ~from:(length_of_t - from - 1) c with
+    | Some c -> Some (length_of_t - c - 1)
     | None -> None
 
   let compare_substring (a, idxa, lena) (b, idxb, lenb) =
@@ -1331,7 +1346,14 @@ module Of_mutable
     with _ -> !res
 
   let index_of_character_reverse t ?from c =
-    let from = match from with Some s -> s  | None -> length t - 1 in
+    let from =
+      let length_of_t = length t in
+      match from with
+      | None -> length_of_t - 1
+      | Some s when s < 0 -> -1
+      | Some s when s > length_of_t - 1 -> length_of_t - 1
+      | Some s -> s
+    in
     let res = ref None in
     try
       for i = from downto 0 do
