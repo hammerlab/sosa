@@ -460,6 +460,50 @@ let do_basic_test (module Test : TEST_STRING) =
     test ~from:4 [0] 0;
     test ~from:4 [1;2;0] 0;
 
+    let test ?from ?should_find l c =
+      let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
+      let ch =
+        Option.value_exn ~message:"test index_of_character" (Chr.of_int c) in
+      let res = Str.index_of_character_reverse ?from s ch in
+      test_assertf (res = should_find)
+        "index_of_character_reverse: %s (from: %s) expects  %s but got %s"
+        (str_to_int_list s |> int_list_to_string)
+        (int_option_to_string from)
+        (int_option_to_string should_find)
+        (int_option_to_string res);
+      if from = None then (
+        let from = Some (Str.length s - 1) in
+        let res = Str.index_of_character_reverse ?from s ch in
+        test_assertf (res = should_find)
+          "index_of_character_reverse: %s (added-from: %s) expects  %s but got %s"
+          (str_to_int_list s |> int_list_to_string)
+          (int_option_to_string from)
+          (int_option_to_string should_find)
+          (int_option_to_string res);
+      );
+    in
+    test [] 0;
+    test [1] 0;
+    test [1;2;3;4] 0;
+    test [0] 0 ~should_find:0;
+    test [1;2;0] 0 ~should_find:2;
+    test ~from:1 [] 0;
+    test ~from:1 [1] 0;
+    test ~from:1 [1;2;3;4] 0;
+    test ~from:1 [0] 0 ~should_find:0;
+    test ~from:1 [1;2;0] 0;
+    test ~from:1 [1;2;0] 1 ~should_find:0;
+    test ~from:(-1) [] 0;
+    test ~from:(-1) [1] 0;
+    test ~from:(-1) [1;2;3;4] 0;
+    test ~from:(-1) [0] 0;
+    test ~from:(-1) [1;2;0] 0;
+    test ~from:4 [] 0;
+    test ~from:4 [1] 0;
+    test ~from:4 [1;2;3;4] 0;
+    test ~from:4 [0] 0 ~should_find:0;
+    test ~from:4 [1;2;0] 0 ~should_find:2;
+
     
     (* A test of index_of_character and index_of_character_reverse, we
            create a big cartesian product
