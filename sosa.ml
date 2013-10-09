@@ -246,6 +246,12 @@ module type BASIC_STRING = sig
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
   (** Do like [index_of_string] but start from the end of the string. *)
 
+  val find: ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
+  (** Find the index of the first character [c] for which [f c] is [true]. One
+      can restrict to the sub-string [(from, length)] (the
+      default is to use the whole string, “wrong” values are restricted to
+      [(from, length)]). *)
+
   val filter_map: ?from:int -> ?length:int -> t -> 
     f:(character -> character option) -> t
   (** Create a new string with the characters for which [f c] returned 
@@ -682,8 +688,30 @@ module Native_string : NATIVE_STRING = struct
     try Some (String.rindex_from t from c)
     with _ -> None
 
-  let filter_map ?(from=0) ?length s ~f =
+  let resize_from_length ~from ?length ~length_of_s =
+    let from = if from <= 0 then 0 else min length_of_s from in
     let length =
+      match length with
+      | None -> length_of_s - from
+      | Some lg when lg <= 0 -> 0
+      | Some lg -> min (length_of_s - from) lg
+    in
+    (from, length)
+
+  let find ?(from=0) ?length s ~f =
+    let length_of_s = String.length s in
+    let from, length = resize_from_length ~from ?length ~length_of_s in
+    let found = ref None in
+    let i = ref 0 in
+    while !found = None && !i  < length do
+      if f (get_exn s (!i + from))
+      then found := Some (!i + from)
+      else incr i
+    done;
+    !found
+
+  let filter_map ?(from=0) ?length s ~f =
+    let length = 
       let of_s = String.length s in
       match length with 
       | Some l -> min l of_s
@@ -959,6 +987,19 @@ module List_of (Char: BASIC_CHARACTER) :
   include Compare_substring_strict_of_loose(T_length_and_compsub)
   include Make_index_of_string(T_length_and_compsub)
 
+  let find ?(from=0) ?length s ~f =
+    (* index and virtual_length are maybe a bit redundant but I favor
+       readability of the branches of the match *)
+    let from = if from <= 0 then 0 else from in
+    let rec find_from index virtual_length l =
+      match l, length with
+      | [], _ -> None
+      | _, Some lgth when lgth <= virtual_length -> None
+      | h :: t, _ when index < from -> find_from (index + 1) virtual_length t
+      | h :: t, _ when index >= from && f h -> Some index
+      | h :: t, _ -> find_from (index + 1) (virtual_length + 1) t
+    in
+    find_from 0 0 s 
 
   let filter_map ?(from=0) ?length t ~f =
     let rec filter_map_rec acc count = function
@@ -1279,6 +1320,29 @@ module Of_mutable
   end
   include Compare_substring_strict_of_loose(T_length_and_compsub)
   include Make_index_of_string(T_length_and_compsub)
+
+
+  let resize_from_length ~from ?length ~length_of_s =
+    let from = if from <= 0 then 0 else min length_of_s from in
+    let length =
+      match length with
+      | None -> length_of_s - from
+      | Some lg when lg <= 0 -> 0
+      | Some lg -> min (length_of_s - from) lg
+    in
+    (from, length)
+
+  let find ?(from=0) ?length s ~f =
+    let length_of_s = S.length s in
+    let from, length = resize_from_length ~from ?length ~length_of_s in
+    let found = ref None in
+    let i = ref 0 in
+    while !found = None && !i  < length do
+      if f (get_exn s (!i + from))
+      then found := Some (!i + from)
+      else incr i
+    done;
+    !found
 
   let filter_map ?(from=0) ?length s ~f =
     let length =
