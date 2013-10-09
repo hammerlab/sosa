@@ -169,133 +169,137 @@ let do_basic_test (module Test : TEST_STRING) =
   | `Error _ -> test_assertf false "Str.of_native_string %S -> Error" ""
   end;
 
-  let test_ofto s =
-    begin match Str.of_native_string s with
-    | `Ok s2 ->
-      (* We test that when we can transform from `s2`, the opposite
-         conversion works: *)
-      let back = Str.to_native_string s2 in
-      test_assert (sprintf "test_ofto %S <> %S" s back) (s = back);
+  begin (* test of_/to_ native_string *)
+    let test_ofto s =
+      begin match Str.of_native_string s with
+      | `Ok s2 ->
+        (* We test that when we can transform from `s2`, the opposite
+           conversion works: *)
+        let back = Str.to_native_string s2 in
+        test_assert (sprintf "test_ofto %S <> %S" s back) (s = back);
 
-      (* We test `Str.fold` against a potentially *very* slow
-         implementation using `Str.length` and `Str.get`. *)
-      let folding ~init ~f to_string =
-        let fold = Str.fold s2 ~init ~f in
-        let refold =
-          let r = ref init in
-          for i = 0 to Str.length s2 - 1 do
-            r := f !r (Option.value_exn (Str.get s2 ~index:i));
-          done;
-          !r in
-        test_assertf (fold = refold) "\nfold: %s\nrefold: %s"
-          (to_string fold) (to_string refold)
-      in
-      folding ~init:[] ~f:(fun p c -> c :: p)
-        (fun c -> String.concat ~sep:", " (List.map c Chr.to_string_hum));
-      folding ~init:42 ~f:(fun p c -> Hashtbl.hash (p, c)) (sprintf "%d");
-
-      (* This a function that displays an Str.t (extracts the
-         beginning and its size(s)) *)
-      let str_to_hum s =
-        sprintf "[%S.%d,%dB]"
-          (Str.to_native_string s |> sprintf "%s"
-           |> (fun s -> String.prefix s 10))
-          (Str.length s)
-          (Str.to_native_string s |> String.length) in
-
-
-      (* We test `Str.sub` by comparing it with an implementation
-         based on `Str.get`. *)
-      let subbing ~index ~length =
-        let subopt = Str.sub s2 ~index ~length in
-        let r = ref [] in
-        for i = index to index + length - 1 do
-          r := Str.get s2 ~index:i :: !r
-        done;
-        begin match subopt with
-        | Some sub ->
-          (* If `Str.sub` returned some then `r` contains all the
-             characters in reverse order: *)
-          let bus =
-            test_assertf (List.for_all !r ((<>) None)) "sub %d %d: r has a None"
-              index length;
-            Str.concat ~sep:Str.empty
-              (List.rev_map (List.filter_opt !r) ~f:(Str.of_character)) in
-          (* We compare the result `sub` and the re-computed version `bus`: *)
-          test_assertf (Str.compare sub bus = 0) "sub %s %d %d\n→ Some %s ≠ %s"
-            (str_to_hum s2) index length (str_to_hum sub) (str_to_hum bus)
-        | None ->
-          test_assertf (!r = [] || List.exists !r ((=) None))
-            "sub %s %d %d → None" (str_to_hum s2) index length
-        end
-      in
-      subbing ~index:0 ~length:0;
-      subbing ~index:0 ~length:(Str.length s2);
-      subbing ~index:2 ~length:(Str.length s2);
-      subbing ~index:4 ~length:(Str.length s2);
-      subbing ~index:5 ~length:(Str.length s2);
-      subbing ~index:0 ~length:1;
-      subbing ~index:0 ~length:3;
-      subbing ~index:0 ~length:30;
-      subbing ~index:1 ~length:30;
-      subbing ~index:2 ~length:30;
-      subbing ~index:4 ~length:3;
-      subbing ~index:40 ~length:3;
-      subbing ~index:400 ~length:3;
-      subbing ~index:0 ~length:(Str.length s2 - 0);
-      subbing ~index:2 ~length:(Str.length s2 - 2);
-      subbing ~index:4 ~length:(Str.length s2 - 4);
-      subbing ~index:5 ~length:(Str.length s2 - 5);
-      subbing ~index:0 ~length:(Str.length s2 - 0 - 1);
-      subbing ~index:2 ~length:(Str.length s2 - 2 - 1);
-      subbing ~index:4 ~length:(Str.length s2 - 4 - 1);
-      subbing ~index:5 ~length:(Str.length s2 - 5 - 1);
-
-
-    | `Error (`wrong_char_at i) ->
-      (* If the conversion fails, we check that the error value points
-         to an invalid character: *)
-      test_assert (sprintf "test_ofto %S -> wrong char at index %d" s i)
-        (Chr.read_from_native_string ~buf:s ~index:i = None)
-    end;
-  in
-  List.iter test_native_subjects test_ofto;
-
-  let tried_separators = ref 0 in
-  let rec try_separators n =
-    if n = 0
-    then
-      if !tried_separators < 10 then
-        say "WARNING: %s -> try_separators did not try much (%d separators)"
-          test_name !tried_separators
-      else ()
-    else
-      let sep = random_string n in
-      begin match Str.of_native_string sep with
-      | `Ok csep ->
-        let selection =
-          List.filter test_native_subjects (fun _ -> Random.bool ()) in
-        let viable_strings, converted =
-          List.filter_map selection (fun s ->
-              match Str.of_native_string s with
-              | `Ok s2 ->  Some (s, s2)
-              | `Error (`wrong_char_at c) -> None)
-          |> List.unzip
+        (* We test `Str.fold` against a potentially *very* slow
+           implementation using `Str.length` and `Str.get`. *)
+        let folding ~init ~f to_string =
+          let fold = Str.fold s2 ~init ~f in
+          let refold =
+            let r = ref init in
+            for i = 0 to Str.length s2 - 1 do
+              r := f !r (Option.value_exn (Str.get s2 ~index:i));
+            done;
+            !r in
+          test_assertf (fold = refold) "\nfold: %s\nrefold: %s"
+            (to_string fold) (to_string refold)
         in
-        let concated = String.concat ~sep viable_strings in
-        let concated2 = Str.concat ~sep:csep converted in
-        (* say "separators %S" sep; *)
-        incr tried_separators;
-        test_assertf (Str.to_native_string concated2 = concated)
-          "try_separators %d (%dth): %S %s →\n  %S Vs\n  %s" n !tried_separators sep
-          (String.concat ~sep:", " (List.map viable_strings (sprintf "%S")))
-          concated
-          (Str.to_string_hum concated2);
-        try_separators (n - 1)
-      | `Error _ -> try_separators (n - 1)
-      end
-  in
-  try_separators 450;
+        folding ~init:[] ~f:(fun p c -> c :: p)
+          (fun c -> String.concat ~sep:", " (List.map c Chr.to_string_hum));
+        folding ~init:42 ~f:(fun p c -> Hashtbl.hash (p, c)) (sprintf "%d");
+
+        (* This a function that displays an Str.t (extracts the
+           beginning and its size(s)) *)
+        let str_to_hum s =
+          sprintf "[%S.%d,%dB]"
+            (Str.to_native_string s |> sprintf "%s"
+             |> (fun s -> String.prefix s 10))
+            (Str.length s)
+            (Str.to_native_string s |> String.length) in
+
+
+        (* We test `Str.sub` by comparing it with an implementation
+           based on `Str.get`. *)
+        let subbing ~index ~length =
+          let subopt = Str.sub s2 ~index ~length in
+          let r = ref [] in
+          for i = index to index + length - 1 do
+            r := Str.get s2 ~index:i :: !r
+          done;
+          begin match subopt with
+          | Some sub ->
+            (* If `Str.sub` returned some then `r` contains all the
+               characters in reverse order: *)
+            let bus =
+              test_assertf (List.for_all !r ((<>) None)) "sub %d %d: r has a None"
+                index length;
+              Str.concat ~sep:Str.empty
+                (List.rev_map (List.filter_opt !r) ~f:(Str.of_character)) in
+            (* We compare the result `sub` and the re-computed version `bus`: *)
+            test_assertf (Str.compare sub bus = 0) "sub %s %d %d\n→ Some %s ≠ %s"
+              (str_to_hum s2) index length (str_to_hum sub) (str_to_hum bus)
+          | None ->
+            test_assertf (!r = [] || List.exists !r ((=) None))
+              "sub %s %d %d → None" (str_to_hum s2) index length
+          end
+        in
+        subbing ~index:0 ~length:0;
+        subbing ~index:0 ~length:(Str.length s2);
+        subbing ~index:2 ~length:(Str.length s2);
+        subbing ~index:4 ~length:(Str.length s2);
+        subbing ~index:5 ~length:(Str.length s2);
+        subbing ~index:0 ~length:1;
+        subbing ~index:0 ~length:3;
+        subbing ~index:0 ~length:30;
+        subbing ~index:1 ~length:30;
+        subbing ~index:2 ~length:30;
+        subbing ~index:4 ~length:3;
+        subbing ~index:40 ~length:3;
+        subbing ~index:400 ~length:3;
+        subbing ~index:0 ~length:(Str.length s2 - 0);
+        subbing ~index:2 ~length:(Str.length s2 - 2);
+        subbing ~index:4 ~length:(Str.length s2 - 4);
+        subbing ~index:5 ~length:(Str.length s2 - 5);
+        subbing ~index:0 ~length:(Str.length s2 - 0 - 1);
+        subbing ~index:2 ~length:(Str.length s2 - 2 - 1);
+        subbing ~index:4 ~length:(Str.length s2 - 4 - 1);
+        subbing ~index:5 ~length:(Str.length s2 - 5 - 1);
+
+
+      | `Error (`wrong_char_at i) ->
+        (* If the conversion fails, we check that the error value points
+           to an invalid character: *)
+        test_assert (sprintf "test_ofto %S -> wrong char at index %d" s i)
+          (Chr.read_from_native_string ~buf:s ~index:i = None)
+      end;
+    in
+    List.iter test_native_subjects test_ofto;
+  end;
+
+  begin (* test concat and a bit more *)
+    let tried_separators = ref 0 in
+    let rec try_separators n =
+      if n = 0
+      then
+        if !tried_separators < 10 then
+          say "WARNING: %s -> try_separators did not try much (%d separators)"
+            test_name !tried_separators
+        else ()
+      else
+        let sep = random_string n in
+        begin match Str.of_native_string sep with
+        | `Ok csep ->
+          let selection =
+            List.filter test_native_subjects (fun _ -> Random.bool ()) in
+          let viable_strings, converted =
+            List.filter_map selection (fun s ->
+                match Str.of_native_string s with
+                | `Ok s2 ->  Some (s, s2)
+                | `Error (`wrong_char_at c) -> None)
+            |> List.unzip
+          in
+          let concated = String.concat ~sep viable_strings in
+          let concated2 = Str.concat ~sep:csep converted in
+          (* say "separators %S" sep; *)
+          incr tried_separators;
+          test_assertf (Str.to_native_string concated2 = concated)
+            "try_separators %d (%dth): %S %s →\n  %S Vs\n  %s" n !tried_separators sep
+            (String.concat ~sep:", " (List.map viable_strings (sprintf "%S")))
+            concated
+            (Str.to_string_hum concated2);
+          try_separators (n - 1)
+        | `Error _ -> try_separators (n - 1)
+        end
+    in
+    try_separators 450;
+  end;
 
   (* This tests `make` against `length` and `get`:  *)
   for i = 0 to 100 do
@@ -312,377 +316,379 @@ let do_basic_test (module Test : TEST_STRING) =
     | None -> ()
   done;
 
-  (* We test the`Str.Make_output` functor with `Buffer.t` by writing
-     directly the transformable functions and though Out.output and
-     comparing the resulting buffer contents.
-  *)
-  let module Out = Str.Make_output(struct
-      type ('a, 'b, 'c) thread = 'a
-      type ('a, 'b, 'c) channel = Buffer.t
-      let return x = x
-      let bind x f = f x
-      let output buf s =
-        (* say "adding %S" s;; *)
-        Buffer.add_string buf s
-    end)
-  in
-  let buf_ground = Buffer.create 42 in
-  let buf_through_str = Buffer.create 42 in
-  let there_was_an_error = ref None in
-  List.iter test_native_subjects (fun s ->
-      match Str.of_native_string s with
-      | `Ok o ->
-        Out.output buf_through_str o;
-        Buffer.add_string buf_ground s;
-      | `Error (`wrong_char_at i) ->
-        there_was_an_error := Some i);
-  test_assertf (Buffer.contents buf_ground = Buffer.contents buf_through_str)
-    "Str.Make_output test %S, %S"
-    (Buffer.contents buf_ground)
-    (Buffer.contents buf_through_str);
-
-  (* Some tests of `for_all` and `exists`: *)
-  List.iter test_native_subjects (fun str ->
-      match Str.of_native_string str with
-      | `Ok o ->
-        test_assertf (Str.for_all o (fun _ -> true) = true) "∀ true = true";
-        test_assertf (Str.for_all o (fun _ -> false) = false || Str.is_empty o)
-          "∀ false in %S = false" str;
-        test_assertf (Str.exists o (fun _ -> true) = true || Str.is_empty o)
-          "∃ true => true";
-        test_assertf (Str.exists o (fun _ -> false) = false)
-          "∃ false in %S = false" str;
-        let i_did_false = ref false in
-        let comp = Str.for_all o (fun _ ->
-            if Random.bool () then true else (i_did_false := true; false)) in
-        test_assertf (comp = not !i_did_false) "random test for_all";
-        let i_did_true = ref false in
-        let comp = Str.exists o (fun _ ->
-            if Random.bool () then (i_did_true := true; true) else false) in
-        test_assertf (comp = !i_did_true) "random test exists";
-      | `Error (`wrong_char_at i) -> ()
-    );
-
-  (* First some basic tests of Str.of_native_substring, then the
-     bigger test with all the test strings. *)
-  test_assertf (Str.of_native_substring "" ~offset:0 ~length:0 = `Ok Str.empty)
-    "sub '' 0 0 = ''";
-  test_assertf (Str.of_native_substring "" ~offset:0 ~length:1 = `Error `out_of_bounds)
-    "sub '' 0 1 → out_of_bounds";
-  test_assertf (Str.of_native_substring "" ~offset:1 ~length:0 = `Ok Str.empty)
-    "sub '' 1 0 → ''";
-  test_assertf (Str.of_native_substring "" ~offset:1 ~length:1 = `Error `out_of_bounds)
-    "sub '' 1 1 → out_of_bounds";
-  let i_have_been_to_ok = ref false in
-  let i_have_been_to_wrong_char = ref false in
-  let i_have_been_to_out_of_bounds = ref false in
-  List.iter test_native_subjects begin fun str ->
-    let offset = Random.int 42 in
-    let length = Random.int 42 in
-    let substr = try (String.sub str offset length) with _ -> "" in
-    begin match Str.of_native_substring str ~offset ~length with
-    | `Ok _ as o ->
-      i_have_been_to_ok := true;
-      test_assertf (o = (Str.of_native_string substr))
-        "sub %S %d %d → Ok" str offset length;
-    | `Error (`wrong_char_at c) ->
-      i_have_been_to_wrong_char := true;
-      test_assertf (Str.of_native_string substr = `Error (`wrong_char_at (c - offset)))
-        "sub %S %d %d → Ok" str offset length;
-    | `Error `out_of_bounds ->
-      i_have_been_to_out_of_bounds := true;
-      test_assertf (substr = "") "sub out_of_bounds"
-    end;
+  begin (* We test the`Str.Make_output` functor with `Buffer.t` by writing
+           directly the transformable functions and though Out.output and
+           comparing the resulting buffer contents.  *)
+    let module Out = Str.Make_output(struct
+        type ('a, 'b, 'c) thread = 'a
+        type ('a, 'b, 'c) channel = Buffer.t
+        let return x = x
+        let bind x f = f x
+        let output buf s =
+          (* say "adding %S" s;; *)
+          Buffer.add_string buf s
+      end)
+    in
+    let buf_ground = Buffer.create 42 in
+    let buf_through_str = Buffer.create 42 in
+    let there_was_an_error = ref None in
+    List.iter test_native_subjects (fun s ->
+        match Str.of_native_string s with
+        | `Ok o ->
+          Out.output buf_through_str o;
+          Buffer.add_string buf_ground s;
+        | `Error (`wrong_char_at i) ->
+          there_was_an_error := Some i);
+    test_assertf (Buffer.contents buf_ground = Buffer.contents buf_through_str)
+      "Str.Make_output test %S, %S"
+      (Buffer.contents buf_ground)
+      (Buffer.contents buf_through_str);
   end;
-  test_assertf !i_have_been_to_ok "i_have_been_to_ok";
-  test_assertf (!i_have_been_to_wrong_char || not can_have_wrong_char)
-    "i_have_been_to_wrong_char";
-  test_assertf !i_have_been_to_out_of_bounds "i_have_been_to_out_of_bounds";
 
+  begin (* Some tests of `for_all` and `exists`: *)
+    List.iter test_native_subjects (fun str ->
+        match Str.of_native_string str with
+        | `Ok o ->
+          test_assertf (Str.for_all o (fun _ -> true) = true) "∀ true = true";
+          test_assertf (Str.for_all o (fun _ -> false) = false || Str.is_empty o)
+            "∀ false in %S = false" str;
+          test_assertf (Str.exists o (fun _ -> true) = true || Str.is_empty o)
+            "∃ true => true";
+          test_assertf (Str.exists o (fun _ -> false) = false)
+            "∃ false in %S = false" str;
+          let i_did_false = ref false in
+          let comp = Str.for_all o (fun _ ->
+              if Random.bool () then true else (i_did_false := true; false)) in
+          test_assertf (comp = not !i_did_false) "random test for_all";
+          let i_did_true = ref false in
+          let comp = Str.exists o (fun _ ->
+              if Random.bool () then (i_did_true := true; true) else false) in
+          test_assertf (comp = !i_did_true) "random test exists";
+        | `Error (`wrong_char_at i) -> ()
+      );
+  end;
 
-  (* A test of index_of_character and index_of_character_reverse, we
-     create a big cartesian product
-     (nat_string, (from_index, char_to_find)) and we run both searches. *)
-  let froms = List.init 10 (fun i -> Random.int (i + 1)) in
-  let chars = List.init 10 (fun i -> Chr.of_int i) |> List.filter_opt in
-  let to_do =
-    List.(cartesian_product test_native_subjects (cartesian_product froms chars))
-  in
-  let i_went_to_some_index = ref 0 in
-  let i_went_to_none_from_length = ref 0 in
-  let i_went_to_none_from_absent = ref 0 in
-  let rev_i_went_to_some_index = ref 0 in
-  let rev_i_went_to_none_from_length = ref 0 in
-  let rev_i_went_to_none_from_absent = ref 0 in
-  List.iter to_do (fun (nat, (from, char)) ->
-      match Str.of_native_string nat with
-      | `Ok o ->
-        begin match Str.index_of_character o ~from char with
-        | Some index ->
-          incr i_went_to_some_index;
-          test_assertf (Str.get o index = Some char) "find | get";
-        | None ->
-          if from > Str.length o - 1 then (incr i_went_to_none_from_length)
-          else begin
-            for i = from to Str.length o - 1 do
-              test_assertf (Str.get o i <> Some char)
-                "not found => can't find, i: %d, from : %d, length: %d"
-                i from (Str.length o);
-            done;
-            incr i_went_to_none_from_absent;
-          end
-        end;
-        begin match Str.index_of_character_reverse o ~from char with
-        | Some index ->
-          incr rev_i_went_to_some_index;
-          test_assertf (Str.get o index = Some char) "rev, find | get";
-        | None ->
-          if from > Str.length o - 1 then (incr rev_i_went_to_none_from_length)
-          else begin
-            for i = from downto 0 do
-              test_assertf (Str.get o i <> Some char)
-                "rev, not found => can't find, i: %d, from : %d, length: %d"
-                i from (Str.length o);
-            done;
-            incr rev_i_went_to_none_from_absent;
+  begin (* of_native_substring *)
+    (* First some basic tests of Str.of_native_substring, then the
+       bigger test with all the test strings. *)
+    test_assertf (Str.of_native_substring "" ~offset:0 ~length:0 = `Ok Str.empty)
+      "sub '' 0 0 = ''";
+    test_assertf (Str.of_native_substring "" ~offset:0 ~length:1 = `Error `out_of_bounds)
+      "sub '' 0 1 → out_of_bounds";
+    test_assertf (Str.of_native_substring "" ~offset:1 ~length:0 = `Ok Str.empty)
+      "sub '' 1 0 → ''";
+    test_assertf (Str.of_native_substring "" ~offset:1 ~length:1 = `Error `out_of_bounds)
+      "sub '' 1 1 → out_of_bounds";
+    let i_have_been_to_ok = ref false in
+    let i_have_been_to_wrong_char = ref false in
+    let i_have_been_to_out_of_bounds = ref false in
+    List.iter test_native_subjects begin fun str ->
+      let offset = Random.int 42 in
+      let length = Random.int 42 in
+      let substr = try (String.sub str offset length) with _ -> "" in
+      begin match Str.of_native_substring str ~offset ~length with
+      | `Ok _ as o ->
+        i_have_been_to_ok := true;
+        test_assertf (o = (Str.of_native_string substr))
+          "sub %S %d %d → Ok" str offset length;
+      | `Error (`wrong_char_at c) ->
+        i_have_been_to_wrong_char := true;
+        test_assertf (Str.of_native_string substr = `Error (`wrong_char_at (c - offset)))
+          "sub %S %d %d → Ok" str offset length;
+      | `Error `out_of_bounds ->
+        i_have_been_to_out_of_bounds := true;
+        test_assertf (substr = "") "sub out_of_bounds"
+      end;
+    end;
+    test_assertf !i_have_been_to_ok "i_have_been_to_ok";
+    test_assertf (!i_have_been_to_wrong_char || not can_have_wrong_char)
+      "i_have_been_to_wrong_char";
+    test_assertf !i_have_been_to_out_of_bounds "i_have_been_to_out_of_bounds";
+  end;
+
+  begin (* A test of index_of_character and index_of_character_reverse, we
+           create a big cartesian product
+           (nat_string, (from_index, char_to_find)) and we run both searches. *)
+    let froms = List.init 10 (fun i -> Random.int (i + 1)) in
+    let chars = List.init 10 (fun i -> Chr.of_int i) |> List.filter_opt in
+    let to_do =
+      List.(cartesian_product test_native_subjects (cartesian_product froms chars))
+    in
+    let i_went_to_some_index = ref 0 in
+    let i_went_to_none_from_length = ref 0 in
+    let i_went_to_none_from_absent = ref 0 in
+    let rev_i_went_to_some_index = ref 0 in
+    let rev_i_went_to_none_from_length = ref 0 in
+    let rev_i_went_to_none_from_absent = ref 0 in
+    List.iter to_do (fun (nat, (from, char)) ->
+        match Str.of_native_string nat with
+        | `Ok o ->
+          begin match Str.index_of_character o ~from char with
+          | Some index ->
+            incr i_went_to_some_index;
+            test_assertf (Str.get o index = Some char) "find | get";
+          | None ->
+            if from > Str.length o - 1 then (incr i_went_to_none_from_length)
+            else begin
+              for i = from to Str.length o - 1 do
+                test_assertf (Str.get o i <> Some char)
+                  "not found => can't find, i: %d, from : %d, length: %d"
+                  i from (Str.length o);
+              done;
+              incr i_went_to_none_from_absent;
+            end
           end;
-        end;
-      | _ -> ());
-  test_assertf (!i_went_to_some_index > 0) "";
-  test_assertf (!i_went_to_none_from_length > 0) "";
-  test_assertf (!i_went_to_none_from_absent > 0) "";
-  test_assertf (!rev_i_went_to_some_index > 0) "";
-  test_assertf (!rev_i_went_to_none_from_length > 0) "";
-  test_assertf (!rev_i_went_to_none_from_absent > 0) "";
+          begin match Str.index_of_character_reverse o ~from char with
+          | Some index ->
+            incr rev_i_went_to_some_index;
+            test_assertf (Str.get o index = Some char) "rev, find | get";
+          | None ->
+            if from > Str.length o - 1 then (incr rev_i_went_to_none_from_length)
+            else begin
+              for i = from downto 0 do
+                test_assertf (Str.get o i <> Some char)
+                  "rev, not found => can't find, i: %d, from : %d, length: %d"
+                  i from (Str.length o);
+              done;
+              incr rev_i_went_to_none_from_absent;
+            end;
+          end;
+        | _ -> ());
+    test_assertf (!i_went_to_some_index > 0) "";
+    test_assertf (!i_went_to_none_from_length > 0) "";
+    test_assertf (!i_went_to_none_from_absent > 0) "";
+    test_assertf (!rev_i_went_to_some_index > 0) "";
+    test_assertf (!rev_i_went_to_none_from_length > 0) "";
+    test_assertf (!rev_i_went_to_none_from_absent > 0) "";
+  end;
 
-
-  (* A first test of compare_substring{_strict} with special cases, empty strings,
-     and small strings, containing 'a', 'c', 'g', 't' → they should
-     be convertible to any backend :) *)
-  let is_equivalent resopt expected =
-    (match resopt with
-     | None -> false
-     | Some r -> r = expected || r * expected > 0) in
-  let test_compare_substring (a, idxa, lena) (b, idxb, lenb) expected =
-    match Str.of_native_string a, Str.of_native_string b with
-    | `Ok aa, `Ok bb ->
-      let res = Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
-      test_assertf (res = expected || res * expected > 0) (* We test for the sign *)
-        "test_compare_substring (%S, %d, %d) (%S, %d, %d) = %d, × %d < 0"
-        a idxa lena b idxb lenb res expected;
-      let resopt = Str.compare_substring_strict (aa, idxa, lena) (bb, idxb, lenb) in
-      test_assertf (is_equivalent resopt expected)
-        "test_compare_substring_strict (%S, %d, %d) (%S, %d, %d) = %d, × %d < 0"
-        a idxa lena b idxb lenb res expected;
-      (* And now check commutativity: *)
-      let invres = Str.compare_substring (bb, idxb, lenb) (aa, idxa, lena) in
-      test_assertf (invres = (~- expected) || invres * expected < 0) (* We test for the sign *)
-        "test_compare_substring, commutes (%S, %d, %d) (%S, %d, %d) × -1 = %d, × %d < 0"
-        a idxa lena b idxb lenb res expected;
-      let resopt = Str.compare_substring_strict (bb, idxb, lenb) (aa, idxa, lena) in
-      test_assertf (is_equivalent resopt (~- expected))
-        "test_compare_substring_strict, commutes (%S, %d, %d) (%S, %d, %d) = %d, × %d < 0"
-        a idxa lena b idxb lenb res expected;
-    | _, _ -> test_assertf false "assumption about ACGT is wrong"
-  in
-  (* Semantically well-defined tests: *)
-  test_compare_substring ("", 0, 0) ("", 0, 0)       ( 0);
-  test_compare_substring ("aaa", 0, 0) ("", 0, 0)    ( 0);
-  test_compare_substring ("aaa", 0, 0) ("ggg", 0, 0) ( 0);
-  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) ( 0);
-  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) ( 0);
-  test_compare_substring ("aaa", 0, 0) ("ggg", 0, 1) (-1);
-  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 1) (-1);
-  test_compare_substring ("aaa", 1, 0) ("ggg", 1, 1) (-1);
-  test_compare_substring ("aaa", 1, 1) ("ggg", 1, 1) (-1);
-  test_compare_substring ("aga", 1, 1) ("ggc", 1, 1) ( 0);
-  test_compare_substring ("aga", 1, 1) ("gag", 1, 1) ( 1);
-  test_compare_substring ("aga", 1, 1) ("gcg", 1, 1) ( 1);
-  test_compare_substring ("aagg", 2, 2) ("gg", 0, 2) ( 0);
-
-  (* A test of the out-of-bounds behavior: *)
-  let test_compare_substring_strictness (a, idxa, lena) =
-    match Str.of_native_string a, Str.of_native_string "acgt" with
-    | `Ok aa, `Ok bb ->
-      test_assertf (Str.compare_substring_strict (aa, idxa, lena) (Str.empty, 0, 0) = None)
-        "Str.compare_substring_strict out_of_bounds 1";
-      test_assertf (Str.compare_substring_strict (aa, idxa, lena) (bb, 1, 2) = None)
-        "Str.compare_substring_strict out_of_bounds 2";
-      test_assertf (Str.compare_substring_strict (Str.empty, 0, 0) (aa, idxa, lena) = None)
-        "Str.compare_substring_strict out_of_bounds 3";
-      test_assertf (Str.compare_substring_strict (bb, 1, 2) (aa, idxa, lena) = None)
-        "Str.compare_substring_strict out_of_bounds 4";
-    | _ -> test_assertf false "assumption about ACGT is wrong"
-  in
-  test_compare_substring_strictness ("", 0, 1);
-  test_compare_substring_strictness ("a", 1, 1);
-  test_compare_substring_strictness ("a", -1, 1);
-  test_compare_substring_strictness ("a", 1, -1);
-  test_compare_substring_strictness ("a", -1, -1);
-  test_compare_substring_strictness ("aa", 10, 1);
-  test_compare_substring_strictness ("aa", 10, -1);
-
-  (* Now we run a bigger randomized test of compare_substring{_strict}. *)
-  let been_to_some_0 = ref 0 in
-  let been_to_some_m = ref 0 in
-  List.iter test_native_subjects (fun a ->
-      List.iter test_native_subjects (fun b ->
-          match Str.of_native_string a, Str.of_native_string b with
-          | `Ok aa, `Ok bb ->
-            let rec test n =
-              let length_a = Str.length aa in
-              let length_b = Str.length bb in
-              let lena = Random.int (length_a + 5) in
-              let idxa = Random.int (lena + 5) in
-              let idxb, lenb =
-                if Random.bool ()
-                then  (Random.int (length_b + 5), Random.int (length_b + 5))
-                else (idxa, lena) (* half of the times with same params *)
-              in
-              let res =
-                Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
-              let resopt =
-                Str.compare_substring_strict (aa, idxa, lena) (bb, idxb, lenb) in
-              begin match res with
-              | 0 -> (* EQUAL *)
-                test_assertf (lena = lenb)
-                  "compare_substring: equal but lengths %d ≠ %d" lena lenb;
-                for i = 0 to min lena lenb - 1 do
-                  test_assertf ((Str.get aa (i + idxa)) = (Str.get bb (i + idxb)))
-                    "compare_substring: equal but different …"
-                done;
-                test_assertf (is_equivalent resopt res)
-                  "resopt Vs res in EQUAL case";
-                incr been_to_some_0;
-              | m ->
-                let suba = Str.sub aa ~index:idxa ~length:(lena) in
-                let subb = Str.sub bb ~index:idxb ~length:(lenb) in
-                begin match suba, subb with
-                | Some sa, Some sb ->
-                  (* Well defined case: "sub" returns something for both *)
-                  test_assertf (Str.compare sa sb * m > 0)
-                    "%d instead of %d sa: %s sb:%s (lena: %d, lenb: %d)" m (Str.compare sa sb)
-                    (Str.to_string_hum sa) (Str.to_string_hum sb) lena lenb;
-                test_assertf (is_equivalent resopt res)
-                  "strict: %s instead of %d sa: %s sb:%s (lena: %d, lenb: %d)"
-                  (Option.value_map ~default:"None" resopt ~f:(sprintf "Some %d"))
-                  (Str.compare sa sb)
-                  (Str.to_string_hum sa) (Str.to_string_hum sb) lena lenb;
-                | _, _ -> ()
+  begin (* Test compare_substring{_strict} *)
+    (* A first test of compare_substring{_strict} with special cases, empty strings,
+           and small strings, containing 'a', 'c', 'g', 't' → they should
+           be convertible to any backend :) *)
+    let is_equivalent resopt expected =
+      (match resopt with
+       | None -> false
+       | Some r -> r = expected || r * expected > 0) in
+    let test_compare_substring (a, idxa, lena) (b, idxb, lenb) expected =
+      match Str.of_native_string a, Str.of_native_string b with
+      | `Ok aa, `Ok bb ->
+        let res = Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
+        test_assertf (res = expected || res * expected > 0) (* We test for the sign *)
+          "test_compare_substring (%S, %d, %d) (%S, %d, %d) = %d, × %d < 0"
+          a idxa lena b idxb lenb res expected;
+        let resopt = Str.compare_substring_strict (aa, idxa, lena) (bb, idxb, lenb) in
+        test_assertf (is_equivalent resopt expected)
+          "test_compare_substring_strict (%S, %d, %d) (%S, %d, %d) = %d, × %d < 0"
+          a idxa lena b idxb lenb res expected;
+        (* And now check commutativity: *)
+        let invres = Str.compare_substring (bb, idxb, lenb) (aa, idxa, lena) in
+        test_assertf (invres = (~- expected) || invres * expected < 0) (* We test for the sign *)
+          "test_compare_substring, commutes (%S, %d, %d) (%S, %d, %d) × -1 = %d, × %d < 0"
+          a idxa lena b idxb lenb res expected;
+        let resopt = Str.compare_substring_strict (bb, idxb, lenb) (aa, idxa, lena) in
+        test_assertf (is_equivalent resopt (~- expected))
+          "test_compare_substring_strict, commutes (%S, %d, %d) (%S, %d, %d) = %d, × %d < 0"
+          a idxa lena b idxb lenb res expected;
+      | _, _ -> test_assertf false "assumption about ACGT is wrong"
+    in
+    (* Semantically well-defined tests: *)
+    test_compare_substring ("", 0, 0) ("", 0, 0)       ( 0);
+    test_compare_substring ("aaa", 0, 0) ("", 0, 0)    ( 0);
+    test_compare_substring ("aaa", 0, 0) ("ggg", 0, 0) ( 0);
+    test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) ( 0);
+    test_compare_substring ("aaa", 1, 0) ("ggg", 1, 0) ( 0);
+    test_compare_substring ("aaa", 0, 0) ("ggg", 0, 1) (-1);
+    test_compare_substring ("aaa", 1, 0) ("ggg", 1, 1) (-1);
+    test_compare_substring ("aaa", 1, 0) ("ggg", 1, 1) (-1);
+    test_compare_substring ("aaa", 1, 1) ("ggg", 1, 1) (-1);
+    test_compare_substring ("aga", 1, 1) ("ggc", 1, 1) ( 0);
+    test_compare_substring ("aga", 1, 1) ("gag", 1, 1) ( 1);
+    test_compare_substring ("aga", 1, 1) ("gcg", 1, 1) ( 1);
+    test_compare_substring ("aagg", 2, 2) ("gg", 0, 2) ( 0);
+    (* A test of the out-of-bounds behavior: *)
+    let test_compare_substring_strictness (a, idxa, lena) =
+      match Str.of_native_string a, Str.of_native_string "acgt" with
+      | `Ok aa, `Ok bb ->
+        test_assertf (Str.compare_substring_strict (aa, idxa, lena) (Str.empty, 0, 0) = None)
+          "Str.compare_substring_strict out_of_bounds 1";
+        test_assertf (Str.compare_substring_strict (aa, idxa, lena) (bb, 1, 2) = None)
+          "Str.compare_substring_strict out_of_bounds 2";
+        test_assertf (Str.compare_substring_strict (Str.empty, 0, 0) (aa, idxa, lena) = None)
+          "Str.compare_substring_strict out_of_bounds 3";
+        test_assertf (Str.compare_substring_strict (bb, 1, 2) (aa, idxa, lena) = None)
+          "Str.compare_substring_strict out_of_bounds 4";
+      | _ -> test_assertf false "assumption about ACGT is wrong"
+    in
+    test_compare_substring_strictness ("", 0, 1);
+    test_compare_substring_strictness ("a", 1, 1);
+    test_compare_substring_strictness ("a", -1, 1);
+    test_compare_substring_strictness ("a", 1, -1);
+    test_compare_substring_strictness ("a", -1, -1);
+    test_compare_substring_strictness ("aa", 10, 1);
+    test_compare_substring_strictness ("aa", 10, -1);
+    (* Now we run a bigger randomized test of compare_substring{_strict}. *)
+    let been_to_some_0 = ref 0 in
+    let been_to_some_m = ref 0 in
+    List.iter test_native_subjects (fun a ->
+        List.iter test_native_subjects (fun b ->
+            match Str.of_native_string a, Str.of_native_string b with
+            | `Ok aa, `Ok bb ->
+              let rec test n =
+                let length_a = Str.length aa in
+                let length_b = Str.length bb in
+                let lena = Random.int (length_a + 5) in
+                let idxa = Random.int (lena + 5) in
+                let idxb, lenb =
+                  if Random.bool ()
+                  then  (Random.int (length_b + 5), Random.int (length_b + 5))
+                  else (idxa, lena) (* half of the times with same params *)
+                in
+                let res =
+                  Str.compare_substring (aa, idxa, lena) (bb, idxb, lenb) in
+                let resopt =
+                  Str.compare_substring_strict (aa, idxa, lena) (bb, idxb, lenb) in
+                begin match res with
+                | 0 -> (* EQUAL *)
+                  test_assertf (lena = lenb)
+                    "compare_substring: equal but lengths %d ≠ %d" lena lenb;
+                  for i = 0 to min lena lenb - 1 do
+                    test_assertf ((Str.get aa (i + idxa)) = (Str.get bb (i + idxb)))
+                      "compare_substring: equal but different …"
+                  done;
+                  test_assertf (is_equivalent resopt res)
+                    "resopt Vs res in EQUAL case";
+                  incr been_to_some_0;
+                | m ->
+                  let suba = Str.sub aa ~index:idxa ~length:(lena) in
+                  let subb = Str.sub bb ~index:idxb ~length:(lenb) in
+                  begin match suba, subb with
+                  | Some sa, Some sb ->
+                    (* Well defined case: "sub" returns something for both *)
+                    test_assertf (Str.compare sa sb * m > 0)
+                      "%d instead of %d sa: %s sb:%s (lena: %d, lenb: %d)" m (Str.compare sa sb)
+                      (Str.to_string_hum sa) (Str.to_string_hum sb) lena lenb;
+                    test_assertf (is_equivalent resopt res)
+                      "strict: %s instead of %d sa: %s sb:%s (lena: %d, lenb: %d)"
+                      (Option.value_map ~default:"None" resopt ~f:(sprintf "Some %d"))
+                      (Str.compare sa sb)
+                      (Str.to_string_hum sa) (Str.to_string_hum sb) lena lenb;
+                  | _, _ -> ()
+                  end;
+                  incr been_to_some_m;
+                  ()
                 end;
-                incr been_to_some_m;
-                ()
-              end;
-              if n > 0 then test (n - 1);
-            in
-            test 4
-          | _, _ -> ()
-        )
-    );
-  test_assertf (!been_to_some_0 > 5) "been_to_some_0: %d" !been_to_some_0;
-  test_assertf (!been_to_some_m > 5) "been_to_some_m: %d" !been_to_some_m;
+                if n > 0 then test (n - 1);
+              in
+              test 4
+            | _, _ -> ()
+          )
+      );
+    test_assertf (!been_to_some_0 > 5) "been_to_some_0: %d" !been_to_some_0;
+    test_assertf (!been_to_some_m > 5) "been_to_some_m: %d" !been_to_some_m;
+  end;
 
-  (* We test index_of_string and index_of_string_reverse, if we expect
-     the same result we may give only `~expect` if not, we use
-     `~expect_rev`. *)
-  let test_index_of_string ?from ?sub_index ?sub_length ?expect_rev s ~sub ~expect =
-    match Str.of_native_string s, Str.of_native_string sub with
-    | `Ok t, `Ok subt ->
-      let res = Str.index_of_string t ~sub:subt ?from ?sub_index ?sub_length in
-      let shopt = Option.value_map ~f:(sprintf "Some %d") ~default:"None" in
-      test_assertf (res = expect)
-        "Str.index_of_string %s ~sub:%s ?from:%s ?sub_index:%s ?sub_length:%s gave %s not %s"
-        s sub (shopt from) (shopt sub_index) (shopt sub_length)
-        (shopt res) (shopt expect);
-      let erev = match expect_rev with None -> expect | Some opt -> opt in
-      let res = Str.index_of_string_reverse t ~sub:subt ?from ?sub_index ?sub_length in
-      test_assertf (res = erev)
-        "Str.index_of_string_reverse %s ~sub:%s ?from:%s ?sub_index:%s ?sub_length:%s gave %s not %s"
-        s sub (shopt from) (shopt sub_index) (shopt sub_length)
-        (shopt res) (shopt erev);
-    | _, _ -> ()
-  in
+  begin (* We test index_of_string and index_of_string_reverse, if we expect
+           the same result we may give only `~expect` if not, we use
+           `~expect_rev`. *)
+    let test_index_of_string ?from ?sub_index ?sub_length ?expect_rev s ~sub ~expect =
+      match Str.of_native_string s, Str.of_native_string sub with
+      | `Ok t, `Ok subt ->
+        let res = Str.index_of_string t ~sub:subt ?from ?sub_index ?sub_length in
+        let shopt = Option.value_map ~f:(sprintf "Some %d") ~default:"None" in
+        test_assertf (res = expect)
+          "Str.index_of_string %s ~sub:%s ?from:%s ?sub_index:%s ?sub_length:%s gave %s not %s"
+          s sub (shopt from) (shopt sub_index) (shopt sub_length)
+          (shopt res) (shopt expect);
+        let erev = match expect_rev with None -> expect | Some opt -> opt in
+        let res = Str.index_of_string_reverse t ~sub:subt ?from ?sub_index ?sub_length in
+        test_assertf (res = erev)
+          "Str.index_of_string_reverse %s ~sub:%s ?from:%s ?sub_index:%s ?sub_length:%s gave %s not %s"
+          s sub (shopt from) (shopt sub_index) (shopt sub_length)
+          (shopt res) (shopt erev);
+      | _, _ -> ()
+    in
+    test_index_of_string "aaaa" ~sub:"cc" ~expect:None;
+    test_index_of_string "aaaa" ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 2);
+    test_index_of_string "ccaa" ~sub:"aa" ~expect:(Some 2);
+    test_index_of_string "cccca" ~sub:"aa" ~expect:(None);
+    test_index_of_string "aacca" ~from:1 ~sub:"aa" ~expect:(None);
+    test_index_of_string "aaccaa" ~from:1 ~sub:"aa" ~expect:(Some 4);
+    test_index_of_string "aacca" ~from:1 ~sub:"aa" ~sub_index:1 ~expect:(Some 1) ~expect_rev:(Some 4);
+    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_index:1 ~expect:(Some 4);
+    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:1 ~expect:(Some 4);
+    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:0 ~expect:(Some 2) ~expect_rev:(Some 5);
+    test_index_of_string "aacca" ~from:2 ~sub:""  ~expect:(Some 2) ~expect_rev:(Some 5);
+    test_index_of_string "aaaa" ~from:(-1) ~sub:"aa" ~expect:None;
+    test_index_of_string "aaaa" ~from:3 ~sub:"aa" ~expect:None;
+    test_index_of_string "aaaa" ~from:4 ~sub:"aa" ~expect:None;
+    test_index_of_string "aaaa" ~from:5 ~sub:"aa" ~expect:None;
+    test_index_of_string "aaaa" ~sub_index:(-1) ~sub:"aa" ~expect:None;
+    test_index_of_string "aaaa" ~sub_index:2 ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 4); (* This is searching the empty string ! *)
+    test_index_of_string "aaaa" ~sub_index:3 ~sub:"aa" ~expect:(None); (* This is searching AFTER the empty string ! *)
+  end;
 
-  test_index_of_string "aaaa" ~sub:"cc" ~expect:None;
-  test_index_of_string "aaaa" ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 2);
-  test_index_of_string "ccaa" ~sub:"aa" ~expect:(Some 2);
-  test_index_of_string "cccca" ~sub:"aa" ~expect:(None);
-  test_index_of_string "aacca" ~from:1 ~sub:"aa" ~expect:(None);
-  test_index_of_string "aaccaa" ~from:1 ~sub:"aa" ~expect:(Some 4);
-  test_index_of_string "aacca" ~from:1 ~sub:"aa" ~sub_index:1 ~expect:(Some 1) ~expect_rev:(Some 4);
-  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_index:1 ~expect:(Some 4);
-  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:1 ~expect:(Some 4);
-  test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:0 ~expect:(Some 2) ~expect_rev:(Some 5);
-  test_index_of_string "aacca" ~from:2 ~sub:""  ~expect:(Some 2) ~expect_rev:(Some 5);
-  test_index_of_string "aaaa" ~from:(-1) ~sub:"aa" ~expect:None;
-  test_index_of_string "aaaa" ~from:3 ~sub:"aa" ~expect:None;
-  test_index_of_string "aaaa" ~from:4 ~sub:"aa" ~expect:None;
-  test_index_of_string "aaaa" ~from:5 ~sub:"aa" ~expect:None;
-  test_index_of_string "aaaa" ~sub_index:(-1) ~sub:"aa" ~expect:None;
-  test_index_of_string "aaaa" ~sub_index:2 ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 4); (* This is searching the empty string ! *)
-  test_index_of_string "aaaa" ~sub_index:3 ~sub:"aa" ~expect:(None); (* This is searching AFTER the empty string ! *)
-
-  (* We test `index_of_string{,_reverse}` with the cartesian product of
-     all the test subjects with themselves.
-     In the case `index_of_string_reverse`, when it succeed we only
-     check that it found a match *on or after* index_of_string. *)
-  let been_to_subsub = ref 0 in
-  let been_to_self_sub = ref 0 in
-  let been_to_none = ref 0 in
-  List.iter (List.cartesian_product
-               test_native_subjects test_native_subjects) (fun (s, _) ->
-      match Str.of_native_string s with
-      | `Ok o ->
-        let from = Random.int (Str.length o + 1) in
-        begin match Str.sub o ~index:from ~length:(Random.int (from + 1) + 4) with
-        | Some sub ->
-          let sub =
-            if Random.bool ()
-            then Str.set_exn sub ~index:(Random.int (Str.length sub)) ~v:(Str.get_exn sub ~index:0)
-            else sub in
-          let sub_length = (Random.int (Str.length sub)) in
-          let sub_index = Random.int 4 in
-          let from = Random.int (from + 1) in
-          begin match Str.index_of_string o ~sub ~from ~sub_index ~sub_length with
-          | Some i ->
-            let res_rev =
-              Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
-            test_assertf (match res_rev with Some ir when i <= ir -> true | _ -> false)
-              "index_of_string = None but index_of_string_reverse ≠ None";
-            begin match Str.sub o ~index:i ~length:sub_length,
-                        Str.sub sub ~index:sub_index ~length:sub_length with
-            | Some subo, Some subsub ->
-              incr been_to_subsub;
-              test_assertf (Str.compare subo subsub = 0)
-                "found but unequal: %s %s" (Str.to_string_hum subo) (Str.to_string_hum subsub)
-            | _, _ -> test_assertf false "index_of_string: can't sub"
+  begin (* Test: index_of_string{,_reverse} *)
+    (* We test `index_of_string{,_reverse}` with the cartesian product of
+      all the test subjects with themselves.
+      In the case `index_of_string_reverse`, when it succeed we only
+       check that it found a match *on or after* index_of_string. *)
+    let been_to_subsub = ref 0 in
+    let been_to_self_sub = ref 0 in
+    let been_to_none = ref 0 in
+    List.iter (List.cartesian_product
+                 test_native_subjects test_native_subjects) (fun (s, _) ->
+        match Str.of_native_string s with
+        | `Ok o ->
+          let from = Random.int (Str.length o + 1) in
+          begin match Str.sub o ~index:from ~length:(Random.int (from + 1) + 4) with
+          | Some sub ->
+            let sub =
+              if Random.bool ()
+              then Str.set_exn sub ~index:(Random.int (Str.length sub)) ~v:(Str.get_exn sub ~index:0)
+              else sub in
+            let sub_length = (Random.int (Str.length sub)) in
+            let sub_index = Random.int 4 in
+            let from = Random.int (from + 1) in
+            begin match Str.index_of_string o ~sub ~from ~sub_index ~sub_length with
+            | Some i ->
+              let res_rev =
+                Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
+              test_assertf (match res_rev with Some ir when i <= ir -> true | _ -> false)
+                "index_of_string = None but index_of_string_reverse ≠ None";
+              begin match Str.sub o ~index:i ~length:sub_length,
+                          Str.sub sub ~index:sub_index ~length:sub_length with
+              | Some subo, Some subsub ->
+                incr been_to_subsub;
+                test_assertf (Str.compare subo subsub = 0)
+                  "found but unequal: %s %s" (Str.to_string_hum subo) (Str.to_string_hum subsub)
+              | _, _ -> test_assertf false "index_of_string: can't sub"
+              end
+            | None ->
+              let res_rev =
+                Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
+              test_assertf (res_rev = None)
+                "index_of_string = None but index_of_string_reverse ≠ None";
+              for i = 0 to Str.length o - 1 do
+                let cmp =
+                  Str.compare_substring (o, i + from, sub_length)
+                    (sub, sub_index, sub_length) in
+                test_assertf (cmp <> 0) "index_of_string: None but cmp = 0"
+              done;
+              incr been_to_none;
             end
           | None ->
-            let res_rev =
-              Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
-            test_assertf (res_rev = None)
-              "index_of_string = None but index_of_string_reverse ≠ None";
-            for i = 0 to Str.length o - 1 do
-              let cmp =
-                Str.compare_substring (o, i + from, sub_length)
-                  (sub, sub_index, sub_length) in
-              test_assertf (cmp <> 0) "index_of_string: None but cmp = 0"
-            done;
-            incr been_to_none;
+            incr been_to_self_sub;
+            test_assertf (Str.index_of_string o ~sub:o = Some 0)
+              "index_of_string o o ≠ Some 0"
           end
-        | None ->
-          incr been_to_self_sub;
-          test_assertf (Str.index_of_string o ~sub:o = Some 0)
-            "index_of_string o o ≠ Some 0"
-        end
-      | `Error _ -> ());
+        | `Error _ -> ());
+    test_assertf (!been_to_subsub > 4) "been_to_subsub: %d" !been_to_subsub;
+    test_assertf (!been_to_self_sub > 4) "been_to_self_sub: %d" !been_to_self_sub;
+    test_assertf (!been_to_none > 4) "been_to_none: %d" !been_to_none;
+  end; 
 
-  test_assertf (!been_to_subsub > 4) "been_to_subsub: %d" !been_to_subsub;
-  test_assertf (!been_to_self_sub > 4) "been_to_self_sub: %d" !been_to_self_sub;
-  test_assertf (!been_to_none > 4) "been_to_none: %d" !been_to_none;
-
-  (* Test `filter_map` *)
-  let () =
+  begin (* Test `filter_map` *)
     let test ?from ?length l ~f ~expect fmt =
       let name = ksprintf ident fmt in
       (* say "test: %s l : %d" name (List.length l); *)
@@ -727,13 +733,12 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[2] "opt_of_cond _ > 1 length 2";
     test [1;2;3]  ~length:3 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 3";
     test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
-  in
+  end;
 
   let int_list_to_string l =
     sprintf "[%s]"
     (List.map ~f:Int.to_string l |> String.concat ~sep:",") in
-  (* Test the `split` function *)
-  let () =
+  begin (* Test the `split` function *)
     let test l ~on ~expect =
       let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
       let on_converted =
@@ -790,11 +795,10 @@ let do_basic_test (module Test : TEST_STRING) =
     on_empty [] ~expect:[ [] ];
     on_empty [1] ~expect:[ [1] ];
     on_empty [1;2;4;5] ~expect:[ [1]; [2]; [4]; [5] ];
-    
-
-  in
+  end;    
 
 
+  (* #### BENCHMARKS #### *)
 
   let converted_dna_reads =
     let all =
