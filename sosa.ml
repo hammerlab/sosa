@@ -232,11 +232,20 @@ module type BASIC_STRING = sig
 
   val index_of_character: t -> ?from:int -> character -> int option
   (** Find the first occurrence of a character in the string (starting
-      at position [from]). If [from] is out of bounds it will be coerced to
-      fit. *)
+      at position [from]).
+      
+      Default value for [from] is [0].
+      If [from] is negative, [0] will be used.
+      If [from >= length t], [None] will be returned.
+  *)
 
   val index_of_character_reverse: t -> ?from:int -> character -> int option
-  (** Do like [index_of_character] but start from the end of the string. *)
+  (** Do like [index_of_character] but start from the end of the string.
+
+      Default value for [from] is [length t - 1] (end of the string).
+      If [from] is negative, [None] will be returned.
+      If [from >= length t], [lenght t - 1] will be used.
+  *)
 
   val index_of_string: ?from:int ->
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
@@ -250,22 +259,22 @@ module type BASIC_STRING = sig
   val find: ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
   (** Find the index of the first character [c] for which [f c] is [true]. One
       can restrict to the sub-string [(from, length)] (the
-      default is to use the whole string, “wrong” values are restricted to
-      [(from, length)]). *)
+      default is to use the whole string, “out-of-bound” values are restricted
+      to the bounds of the stirng). *)
 
   val find_reverse:
     ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
   (** Find the index of the last character [c] for which [f c] is [true]. One
       can restrict to the reverse sub-string [(from, length)] (the
-      default is to use the whole string, “wrong” values are restricted to
-      [(from, length)]). *)
+      default is to use the whole string,  “out-of-bound” values are restricted
+      to the bounds of the stirng). *)
 
   val filter_map: ?from:int -> ?length:int -> t -> 
     f:(character -> character option) -> t
   (** Create a new string with the characters for which [f c] returned 
       [Some c]. One can restrict to the sub-string [(from, length)] (the
-      default is to use the whole string, “wrong” values are restricted to
-      [(from, length)]). *)
+      default is to use the whole string, “out-of-bound” values are restricted
+      to the bounds of the stirng). *)
 
   val split: t -> 
     on:[ `Character of character | `String of t ] ->
