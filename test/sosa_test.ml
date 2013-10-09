@@ -406,7 +406,62 @@ let do_basic_test (module Test : TEST_STRING) =
     test_assertf !i_have_been_to_out_of_bounds "i_have_been_to_out_of_bounds";
   end;
 
-  begin (* A test of index_of_character and index_of_character_reverse, we
+  let int_list_to_string l =
+    sprintf "[%s]"
+    (List.map ~f:Int.to_string l |> String.concat ~sep:",") in
+
+  let str_to_int_list s =
+    Str.to_character_list s |> List.map ~f:Chr.to_int in
+
+  let int_option_to_string io =
+    Option.value_map ~default:"None" ~f:(sprintf "Some %d") io in
+
+  begin (* index_of_character{,_reverse} *)
+    let test ?from ?should_find l c =
+      let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
+      let ch =
+        Option.value_exn ~message:"test index_of_character" (Chr.of_int c) in
+      let res = Str.index_of_character ?from s ch in
+      test_assertf (res = should_find)
+        "index_of_character: %s (from: %s) expects  %s but got %s"
+        (str_to_int_list s |> int_list_to_string)
+        (int_option_to_string from)
+        (int_option_to_string should_find)
+        (int_option_to_string res);
+      if from = None then (
+        let from = Some 0 in
+        let res = Str.index_of_character ?from s ch in
+        test_assertf (res = should_find)
+          "index_of_character: %s (added-from: %s) expects  %s but got %s"
+          (str_to_int_list s |> int_list_to_string)
+          (int_option_to_string from)
+          (int_option_to_string should_find)
+          (int_option_to_string res);
+      );
+    in
+    test [] 0;
+    test [1] 0;
+    test [1;2;3;4] 0;
+    test [0] 0 ~should_find:0;
+    test [1;2;0] 0 ~should_find:2;
+    test ~from:1 [] 0;
+    test ~from:1 [1] 0;
+    test ~from:1 [1;2;3;4] 0;
+    test ~from:1 [0] 0;
+    test ~from:1 [1;2;0] 0 ~should_find:2;
+    test ~from:(-1) [] 0;
+    test ~from:(-1) [1] 0;
+    test ~from:(-1) [1;2;3;4] 0;
+    test ~from:(-1) [0] 0 ~should_find:0;
+    test ~from:(-1) [1;2;0] 0 ~should_find:2;
+    test ~from:4 [] 0;
+    test ~from:4 [1] 0;
+    test ~from:4 [1;2;3;4] 0;
+    test ~from:4 [0] 0;
+    test ~from:4 [1;2;0] 0;
+
+    
+    (* A test of index_of_character and index_of_character_reverse, we
            create a big cartesian product
            (nat_string, (from_index, char_to_find)) and we run both searches. *)
     let froms = List.init 10 (fun i -> Random.int (i + 1)) in
@@ -735,16 +790,6 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
     test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
   end;
-
-  let int_list_to_string l =
-    sprintf "[%s]"
-    (List.map ~f:Int.to_string l |> String.concat ~sep:",") in
-
-  let str_to_int_list s =
-    Str.to_character_list s |> List.map ~f:Chr.to_int in
-
-  let int_option_to_string io =
-    Option.value_map ~default:"None" ~f:(sprintf "Some %d") io in
 
   begin (* Test the `split` function *)
     let test l ~on ~expect =
