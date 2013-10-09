@@ -216,6 +216,9 @@ module type BASIC_STRING = sig
   val iter: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively. *)
 
+  val iter_reverse: t -> f:(character -> unit) -> unit
+  (** Apply [f] on every character successively in reverse order. *)
+
   val map: t -> f:(character -> character) -> t
   (** Make a new string by applying [f] to all characters of the
       input. *)
@@ -657,6 +660,10 @@ module Native_string : NATIVE_STRING = struct
     with _ -> fail `out_of_bounds
 
   let iter t ~f = String.iter t ~f
+  let iter_reverse t ~f =
+    for i = length t -1 downto 0 do
+      f (get_exn t i)
+    done
   let map t ~f = String.map t ~f
 
   let for_all t ~f =
@@ -814,6 +821,9 @@ module List_of (Char: BASIC_CHARACTER) :
     match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
 
   let iter t ~f = List.iter t ~f
+  let iter_reverse t ~f =
+    List.iter (List.rev t) ~f
+
   let fold t ~init ~f = List.fold_left t ~init ~f
   let map = Core_list_map.map
   let for_all t ~f = List.for_all t ~f
@@ -1156,6 +1166,11 @@ module Of_mutable
 
   let iter t ~f =
     for i = 0 to length t - 1 do
+      f (S.get t i)
+    done
+
+  let iter_reverse t ~f =
+    for i = length t -1 downto 0 do
       f (S.get t i)
     done
 
