@@ -252,6 +252,13 @@ module type BASIC_STRING = sig
       default is to use the whole string, “wrong” values are restricted to
       [(from, length)]). *)
 
+  val find_reverse:
+    ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
+  (** Find the index of the last character [c] for which [f c] is [true]. One
+      can restrict to the reverse sub-string [(from, length)] (the
+      default is to use the whole string, “wrong” values are restricted to
+      [(from, length)]). *)
+
   val filter_map: ?from:int -> ?length:int -> t -> 
     f:(character -> character option) -> t
   (** Create a new string with the characters for which [f c] returned 
@@ -710,6 +717,35 @@ module Native_string : NATIVE_STRING = struct
     done;
     !found
 
+  let find_reverse ?from ?length s ~f =
+    let length_of_s = String.length s in
+    if length_of_s = 0 then None
+    else begin
+      let from = 
+        match from with
+        | None -> length_of_s - 1 
+        | Some s when s < 0 -> -1
+        | Some s when s >= length_of_s - 1 -> length_of_s - 1
+        | Some s -> s
+      in
+      let length =
+        match length with
+        | None -> from + 1
+        | Some l when l <= 0 -> 0
+        | Some l when l >= from + 1 -> from + 1
+        | Some l -> l
+      in
+      let found = ref None in
+      let i = ref from in
+      while !found = None && !i >= from - length + 1 do
+        (* dbg "i: %d from: %d length: %d" !i from length; *)
+        if f (get_exn s !i)
+        then found := Some (!i)
+        else decr i
+      done;
+      !found
+    end
+
   let filter_map ?(from=0) ?length s ~f =
     let length = 
       let of_s = String.length s in
@@ -1000,6 +1036,19 @@ module List_of (Char: BASIC_CHARACTER) :
       | h :: t, _ -> find_from (index + 1) (virtual_length + 1) t
     in
     find_from 0 0 s 
+
+  let find_reverse ?from ?length s ~f =
+    let length_of_s = List.length s in
+    let from = 
+      match from with
+      | None -> None
+      | Some s when s < 0 -> Some length_of_s
+      | Some s when s > length_of_s - 1 -> Some 0
+      | Some s -> Some (length_of_s - 1 - s)
+    in
+    match find ?from ?length (List.rev s) ~f with
+    | None -> None
+    | Some i -> Some (length_of_s - 1 - i)
 
   let filter_map ?(from=0) ?length t ~f =
     let rec filter_map_rec acc count = function
@@ -1343,6 +1392,35 @@ module Of_mutable
       else incr i
     done;
     !found
+
+  let find_reverse ?from ?length s ~f =
+    let length_of_s = S.length s in
+    if length_of_s = 0 then None
+    else begin
+      let from = 
+        match from with
+        | None -> length_of_s - 1 
+        | Some s when s < 0 -> -1
+        | Some s when s >= length_of_s - 1 -> length_of_s - 1
+        | Some s -> s
+      in
+      let length =
+        match length with
+        | None -> from + 1
+        | Some l when l <= 0 -> 0
+        | Some l when l >= from + 1 -> from + 1
+        | Some l -> l
+      in
+      let found = ref None in
+      let i = ref from in
+      while !found = None && !i >= from - length + 1 do
+        (* dbg "i: %d from: %d length: %d" !i from length; *)
+        if f (get_exn s !i)
+        then found := Some (!i)
+        else decr i
+      done;
+      !found
+    end
 
   let filter_map ?(from=0) ?length s ~f =
     let length =
