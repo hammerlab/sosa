@@ -733,6 +733,7 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[2] "opt_of_cond _ > 1 length 2";
     test [1;2;3]  ~length:3 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 3";
     test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
+    test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
   end;
 
   let int_list_to_string l =

@@ -747,16 +747,13 @@ module Native_string : NATIVE_STRING = struct
     end
 
   let filter_map ?(from=0) ?length s ~f =
-    let length = 
-      let of_s = String.length s in
-      match length with 
-      | Some l -> min l of_s
-      | None -> of_s in
+    let length_of_s = String.length s in
+    let from, length = resize_from_length ~from ?length ~length_of_s in
     if length = 0 then empty
     else begin
       let b = Buffer.create length in
-      for i = from to length - 1 do
-        match f (get_exn s i) with
+      for i = 0 to length - 1 do
+        match f (get_exn s (i + from)) with
         | Some c -> Buffer.add_char b c
         | None -> ()
       done;
@@ -1051,17 +1048,19 @@ module List_of (Char: BASIC_CHARACTER) :
     | Some i -> Some (length_of_s - 1 - i)
 
   let filter_map ?(from=0) ?length t ~f =
-    let rec filter_map_rec acc count = function
-    | [] -> List.rev acc
-    | _ when Some count = length -> List.rev acc
-    | _ :: t  when count < from -> filter_map_rec acc (count + 1) t
-    | h :: t -> 
-      begin match f h with
-      | Some o -> filter_map_rec (o :: acc) (count + 1) t
-      | None -> filter_map_rec acc (count + 1) t
-      end
+    let rec filter_map_rec acc index virtual_length l = 
+      match l, length with
+      | [], _ -> List.rev acc
+      | _, Some lgth when lgth <= virtual_length -> List.rev acc
+      | h :: t, _ when index < from ->
+        filter_map_rec acc (index + 1) virtual_length t
+      | h :: t, _ (* when index >= from  *) ->
+        begin match f h with
+        | Some o -> filter_map_rec (o :: acc) (index + 1) (virtual_length + 1) t
+        | None -> filter_map_rec acc (index + 1) (virtual_length + 1) t
+        end
     in
-    filter_map_rec [] 0 t
+    filter_map_rec [] 0 0 t
 
   include Make_split_function(struct
       type t = Char.t list
@@ -1423,18 +1422,18 @@ module Of_mutable
     end
 
   let filter_map ?(from=0) ?length s ~f =
-    let length =
-      let of_s = S.length s in
-      match length with 
-      | Some l -> min l of_s
-      | None -> of_s in
-    let res = ref [] in
-    for i = length - 1 downto from do
-      match f (S.get s i) with
-      | Some c -> res := c :: !res
-      | None -> ()
-    done;
-    of_character_list !res
+    let length_of_s = S.length s in
+    let from, length = resize_from_length ~from ?length ~length_of_s in
+    if length = 0 then empty
+    else begin
+      let res = ref [] in
+      for i = length - 1 downto 0 do
+        match f (get_exn s (i + from)) with
+        | Some c -> res := c :: !res
+        | None -> ()
+      done;
+      of_character_list !res
+    end
 
   include Make_split_function(struct
       type t = S.t
