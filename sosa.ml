@@ -232,7 +232,8 @@ module type BASIC_STRING = sig
 
   val index_of_character: t -> ?from:int -> character -> int option
   (** Find the first occurrence of a character in the string (starting
-      at position [from]). *)
+      at position [from]). If [from] is out of bounds it will be coerced to
+      fit. *)
 
   val index_of_character_reverse: t -> ?from:int -> character -> int option
   (** Do like [index_of_character] but start from the end of the string. *)
@@ -688,6 +689,7 @@ module Native_string : NATIVE_STRING = struct
     with Not_found -> true
 
   let index_of_character t ?(from=0) c =
+    let from = if from <= 0 then 0 else min (length t) from in
     try Some (String.index_from t from c)
     with _ -> None
 
@@ -1319,6 +1321,7 @@ module Of_mutable
   let to_string_hum t = to_native_string t |> sprintf "%S"
 
   let index_of_character t ?(from=0) c =
+    let from = if from <= 0 then 0 else min (length t) from in
     let res = ref None in
     try
       for i = from to length t - 1 do
