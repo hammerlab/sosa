@@ -462,28 +462,32 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
       exception Found of int
 
       let f () =
-        let length_of_sub =
-          match sub_length with Some s -> s | None -> length sub - sub_index in
-        if from < 0 || sub_index < 0 || length_of_sub < 0
-        then None
+        (* Readjust the arguments: *)
+        let length_of_t = length t in
+        let from = 
+          if from <= 0 then 0 else min length_of_t from in
+        let total_length_of_sub = length sub in
+        let sub_index =
+          if sub_index <= 0 then 0 else sub_index in
+        let sub_length =
+          let default = max 0 (total_length_of_sub - sub_index) in
+          match sub_length with
+          | None -> default
+          | Some s when s >= default -> default
+          | Some s when s < 0 -> 0
+          | Some s -> s
+        in
+        (* dbg "from: %d, length: %d sub_index: %d sub_length: %d" *)
+          (* from length_of_t  sub_index sub_length; *)
+        if from >= length_of_t then None
+        else if length_of_t = 0 then None
+        else if sub_length <= 0 then Some from
         else
           begin try
-            let length_of_t = length t in
-            for i = 0 to length_of_t - length_of_sub do
-            (*
-            dbg "i: %d, length_of_t: %d, length_of_sub: %d, compare: %d, strict: %s"
-              i length_of_t length_of_sub
-              (compare_substring
-                (t, i + from, length_of_sub)
-                (sub, sub_index, length_of_sub))
-              (compare_substring_strict
-                (t, i + from, length_of_sub)
-                (sub, sub_index, length_of_sub)
-               |> (function Some i -> sprintf "Some %d" i | None -> "None")) ;
-            *)
+            for i = 0 to length_of_t - from do
               if compare_substring
-                  (t, i + from, length_of_sub)
-                  (sub, sub_index, length_of_sub) = 0
+                  (t, i + from, sub_length)
+                  (sub, sub_index, sub_length) = 0
               then raise (Found (i + from))
             done;
             None
@@ -492,22 +496,40 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
     end in
     With_exn.f ()
 
-  let index_of_string_reverse ?(from=0) ?(sub_index=0) ?sub_length t ~sub =
+  let index_of_string_reverse ?from ?(sub_index=0) ?sub_length t ~sub =
     let module With_exn = struct
       exception Found of int
 
       let f () =
-        let length_of_sub =
-          match sub_length with Some s -> s | None -> length sub - sub_index in
-        if from < 0 || sub_index < 0 || length_of_sub < 0
-        then None
+        let length_of_t = length t in
+        let last = length_of_t - 1 in
+        let from = 
+          match from with
+          | None -> last 
+          | Some f when f >= last -> last
+          | Some f -> f in
+        let total_length_of_sub = length sub in
+        let sub_index =
+          if sub_index <= 0 then 0 else sub_index in
+        let sub_length =
+          let default = max 0 (total_length_of_sub - sub_index) in
+          match sub_length with
+          | None -> default
+          | Some s when s >= default -> default
+          | Some s when s < 0 -> 0
+          | Some s -> s
+        in
+        (* dbg "from: %d, length: %d sub_index: %d sub_length: %d" *)
+          (* from length_of_t  sub_index sub_length; *)
+        if from < 0 then None
+        else if length_of_t = 0 then None
+        else if sub_length <= 0 then Some from
         else
           begin try
-            let length_of_t = length t in
-            for i = length_of_t - length_of_sub downto from do
+            for i = from downto 0 do
               if compare_substring
-                  (t, i, length_of_sub)
-                  (sub, sub_index, length_of_sub) = 0
+                  (t, i, sub_length)
+                  (sub, sub_index, sub_length) = 0
               then raise (Found (i))
             done;
             None
