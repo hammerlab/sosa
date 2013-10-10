@@ -711,81 +711,25 @@ let do_basic_test (module Test : TEST_STRING) =
     test_index_of_string "aaaa" ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 2);
     test_index_of_string "ccaa" ~sub:"aa" ~expect:(Some 2);
     test_index_of_string "cccca" ~sub:"aa" ~expect:(None);
-    test_index_of_string "aacca" ~from:1 ~sub:"aa" ~expect:(None);
-    test_index_of_string "aaccaa" ~from:1 ~sub:"aa" ~expect:(Some 4);
-    test_index_of_string "aacca" ~from:1 ~sub:"aa" ~sub_index:1 ~expect:(Some 1) ~expect_rev:(Some 4);
-    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_index:1 ~expect:(Some 4);
-    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:1 ~expect:(Some 4);
-    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:0 ~expect:(Some 2) ~expect_rev:(Some 5);
-    test_index_of_string "aacca" ~from:2 ~sub:""  ~expect:(Some 2) ~expect_rev:(Some 5);
-    test_index_of_string "aaaa" ~from:(-1) ~sub:"aa" ~expect:None;
-    test_index_of_string "aaaa" ~from:3 ~sub:"aa" ~expect:None;
-    test_index_of_string "aaaa" ~from:4 ~sub:"aa" ~expect:None;
-    test_index_of_string "aaaa" ~from:5 ~sub:"aa" ~expect:None;
-    test_index_of_string "aaaa" ~sub_index:(-1) ~sub:"aa" ~expect:None;
-    test_index_of_string "aaaa" ~sub_index:2 ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 4); (* This is searching the empty string ! *)
-    test_index_of_string "aaaa" ~sub_index:3 ~sub:"aa" ~expect:(None); (* This is searching AFTER the empty string ! *)
+    test_index_of_string "aacca" ~from:1 ~sub:"aa" ~expect:(None) ~expect_rev:(Some 0);
+    test_index_of_string "aaccaa" ~from:1 ~sub:"aa" ~expect:(Some 4) ~expect_rev:(Some 0);
+    test_index_of_string "aacca" ~from:1 ~sub:"aa" ~sub_index:1 ~expect:(Some 1) ~expect_rev:(Some 1);
+    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_index:1 ~expect:(Some 4) ~expect_rev:(Some 1);
+    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:1 ~expect:(Some 4) ~expect_rev:(Some 1);
+    test_index_of_string "aacca" ~from:2 ~sub:"aa" ~sub_length:0 ~expect:(Some 2) ~expect_rev:(Some 2);
+    test_index_of_string "aacca" ~from:2 ~sub:""  ~expect:(Some 2) ~expect_rev:(Some 2);
+    test_index_of_string "caaa" ~from:(-1) ~sub:"aa" ~expect:(Some 1) ~expect_rev:None;
+    test_index_of_string "aaaa" ~from:3 ~sub:"aa" ~expect:None ~expect_rev:(Some 2);
+    test_index_of_string "aaaa" ~from:4 ~sub:"aa" ~expect:None ~expect_rev:(Some 2);
+    test_index_of_string "aaaa" ~from:5 ~sub:"aa" ~expect:None ~expect_rev:(Some 2);
+    test_index_of_string "caaa" ~sub_index:(-1) ~sub:"aa" ~expect:(Some 1) ~expect_rev:(Some 2);
+    test_index_of_string "aaaa" ~sub_index:2 ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 3);
+    (* ┗▶ This is  searching the empty string ! Find everywhere. *)
+    test_index_of_string "caaa" ~sub_index:3 ~sub:"aa" ~expect:(Some 0) ~expect_rev:(Some 3);
+    (* ┗▶ This is also searching the empty string ! *)
+    test_index_of_string "caaa" ~sub_index:1 ~sub_length:3 ~sub:"aa" ~expect:(Some 1) ~expect_rev:(Some 3);
+    test_index_of_string "caaa" ~sub_index:(-1) ~sub_length:3 ~sub:"aa" ~expect:(Some 1) ~expect_rev:(Some 2);
   end;
-
-  begin (* Test: index_of_string{,_reverse} *)
-    (* We test `index_of_string{,_reverse}` with the cartesian product of
-      all the test subjects with themselves.
-      In the case `index_of_string_reverse`, when it succeed we only
-       check that it found a match *on or after* index_of_string. *)
-    let been_to_subsub = ref 0 in
-    let been_to_self_sub = ref 0 in
-    let been_to_none = ref 0 in
-    List.iter (List.cartesian_product
-                 test_native_subjects test_native_subjects) (fun (s, _) ->
-        match Str.of_native_string s with
-        | `Ok o ->
-          let from = Random.int (Str.length o + 1) in
-          begin match Str.sub o ~index:from ~length:(Random.int (from + 1) + 4) with
-          | Some sub ->
-            let sub =
-              if Random.bool ()
-              then Str.set_exn sub ~index:(Random.int (Str.length sub)) ~v:(Str.get_exn sub ~index:0)
-              else sub in
-            let sub_length = (Random.int (Str.length sub)) in
-            let sub_index = Random.int 4 in
-            let from = Random.int (from + 1) in
-            begin match Str.index_of_string o ~sub ~from ~sub_index ~sub_length with
-            | Some i ->
-              let res_rev =
-                Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
-              test_assertf (match res_rev with Some ir when i <= ir -> true | _ -> false)
-                "index_of_string = None but index_of_string_reverse ≠ None";
-              begin match Str.sub o ~index:i ~length:sub_length,
-                          Str.sub sub ~index:sub_index ~length:sub_length with
-              | Some subo, Some subsub ->
-                incr been_to_subsub;
-                test_assertf (Str.compare subo subsub = 0)
-                  "found but unequal: %s %s" (Str.to_string_hum subo) (Str.to_string_hum subsub)
-              | _, _ -> test_assertf false "index_of_string: can't sub"
-              end
-            | None ->
-              let res_rev =
-                Str.index_of_string_reverse o ~sub ~from ~sub_index ~sub_length in
-              test_assertf (res_rev = None)
-                "index_of_string = None but index_of_string_reverse ≠ None";
-              for i = 0 to Str.length o - 1 do
-                let cmp =
-                  Str.compare_substring (o, i + from, sub_length)
-                    (sub, sub_index, sub_length) in
-                test_assertf (cmp <> 0) "index_of_string: None but cmp = 0"
-              done;
-              incr been_to_none;
-            end
-          | None ->
-            incr been_to_self_sub;
-            test_assertf (Str.index_of_string o ~sub:o = Some 0)
-              "index_of_string o o ≠ Some 0"
-          end
-        | `Error _ -> ());
-    test_assertf (!been_to_subsub > 4) "been_to_subsub: %d" !been_to_subsub;
-    test_assertf (!been_to_self_sub > 4) "been_to_self_sub: %d" !been_to_self_sub;
-    test_assertf (!been_to_none > 4) "been_to_none: %d" !been_to_none;
-  end; 
 
   begin (* Test `filter_map` *)
     let test ?from ?length l ~f ~expect fmt =
