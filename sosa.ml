@@ -302,6 +302,15 @@ module type BASIC_STRING = sig
       Splitting the empty string returns  [[empty]], splitting [on] the empty
       string explodes the string into a list of one-character strings. *)
 
+  val strip: ?on:[`Both | `Left | `Right] ->
+    ?whitespace:(character -> bool) -> t -> t
+  (** Remove any whitespace characters at the beginning and/or the end of the
+      string (default [`Both]).
+
+      The default is to call the {!BASIC_CHARACTER.is_whitespace} function of
+      the implemented character.
+  *)
+
   module Make_output: functor (Model: OUTPUT_MODEL) -> sig
 
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
@@ -615,6 +624,44 @@ module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
 
 end
 
+module Make_strip_function (S:
+   sig
+     type t
+     type character
+     val empty : t
+     val is_whitespace: character -> bool
+     val length: t -> int
+     val find:
+       ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
+     val find_reverse:
+       ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
+     val sub_exn: t -> index:int -> length:int -> t
+   end) = struct
+
+  let strip ?(on=`Both) ?(whitespace=S.is_whitespace) t =
+    let open S in
+    let first_non () =
+      match find t ~f:(fun c -> not (whitespace c)) with
+      | None -> raise Not_found | Some s -> s in
+    let last_non () =
+      match find_reverse t ~f:(fun c -> not (whitespace c)) with
+      | None -> raise Not_found | Some s -> s in
+    try
+      match on with
+      | `Both ->
+        let index = first_non () in
+        let last = last_non () in
+        sub_exn t ~index ~length:(last - index + 1)
+      | `Left ->
+        let index = first_non () in
+        sub_exn t ~index ~length:(length t - index)
+      | `Right ->
+        let last = last_non () in
+        sub_exn t ~index:0 ~length:(last + 1)
+    with 
+    | Not_found -> empty
+end
+
 module Native_string : NATIVE_STRING = struct
 
   include StringLabels
@@ -821,6 +868,17 @@ module Native_string : NATIVE_STRING = struct
       done;
       Buffer.contents b
     end
+
+  include Make_strip_function (struct
+      type t = string
+      type character = char
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
+      let find = find
+      let find_reverse = find_reverse
+      let is_whitespace = Native_character.is_whitespace
+    end)
 
   include Make_split_function(struct
       type t = string
@@ -1131,6 +1189,17 @@ module List_of (Char: BASIC_CHARACTER) :
     in
     filter_map_rec [] 0 0 t
 
+  include Make_strip_function (struct
+      type t = Char.t list
+      type character = Char.t
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
+      let find = find
+      let find_reverse = find_reverse
+      let is_whitespace = Char.is_whitespace
+    end)
+
   include Make_split_function(struct
       type t = Char.t list
       type character = Char.t
@@ -1254,6 +1323,7 @@ module type MINIMALISTIC_MUTABLE_STRING = sig
   val set: t -> int -> character -> unit
   val blit: src:t -> src_pos:int -> dst:t -> dst_pos:int -> len:int -> unit
 
+  val is_whitespace: character -> bool
   include NATIVE_CONVERSIONS with type t := t
 end
 
@@ -1516,6 +1586,17 @@ module Of_mutable
       done;
       of_character_list !res
     end
+
+  include Make_strip_function (struct
+      type t = S.t
+      type character = S.character
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
+      let find = find
+      let find_reverse = find_reverse
+      let is_whitespace = S.is_whitespace
+    end)
 
   include Make_split_function(struct
       type t = S.t
