@@ -13,10 +13,11 @@ module type OUTPUT_MODEL = sig
 
   type ('a, 'b, 'c) thread
   (** The type of the threads, the type parameters are there in case
-      the user needs up to 3 of them. For instance, if implement with
-      [Lwt], we will have [type ('a, 'b, 'c) thread = 'a Lwt.t], but with
-      [Pvem.DEFERRED_RESULT]:
-      [type ('a, 'b, 'c) thread = ('a, 'b) Deferred_result.t]. *)
+      the user needs up to 3 of them.
+      
+      For instance, if implement with [Lwt], we will have [type ('a, 'b, 'c)
+      thread = 'a Lwt.t], but with [Pvem.DEFERRED_RESULT]: [type ('a, 'b, 'c)
+      thread = ('a, 'b) Deferred_result.t]. *)
 
 
   type ('a, 'b, 'c) channel
@@ -42,7 +43,7 @@ module type NATIVE_CONVERSIONS = sig
   (** The string type. *)
 
   val of_native_string: string -> (t, [> `wrong_char_at of int ]) result
-  (** Convert a native string to the current reprensentation.
+  (** Convert a native string to the current representation.
       [of_native_string] returns [`Error (`wrong_char_at index)]
       when the native string contains a character not representable
       with the type [character]. *)
@@ -73,7 +74,7 @@ module type BASIC_CHARACTER = sig
       that value. *)
 
   val to_int: t -> int
-  (** Returns the integer representation of the chraracter. *)
+  (** Returns the integer representation of the character. *)
 
   val size: t -> int
   (** Get the size of the character, the exact semantics are
@@ -210,7 +211,7 @@ module type BASIC_STRING = sig
 
       Depending on the backend implementation, this function might be
       significantly slower than [compare_substring] (for example when
-      calls to [length] are not {i O(1)}. *)
+      calls to [length] are not {i O(1)}). *)
 
 
   val iter: t -> f:(character -> unit) -> unit
@@ -244,37 +245,52 @@ module type BASIC_STRING = sig
 
       Default value for [from] is [length t - 1] (end of the string).
       If [from] is negative, [None] will be returned.
-      If [from >= length t], [lenght t - 1] will be used.
+      If [from >= length t], [length t - 1] will be used.
   *)
 
   val index_of_string: ?from:int ->
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
   (** Find the first occurrence of the substring [(sub, sub_index,
-      sub_length)] in a given string, starting at index [from].  *)
+      sub_length)] in a given string, starting at index [from].
+  
+      The [from] parameter behaves like for {!index_of_character}.
+
+      The [(sub_index, sub_length)] parameters are constrained to [(0, length
+      sub)], for example, if [sub] is ["abc"], [(-1, 4)] will be equivalent to
+      [(0, 3)], [(1, 3)] will be equivalent to [(1, 2)].
+
+      Searching for an empty string [from] a valid position always succeeds at
+      that position.
+  *)
 
   val index_of_string_reverse: ?from:int ->
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
-  (** Do like [index_of_string] but start from the end of the string. *)
+  (** Do like [index_of_string] but start from the end of the string. 
+
+      The [from] parameter behaves like for {!index_of_character_reverse}.
+
+      The [(sub_index, sub_length)] parameters are constrained like in
+      {!index_of_string}.  *)
 
   val find: ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
   (** Find the index of the first character [c] for which [f c] is [true]. One
       can restrict to the sub-string [(from, length)] (the
       default is to use the whole string, “out-of-bound” values are restricted
-      to the bounds of the stirng). *)
+      to the bounds of the string). *)
 
   val find_reverse:
     ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
   (** Find the index of the last character [c] for which [f c] is [true]. One
       can restrict to the reverse sub-string [(from, length)] (the
       default is to use the whole string,  “out-of-bound” values are restricted
-      to the bounds of the stirng). *)
+      to the bounds of the string). *)
 
   val filter_map: ?from:int -> ?length:int -> t -> 
     f:(character -> character option) -> t
   (** Create a new string with the characters for which [f c] returned 
       [Some c]. One can restrict to the sub-string [(from, length)] (the
       default is to use the whole string, “out-of-bound” values are restricted
-      to the bounds of the stirng). *)
+      to the bounds of the string). *)
 
   val split: t -> 
     on:[ `Character of character | `String of t ] ->
