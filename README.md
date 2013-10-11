@@ -3,7 +3,7 @@ Sane OCaml String API
 =====================
 
 
-This library is a set APIs defined with module types, and a set of
+This library is a set of APIs defined with module types, and a set of
 modules implementing one or more of those interfaces.
 
 The APIs define what a *character* and a *string of characters* should
@@ -50,6 +50,8 @@ The `Native_string` module implements `BASIC_STRING` and
 
 The functor `Of_mutable` uses an implementation of
 `MINIMALISTIC_MUTABLE_STRING` to build a `BASIC_STRING`.
+See the file `test/sosa_test.ml` for examples of usage (with `array`s of `UTF-8
+integers`, and `Bigarray.Array1.t` of bytes).
 
 ### Integer UTF-8 Characters
 
@@ -57,7 +59,8 @@ The `Int_utf8_character` module implements `BASIC_CHARACTER` with
 OCaml integers (`int`) representing Utf8 characters (we force the
 handling of not more than 31 bits, even if [RFC 3629][RFC3629]
 restricts them to end at U+10FFFF, c.f. also
-[wikipedia][wikipedia:UTF-8]).
+[wikipedia][wikipedia:UTF-8]). Note that the function `is_whitespace` considers
+only ASCII whitespace (useful while writing parsers for example).
 
 Tests and Benchmarks
 --------------------
