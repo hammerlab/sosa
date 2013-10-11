@@ -940,6 +940,53 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3;4] ~from:3 ~length:2 ~f:(fun _ -> true) ~should_find:3;
   end;
 
+  begin (* Test `strip` *)
+    let test ?on ~whitespace l ~expect =
+      let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
+      let expect_str = 
+        List.filter_map expect Chr.of_int |>  Str.of_character_list in
+      let whitespace x = List.mem whitespace (Chr.to_int x) in
+      let res = Str.strip ?on ~whitespace s in
+      test_assertf (res = expect_str)
+        "strip: %s ~on:%s expects %s but got %s"
+        (str_to_int_list s |> int_list_to_string)
+        (match on with Some `Both -> "Both" | Some `Left -> "Left"
+                     | Some `Right -> "Right" | None -> "None")
+        (expect |> int_list_to_string)
+        (str_to_int_list res |> int_list_to_string)
+      in
+      let whitespace = [0;1] in
+      test ?on:None   ~whitespace [] ~expect:[];
+      test ~on:`Both  ~whitespace [] ~expect:[];
+      test ~on:`Left  ~whitespace [] ~expect:[];
+      test ~on:`Right ~whitespace [] ~expect:[];
+      test ?on:None   ~whitespace [2] ~expect:[2];
+      test ~on:`Both  ~whitespace [2] ~expect:[2];
+      test ~on:`Left  ~whitespace [2] ~expect:[2];
+      test ~on:`Right ~whitespace [2] ~expect:[2];
+      test ?on:None   ~whitespace [0;1;2;2] ~expect:[    2;2];
+      test ~on:`Both  ~whitespace [0;1;2;2] ~expect:[    2;2];
+      test ~on:`Left  ~whitespace [0;1;2;2] ~expect:[    2;2];
+      test ~on:`Right ~whitespace [0;1;2;2] ~expect:[0;1;2;2];
+      test ?on:None   ~whitespace [0;1;2;2;3;1;0;1] ~expect:[    2;2;3;     ];
+      test ~on:`Both  ~whitespace [0;1;2;2;3;1;0;1] ~expect:[    2;2;3;     ];
+      test ~on:`Left  ~whitespace [0;1;2;2;3;1;0;1] ~expect:[    2;2;3;1;0;1];
+      test ~on:`Right ~whitespace [0;1;2;2;3;1;0;1] ~expect:[0;1;2;2;3;     ];
+      test ?on:None   ~whitespace [0;1;1;0;1] ~expect:[];
+      test ~on:`Both  ~whitespace [0;1;1;0;1] ~expect:[];
+      test ~on:`Left  ~whitespace [0;1;1;0;1] ~expect:[];
+      test ~on:`Right ~whitespace [0;1;1;0;1] ~expect:[];
+      let whitespace = [] in
+      test ?on:None   ~whitespace [] ~expect:[];
+      test ~on:`Both  ~whitespace [] ~expect:[];
+      test ~on:`Left  ~whitespace [] ~expect:[];
+      test ~on:`Right ~whitespace [] ~expect:[];
+      test ?on:None   ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
+      test ~on:`Both  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
+      test ~on:`Left  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
+      test ~on:`Right ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
+  end;
+
   (* #### BENCHMARKS #### *)
 
   let converted_dna_reads =
@@ -1050,6 +1097,7 @@ let () =
           let get t i = t.(i)
           let set t i c = t.(i) <- c
           let blit = Array.blit
+          let is_whitespace = Chr.is_whitespace
           let compare a b =
             let open Array in
             let len = min (length a) (length b) in
@@ -1101,6 +1149,7 @@ let () =
             let res = Array1.create char c_layout len in
             Array1.fill res c;
             res
+          let is_whitespace = Chr.is_whitespace
           let get t i = Array1.get t i
           let set t i c = Array1.set t i c
           let blit ~src ~src_pos ~dst ~dst_pos ~len =
