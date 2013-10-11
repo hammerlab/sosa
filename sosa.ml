@@ -107,6 +107,9 @@ module type BASIC_CHARACTER = sig
   (** Comparison function (as expected by most common functors in the
       ecosystem). *)
 
+  val is_whitespace: t -> bool
+  (** Tell whether a character is considered whitespace. *)
+
 end
 
 module type BASIC_STRING = sig
@@ -441,6 +444,8 @@ module Native_character : NATIVE_CHARACTER = struct
       try Some (buf.[index], 1)
       with _ -> None
 
+    let is_whitespace = 
+      function ' ' | '\t' | '\r' | '\n' -> true | _ -> false
 end
 
 module type T_LENGTH_AND_COMPSUB = sig
@@ -1224,9 +1229,14 @@ module Int_utf8_character : BASIC_CHARACTER with type t = int = struct
       | `Error e ->
         dbg "buf: %S siz: %d x: %d" buf (size x) x;
         assert false
-
       end;
       buf
+
+    let is_whitespace c = 
+      try 
+        match char_of_int c with
+        | ' ' | '\t' | '\r' | '\n' -> true | _ -> false
+      with _ -> false
 
 end
 
