@@ -1,8 +1,7 @@
-version = "0.0.1-dev"
+version = "0.0.1"
 description = "Sane OCaml String API"
 archive(byte) = "sosa.cma"
 archive(byte,plugin) = "sosa.cma"
 archive(native) = "sosa.cmxa"
-archive(native, plugin) = "sosa.cmxs"
+archive(native,plugin) = "sosa.cmxs"
 exists_if = "sosa.cma"
-

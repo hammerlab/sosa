@@ -1,5 +1,5 @@
-Installation Instructions
-=========================
+BUILD INSTRUCTIONS
+==================
 
 Build
 -----
@@ -15,7 +15,8 @@ You can install the library with `ocamlfind`:
 
     ocaml please.ml install
 
-You may want to control the destination with the variable `OCAMLFIND_DESTDIR`.
+You may want to control the destination with the variable
+`OCAMLFIND_DESTDIR`.
 
 Uninstall
 ---------
@@ -23,4 +24,5 @@ Uninstall
 You can uninstall the library (also `ocamlfind`):
 
     ocaml please.ml uninstall
+
 

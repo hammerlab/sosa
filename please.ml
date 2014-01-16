@@ -27,18 +27,19 @@
 
 
 let build () =
-  in_build_directory (fun () ->
-      chain [
-        "pwd";
-        "cp ../sosa.ml .";
-        "ocamlfind ocamlc  -c sosa.ml -o sosa.cmo";
-        "ocamlfind ocamlopt  -c sosa.ml  -annot -bin-annot -o sosa.cmx";
-        "ocamlc sosa.cmo -a -o sosa.cma";
-        "ocamlopt sosa.cmx -a -o sosa.cmxa";
-        "ocamlopt sosa.cmxa sosa.a -shared -o sosa.cmxs";
-      ];
-    )
+in_build_directory (fun () ->
+chain 
+[
+    "cp ../sosa.ml .";
+    "ocamlfind ocamlc  -c sosa.ml -o sosa.cmo";
+    "ocamlfind ocamlopt  -c sosa.ml  -annot -bin-annot -o sosa.cmx";
+    "ocamlc sosa.cmo -a -o sosa.cma";
+    "ocamlopt sosa.cmx -a -o sosa.cmxa";
+    "ocamlopt sosa.cmxa sosa.a -shared -o sosa.cmxs";
 
+]
+
+)
 
 let install () =
     in_build_directory (fun () ->
@@ -65,7 +66,7 @@ let build_doc () =
     in_build_directory (fun () ->
         chain [
           "mkdir -p doc";
-                       sprintf "ocamlfind ocamldoc  -charset UTF-8 -keep-code -colorize-code -html sosa.ml -d doc/";
+                         sprintf "ocamlfind ocamldoc  -charset UTF-8 -keep-code -colorize-code -html sosa.ml -d doc/";
         ])
 
 
@@ -108,4 +109,5 @@ say "usage: ocaml %s [build|install|uninstall|clean|build_doc|melinize]" Sys.arg
 )
 
 end
+
 
