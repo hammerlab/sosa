@@ -1,4 +1,5 @@
 #! /bin/sh
+# This is a self-compiling OCaml script
 
 PACKAGES=nonstd,bigarray
 
@@ -27,7 +28,15 @@ exit $RETURN_CODE
 
 __OCAML_FOLLOWS__
 
-(* open Core.Std *)
+(*M
+
+Tests of the Sosa library
+=========================
+
+Test Utilities
+--------------
+
+M*)
 
 open Nonstd
 module String = StringLabels
@@ -50,13 +59,6 @@ let cartesian_product list1 list2 =
            accum)
     in
     List.rev (loop list1 list2 [])
-
-module type TEST_STRING = sig
-  val test_name: string
-  val can_have_wrong_char: bool
-  module Chr: BASIC_CHARACTER
-  module Str: BASIC_STRING with type character = Chr.t
-end
 
 let return_code = ref 0
 let should_not_return_zero () = return_code := 5
@@ -100,10 +102,14 @@ let test_native_subjects =
   @  list_dot_init 20 (fun i -> random_ascii_string (i * 4 + 1))
   @  list_dot_init 20 (fun i -> random_utf8_string (i * 4 + 1))
 
-(* This is a set of common denminator native strings, i.e., string that can be
- * converted to every other representation. We call them DNA and use only 'A',
- * 'C', 'G', 'T' for future implementations which will be using only 2 or 4
- * bits percharacter. *)
+(*M
+
+This is a set of common denominator native strings, i.e., string that can be
+converted to every other representation. We call them DNA and use only `A`,
+`C`, `G`, `T` for future implementations which will be using only 2 or 4
+bits per character.
+
+M*)
 let dna_test_subjects =
   let random_read _ =
     make_string (Random.int 300 + 1) (fun _ ->
@@ -115,6 +121,15 @@ let dna_test_subjects =
         end) in
   list_dot_init 200 random_read
 
+(*M
+
+Benchmarks
+----------
+
+If asked on the command line, each test will run some benchmarks on the
+implementation.
+
+M*)
 module Benchmark = struct
 
   let now () = Unix.gettimeofday ()
@@ -181,6 +196,23 @@ module Benchmark = struct
        |> List.map ~f:row_to_string
        |> String.concat ~sep:"\n")
 
+end
+
+(*M
+
+Test with First-Class Modules
+-----------------------------
+
+The function `do_basic_test` below takes a whole OCaml module implementation as
+argument; `TEST_STRING` is the expected signature:
+
+M*)
+
+module type TEST_STRING = sig
+  val test_name: string
+  val can_have_wrong_char: bool
+  module Chr: BASIC_CHARACTER
+  module Str: BASIC_STRING with type character = Chr.t
 end
 
 let do_basic_test (module Test : TEST_STRING) =
@@ -1064,6 +1096,12 @@ let do_basic_test (module Test : TEST_STRING) =
        ));
   ()
 
+(*M
+
+A UTF-8-Specific Test
+---------------------
+
+M*)
 let utf8_specific_test () =
   let module Utf8 = Int_utf8_character in
   say "### UTF-8 Test";
@@ -1092,6 +1130,12 @@ let utf8_specific_test () =
     );
   ()
 
+(*M
+
+Test Instantiations
+-------------------
+
+M*)
 let () =
   do_basic_test (module struct
       let test_name = "Both natives"

@@ -4,12 +4,12 @@ Sane OCaml String API
 
 
 This library is a set of APIs defined with module types, and a set of
-modules implementing one or more of those interfaces.
+modules and functors implementing one or more of those interfaces.
 
 The APIs define what a *character* and a *string of characters* should
 be.
 
-APIs / Module Types
+Module Types (APIs)
 -------------------
 
 We have:
@@ -28,10 +28,10 @@ We have:
 - `MINIMALISTIC_MUTABLE_STRING`: abstract mutable string used as
   argument of the `Of_mutable` functor.
 
-The Implementations
--------------------
+Implementations
+---------------
 
-### Native OCaml Chars
+### Native OCaml Characters
 
 The `Native_character` module implements `BASIC_CHARACTER` with
 OCaml's `char` type.
@@ -44,14 +44,13 @@ The `Native_string` module implements `BASIC_STRING` and
 
 ### Lists Of Arbitrary Characters
 
-`List_of` is a functor: `BASIC_CHARACTER` → `BASIC_STRING`
+`List_of` is a functor: `BASIC_CHARACTER` → `BASIC_STRING`, i.e., it creates a
+string datastructure made of a list of characters.
 
 ### Build From Basic Mutable Data-structures
 
 The functor `Of_mutable` uses an implementation of
 `MINIMALISTIC_MUTABLE_STRING` to build a `BASIC_STRING`.
-See the file `test/sosa_test.ml` for examples of usage (with `array`s of `UTF-8
-integers`, and `Bigarray.Array1.t` of bytes).
 
 ### Integer UTF-8 Characters
 
@@ -62,10 +61,21 @@ restricts them to end at U+10FFFF, c.f. also
 [wikipedia][wikipedia:UTF-8]). Note that the function `is_whitespace` considers
 only ASCII whitespace (useful while writing parsers for example).
 
-Tests and Benchmarks
---------------------
+Examples, Tests, and Benchmarks
+-------------------------------
 
-You may run all the regression tests with:
+See the file [`sosa_test.ml`](test/sosa_test.ml) for usage examples, the
+library is tested with:
+
+- native strings and characters,
+- lists of native characters (`List_of(Native_character)`),
+- lists of integers representing UTF-8 characters (`List_of(utf8-int array)`),
+- arrays of integers representing UTF-8 characters (`Of_mutable(utf8-int array)`),
+- bigarrays of 8-bit integers (`Of_mutable(int8 Bigarray1.t)`).
+
+The tests are a self-compiling *“Shell-then-OCaml-script”* which
+depends on the [Nonstd](https://bitbucket.org/smondet/nonstd), and the OCaml
+`Bigarray` libraries:
 
     ./test/sosa_test.ml
 
@@ -75,3 +85,4 @@ and you may add the basic benchmarks to the process with:
 
 [wikipedia:UTF-8]: http://en.wikipedia.org/wiki/UTF-8
 [RFC3629]: http://tools.ietf.org/html/rfc3629
+
