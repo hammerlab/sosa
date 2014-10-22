@@ -234,6 +234,12 @@ module type BASIC_STRING = sig
   (** Return [true] if-and-only-if [f] returns [true] on at least one
       character. *)
 
+  val take_while: t -> f:(character -> bool) -> t
+  (** Take a prefix of the string until [f] returns [false]. *)
+
+  val take_while_with_index: t -> f:(int -> character -> bool) -> t
+  (** Like {!take_while} but the function also takes the current index. *)
+
   val index_of_character: t -> ?from:int -> character -> int option
   (** Find the first occurrence of a character in the string (starting
       at position [from]).
@@ -891,6 +897,18 @@ module Native_string : NATIVE_STRING = struct
 
   module Make_output (Model: OUTPUT_MODEL) = Model
 
+  let take_while_with_index t ~f =
+    let buf = Buffer.create (length t) in
+    let rec loop idx =
+      match get t idx with
+      | Some c when f idx c -> Buffer.add_char buf c; loop (idx + 1)
+      | _ -> ()
+    in
+    loop 0;
+    Buffer.contents buf
+
+  let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
+
 end
 
 (* Module to help build `{of,to}_native_[sub]string` functions.
@@ -1220,6 +1238,17 @@ module List_of (Char: BASIC_CHARACTER) :
           Model.output chan (Char.to_native_string c))
 
   end
+
+  let take_while_with_index t ~f =
+    let rec loop idx acc =
+      function
+      | h :: t when f idx h -> loop (idx + 1) (h :: acc) t
+      | []
+      | _ :: _ -> List.rev acc
+    in
+    loop 0 [] t
+  let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
+
 
 end
 
@@ -1615,4 +1644,20 @@ module Of_mutable
       Model.output chan (to_native_string t)
 
   end
+
+  let take_while_with_index t ~f =
+    if length t = 0 then empty
+    else (
+      let buf = make (length t) (S.get t 0) in
+      let rec loop idx =
+        match get t idx with
+        | Some c when f idx c -> S.set buf idx c; loop (idx + 1)
+        | _ -> idx
+      in
+      let new_length = loop 0 in
+      sub_exn buf ~index:0 ~length:new_length
+    )
+
+  let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
+
 end

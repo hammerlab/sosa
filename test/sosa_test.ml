@@ -356,7 +356,7 @@ let do_basic_test (module Test : TEST_STRING) =
         | `Error _ -> try_separators (n - 1)
         end
     in
-    try_separators 450;
+    try_separators 800;
   end;
 
   (* This tests `make` against `length` and `get`:  *)
@@ -1044,6 +1044,28 @@ let do_basic_test (module Test : TEST_STRING) =
       test ~on:`Both  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
       test ~on:`Left  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
       test ~on:`Right ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
+  end;
+
+  begin (* Test `take_while{,_with_index}` *)
+    List.iter ~f:(fun subject ->
+        match Str.of_native_string subject with
+        | `Error _ -> ()
+        | `Ok s ->
+          test_assertf (Str.take_while s ~f:(fun _ -> true) = s)
+            "take_while-true (%S)" subject;
+          test_assertf (Str.take_while s ~f:(fun _ -> false) = Str.empty)
+            "take_while-false (%S)" subject;
+          let length = Random.int (Str.length s + 1) in
+          test_assertf (Str.take_while_with_index s ~f:(fun idx _ -> idx < length) 
+                        = Str.sub_exn s ~index:0 ~length)
+            "take_while < length (%S)" subject;
+          let rint = Random.int 42 in
+          test_assertf (
+            let prefix = Str.take_while s ~f:(fun c -> Chr.to_int c < rint) in
+            Str.fold prefix ~init:true ~f:(fun prev c ->
+                prev && Chr.to_int c < rint))
+            "take_while: char < random-int (%S)" subject;
+      ) test_native_subjects;
   end;
 
   (* #### BENCHMARKS #### *)
