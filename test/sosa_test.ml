@@ -3,7 +3,11 @@
 
 PACKAGES=nonstd,bigarray
 
-MD5=`md5sum $0  | cut -d ' ' -f 1`
+MD5CMD="md5sum"
+if [[ "$OSTYPE" =~ ^darwin ]]; then
+  MD5CMD="md5 -r"
+fi
+MD5=`$MD5CMD $0 | cut -d ' ' -f 1`
 BASE=/tmp/ocaml_script_$MD5/
 mkdir -p $BASE
 
