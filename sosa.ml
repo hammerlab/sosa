@@ -295,6 +295,12 @@ module type BASIC_STRING = sig
       default is to use the whole string, “out-of-bound” values are restricted
       to the bounds of the string). *)
 
+  val filter: ?from:int -> ?length:int -> t -> f:(character -> bool) -> t
+  (** Create a new string with the characters for which [f c] is true.
+      One can restrict to the sub-string [(from, length)] (the
+      default is to use the whole string, “out-of-bound” values are restricted
+      to the bounds of the string). *)
+
   val split: t -> 
     on:[ `Character of character | `String of t ] ->
     t list
@@ -868,6 +874,8 @@ module Native_string : NATIVE_STRING = struct
       done;
       Buffer.contents b
     end
+  
+  let filter ?from ?length s ~f = raise (Failure "Not Yet Implemented")
 
   include Make_strip_function (struct
       type t = string
@@ -1188,6 +1196,9 @@ module List_of (Char: BASIC_CHARACTER) :
         end
     in
     filter_map_rec [] 0 0 t
+  
+  let filter ?from ?length t ~f = 
+      filter_map ?from ?length t ~f:(fun c -> if f c then Some c else None)
 
   include Make_strip_function (struct
       type t = Char.t list
@@ -1586,6 +1597,8 @@ module Of_mutable
       done;
       of_character_list !res
     end
+
+  let filter ?from ?length s ~f = raise (Failure "Not Yet Implemented")
 
   include Make_strip_function (struct
       type t = S.t

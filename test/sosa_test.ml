@@ -841,6 +841,44 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
     test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
   end;
+  begin (* Test `filter` *)
+    let test ?from ?length l ~f ~expect fmt =
+      let name     = ksprintf (fun s -> s) fmt in
+      (* say "test: %s l : %d" name (List.length l); *)
+      let s        = List.filter_map l Chr.of_int |> Str.of_character_list in
+      (* say "test: %s s: %d" name (Str.length s); *)
+      let filtered = Str.filter ?from ?length s ~f:(fun c -> f (Chr.to_int c)) in
+      let res_ints = Str.to_character_list filtered |> List.map ~f:Chr.to_int in
+      let before   = Str.to_character_list s |> List.map ~f:Chr.to_int in
+      let pp l     = List.map l (sprintf "%d") |> String.concat ~sep:"," in
+      test_assertf (expect = res_ints)
+        "test_filter: [%s=%s] → [%s] <> [%s] (%s)"
+        (pp l) (pp before) (pp res_ints) (pp expect) 
+        name;
+    in
+    let always_true _   = true in
+    let always_false _  = false in
+    test [] ~f:always_true ~expect:[] "all empty";
+    test [1]  ~f:always_true ~expect:[1] "true 1";
+    test [1;2;3]  ~f:always_true ~expect:[1;2;3] "true 123";
+    test [1;1;1]  ~f:always_true ~expect:[1;1;1] "some 111";
+    test []  ~f:always_false ~expect:[] "all empty";
+    test [1]  ~f:always_false ~expect:[] "false 1";
+    test [1;2;3]  ~f:always_false ~expect:[] "false 123";
+    let opt_of_cond c = fun x -> c x in
+    test [1;2;3]  ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1";
+    test [1;2;3]  ~f:(opt_of_cond ((<) 2)) ~expect:[3] "opt_of_cond _ > 2";
+    test [1;2;3] ~from:1 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 from 1";
+    test [1;2;3] ~from:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1 from 2";
+    test [1;2;3] ~from:3 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 3";
+    test [1;2;3] ~from:4 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 4";
+    test [1;2;3]  ~length:0 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 0";
+    test [1;2;3]  ~length:1 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 1";
+    test [1;2;3]  ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[2] "opt_of_cond _ > 1 length 2";
+    test [1;2;3]  ~length:3 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 3";
+    test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
+    test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
+  end;
 
   begin (* Test the `split` function *)
     let test l ~on ~expect =
