@@ -875,7 +875,8 @@ module Native_string : NATIVE_STRING = struct
       Buffer.contents b
     end
   
-  let filter ?from ?length s ~f = raise (Failure "Not Yet Implemented")
+  let filter ?from ?length s ~f =
+      filter_map ?from ?length s ~f:(fun c -> if f c then Some c else None)
 
   include Make_strip_function (struct
       type t = string
@@ -1598,7 +1599,8 @@ module Of_mutable
       of_character_list !res
     end
 
-  let filter ?from ?length s ~f = raise (Failure "Not Yet Implemented")
+  let filter ?from ?length s ~f =
+      filter_map ?from ?length s ~f:(fun c -> if f c then Some c else None)
 
   include Make_strip_function (struct
       type t = S.t
