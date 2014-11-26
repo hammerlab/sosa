@@ -188,6 +188,13 @@ module type BASIC_STRING = sig
   val sub_exn: t -> index:int -> length:int -> t
   (** Do like [sub] but throw an exception instead of returning [None] *)
 
+  val slice: ?start:int -> ?finish:int -> t -> t option
+  (** Create a sub-string from the [start] (default 0) position to before
+      the [finish] (default end) if all of the indices are in bounds.  *)
+  
+  val slice_exn: ?start:int -> ?finish:int -> t -> t
+  (** Like [slice] but throw an exception instead of returning [None] *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -360,7 +367,7 @@ end
 
 open Printf
 
-(* Internal “Pervasives” module, tu be used in all the following
+(* Internal “Pervasives” module, to be used in all the following
    implementations. *)
 module Internal_pervasives = struct
   module List = ListLabels
@@ -766,6 +773,15 @@ module Native_string : NATIVE_STRING = struct
       try Some (String.sub t index length)
       with e -> None
 
+  let slice_exn ?(start=0) ?finish t =
+    let finish = match finish with None -> String.length t | Some p -> p in
+    let length = finish - start in
+    sub_exn t ~index:start ~length
+  
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
+  
   let mutate_exn t ~index c = String.set t index c
 
   let mutate t ~index c =
@@ -1054,8 +1070,6 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let length = List.length
 
-
-
   let sub t ~index ~length =
     let r = ref [] in
     let c = ref 0 in
@@ -1076,6 +1090,22 @@ module List_of (Char: BASIC_CHARACTER) :
     | Some s -> s
     | None -> ksprintf failwith "sub_exn(%d,%d)" index length
 
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = List.length t in
+    if start < 0 || start > length_of_t then
+      ksprintf failwith "slice_exn: invalid start %d" start
+    else
+      match finish with
+      | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
+      | Some f -> if f < 0 || f > length_of_t then
+                    ksprintf failwith "slice_exn: invalid finish %d" f
+                  else
+                    sub_exn t ~index:start ~length:(f - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
+ 
   let index_of_character t ?(from=0) c =
     let index = ref 0 in
     try begin
@@ -1472,6 +1502,22 @@ module Of_mutable
     | Some s -> s
     | None -> ksprintf failwith "sub_exn(%d,%d)" index length
 
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = S.length t in
+    if start < 0 || start > length_of_t then
+      ksprintf failwith "slice_exn: invalid start %d" start
+    else
+      match finish with
+      | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
+      | Some f -> if f < 0 || f > length_of_t then
+                    ksprintf failwith "slice_exn: invalid finish %d" f
+                  else
+                    sub_exn t ~index:start ~length:(f - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
+ 
   let to_string_hum t = to_native_string t |> sprintf "%S"
 
   let index_of_character t ?(from=0) c =

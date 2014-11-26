@@ -850,7 +850,7 @@ let do_basic_test (module Test : TEST_STRING) =
       let filtered = Str.filter ?from ?length s ~f:(fun c -> f (Chr.to_int c)) in
       let res_ints = Str.to_character_list filtered |> List.map ~f:Chr.to_int in
       let before   = Str.to_character_list s |> List.map ~f:Chr.to_int in
-      let pp l     = List.map l (sprintf "%d") |> String.concat ~sep:"," in
+      let pp l     = List.map l (sprintf "%d") |> String.concat ~sep:";" in
       test_assertf (expect = res_ints)
         "test_filter: [%s=%s] → [%s] <> [%s] (%s)"
         (pp l) (pp before) (pp res_ints) (pp expect) 
@@ -1086,6 +1086,45 @@ let do_basic_test (module Test : TEST_STRING) =
       test ~on:`Both  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
       test ~on:`Left  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
       test ~on:`Right ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
+  end;
+
+  let ints_to_str x = List.filter_map x Chr.of_int |> Str.of_character_list
+  and optionMap f   = function | None   -> None
+                               | Some s -> f s
+  and defOptMap d f = function | None   -> d
+                               | Some s -> f s in
+  let pp_int_opt o  = defOptMap "None" (fun x -> "Some " ^ string_of_int x) o in
+
+  begin (* Test slice *)
+    let test ?start ?finish l ~expect =
+      let s   = ints_to_str l in
+      let exp = optionMap (fun e -> Some (ints_to_str e)) expect 
+      and res = Str.slice ?start ?finish s
+      in
+      test_assertf (res = exp)
+        "slice: %s ?start:%s ?finish:%s expects %s but got %s"
+          (int_list_to_string l)
+          (pp_int_opt start)
+          (pp_int_opt finish)
+          (defOptMap "None" int_list_to_string expect)
+          (defOptMap "None" (fun r -> str_to_int_list r |> int_list_to_string) res)
+          (*
+
+          (match expect with None -> "None" | Some e -> int_list_to_string e)
+          (match res with None -> None | Some r -> str_to_int_list res |> int_list_to_string)
+
+          *)
+
+    in
+    test ?start:None ?finish:None []       ~expect:(Some []);
+    test ?start:None ?finish:None [1]      ~expect:(Some [1]);
+    test ?start:None ?finish:None [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:0    ?finish:None []       ~expect:(Some []);
+    test ~start:0    ?finish:None [1]      ~expect:(Some [1]);
+    test ~start:0    ?finish:None [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:0    ~finish:0    []       ~expect:(Some []);
+    test ~start:0    ~finish:1    [1]      ~expect:(Some [1]);
+    test ~start:0    ~finish:3    [1;2;3]  ~expect:(Some [1;2;3]);
   end;
 
   (* #### BENCHMARKS #### *)
