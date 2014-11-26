@@ -189,8 +189,9 @@ module type BASIC_STRING = sig
   (** Do like [sub] but throw an exception instead of returning [None] *)
 
   val slice: ?start:int -> ?finish:int -> t -> t option
-  (** Create a sub-string from the [start] (default 0) position to before
-      the [finish] (default end) if all of the indices are in bounds.  *)
+  (** Create a sub-string from the [start] (default 0, within \[0,length\))
+      position to before the [finish] (default length, within \[0,length]))
+      if all of the indices are in bounds.  *)
   
   val slice_exn: ?start:int -> ?finish:int -> t -> t
   (** Like [slice] but throw an exception instead of returning [None] *)
@@ -774,14 +775,25 @@ module Native_string : NATIVE_STRING = struct
       with e -> None
 
   let slice_exn ?(start=0) ?finish t =
-    let finish = match finish with None -> String.length t | Some p -> p in
-    let length = finish - start in
-    sub_exn t ~index:start ~length
-  
+    let length_of_t = String.length t in
+    let bound_check strict m x =
+      let out_of_ub = if strict then x > length_of_t else x >= length_of_t in
+      if x < 0 || (not (is_empty t) && out_of_ub) then
+        ksprintf failwith "slice_exn: invalid %s %d" m x
+      else x
+    in
+    let _      = bound_check false "start" start
+    and finish =
+      match finish with
+      | None   -> length_of_t
+      | Some f -> bound_check true "finish" f
+    in
+    sub_exn t ~index:start ~length:(finish - start)
+
   let slice ?start ?finish t =
     try Some (slice_exn ?start ?finish t)
     with _ -> None
-  
+
   let mutate_exn t ~index c = String.set t index c
 
   let mutate t ~index c =
@@ -1092,7 +1104,7 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let slice_exn ?(start=0) ?finish t =
     let length_of_t = List.length t in
-    if start < 0 || start > length_of_t then
+    if start < 0 || (not (is_empty t) && start >= length_of_t) then
       ksprintf failwith "slice_exn: invalid start %d" start
     else
       match finish with
@@ -1504,7 +1516,7 @@ module Of_mutable
 
   let slice_exn ?(start=0) ?finish t =
     let length_of_t = S.length t in
-    if start < 0 || start > length_of_t then
+    if start < 0 || (not (is_empty t) && start >= length_of_t) then
       ksprintf failwith "slice_exn: invalid start %d" start
     else
       match finish with

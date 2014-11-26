@@ -1102,29 +1102,41 @@ let do_basic_test (module Test : TEST_STRING) =
       and res = Str.slice ?start ?finish s
       in
       test_assertf (res = exp)
-        "slice: %s ?start:%s ?finish:%s expects %s but got %s"
+        "slice: %s ?start:(%s) ?finish:(%s) expects %s but got %s"
           (int_list_to_string l)
           (pp_int_opt start)
           (pp_int_opt finish)
           (defOptMap "None" int_list_to_string expect)
           (defOptMap "None" (fun r -> str_to_int_list r |> int_list_to_string) res)
-          (*
-
-          (match expect with None -> "None" | Some e -> int_list_to_string e)
-          (match res with None -> None | Some r -> str_to_int_list res |> int_list_to_string)
-
-          *)
-
     in
-    test ?start:None ?finish:None []       ~expect:(Some []);
-    test ?start:None ?finish:None [1]      ~expect:(Some [1]);
-    test ?start:None ?finish:None [1;2;3]  ~expect:(Some [1;2;3]);
-    test ~start:0    ?finish:None []       ~expect:(Some []);
-    test ~start:0    ?finish:None [1]      ~expect:(Some [1]);
-    test ~start:0    ?finish:None [1;2;3]  ~expect:(Some [1;2;3]);
+    test                          []       ~expect:(Some []);
+    test                          [1]      ~expect:(Some [1]);
+    test                          [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:0                 []       ~expect:(Some []);
+    test ~start:0                 [1]      ~expect:(Some [1]);
+    test ~start:0                 [1;2;3]  ~expect:(Some [1;2;3]);
     test ~start:0    ~finish:0    []       ~expect:(Some []);
     test ~start:0    ~finish:1    [1]      ~expect:(Some [1]);
     test ~start:0    ~finish:3    [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:1                 [1;2;3]  ~expect:(Some [2;3]);
+    test ~start:2                 [1;2;3]  ~expect:(Some [3]);
+    test             ~finish:1    [1;2;3]  ~expect:(Some [1]);
+    test             ~finish:2    [1;2;3]  ~expect:(Some [1;2]);
+    test ~start:1    ~finish:1    [1;2;3]  ~expect:(Some []);
+    test ~start:1    ~finish:2    [1;2;3]  ~expect:(Some [2]);
+
+    test ~start:(-1)              []       ~expect:None;
+    test ~start:(-1)              [1;2]    ~expect:None;
+    test ~start:1                 []       ~expect:None;
+    test ~start:2                 [1;2]    ~expect:None;
+
+    test             ~finish:(-1) []       ~expect:None;
+    test             ~finish:(-1) [1;2]    ~expect:None;
+
+    test             ~finish:1    []       ~expect:None;
+    test             ~finish:2    [1;2]    ~expect:(Some [1;2]);
+    test             ~finish:3    [1;2]    ~expect:None;
+
   end;
 
   (* #### BENCHMARKS #### *)
