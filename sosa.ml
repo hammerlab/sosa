@@ -188,6 +188,14 @@ module type BASIC_STRING = sig
   val sub_exn: t -> index:int -> length:int -> t
   (** Do like [sub] but throw an exception instead of returning [None] *)
 
+  val slice: ?start:int -> ?finish:int -> t -> t option
+  (** Create a sub-string from the [start] (default 0, within \[0,length\))
+      position to before the [finish] (default length, within \[0,length]))
+      if all of the indices are in bounds.  *)
+
+  val slice_exn: ?start:int -> ?finish:int -> t -> t
+  (** Like [slice] but throw an exception instead of returning [None] *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -766,6 +774,26 @@ module Native_string : NATIVE_STRING = struct
       try Some (String.sub t index length)
       with e -> None
 
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = String.length t in
+    let bound_check strict m x =
+      let out_of_ub = if strict then x > length_of_t else x >= length_of_t in
+      if x < 0 || (not (is_empty t) && out_of_ub) then
+        ksprintf failwith "slice_exn: invalid %s %d" m x
+      else x
+    in
+    let _      = bound_check false "start" start
+    and finish =
+      match finish with
+      | None   -> length_of_t
+      | Some f -> bound_check true "finish" f
+    in
+    sub_exn t ~index:start ~length:(finish - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
+
   let mutate_exn t ~index c = String.set t index c
 
   let mutate t ~index c =
@@ -1075,6 +1103,22 @@ module List_of (Char: BASIC_CHARACTER) :
     match sub t ~index ~length with
     | Some s -> s
     | None -> ksprintf failwith "sub_exn(%d,%d)" index length
+
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = List.length t in
+    if start < 0 || (not (is_empty t) && start >= length_of_t) then
+      ksprintf failwith "slice_exn: invalid start %d" start
+    else
+      match finish with
+      | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
+      | Some f -> if f < 0 || f > length_of_t then
+                    ksprintf failwith "slice_exn: invalid finish %d" f
+                  else
+                    sub_exn t ~index:start ~length:(f - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
 
   let index_of_character t ?(from=0) c =
     let index = ref 0 in
@@ -1471,6 +1515,22 @@ module Of_mutable
     match sub t ~index ~length with
     | Some s -> s
     | None -> ksprintf failwith "sub_exn(%d,%d)" index length
+
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = S.length t in
+    if start < 0 || (not (is_empty t) && start >= length_of_t) then
+      ksprintf failwith "slice_exn: invalid start %d" start
+    else
+      match finish with
+      | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
+      | Some f -> if f < 0 || f > length_of_t then
+                    ksprintf failwith "slice_exn: invalid finish %d" f
+                  else
+                    sub_exn t ~index:start ~length:(f - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
 
   let to_string_hum t = to_native_string t |> sprintf "%S"
 
