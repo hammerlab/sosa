@@ -228,12 +228,18 @@ module type BASIC_STRING = sig
   val iter: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively. *)
 
+  val iteri: t -> f:(int -> character -> unit) -> unit
+  (** Apply [f] on every character and its index. *)
+
   val iter_reverse: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively in reverse order. *)
 
   val map: t -> f:(character -> character) -> t
   (** Make a new string by applying [f] to all characters of the
       input. *)
+
+  val mapi: t -> f:(int -> character -> character) -> t
+  (** Make a new string by applying [f] to all characters and their indices. *)
 
   val for_all: t -> f:(character -> bool) -> bool
   (** Return [true] if-and-only-if [f] returns [true] on all characters. *)
@@ -423,6 +429,46 @@ module Internal_pervasives = struct
 
     let map l ~f = count_map ~f l 0
 
+    let mapi_slow l ~f ~i =
+      let _, r = List.fold_left l
+        ~f:(fun (i, a) e -> (i + 1, ((f i e)::a)))
+        ~init:(i,[])
+      in
+      List.rev r
+
+    let rec count_mapi ~f l ctr =
+      match l with
+      | [] -> []
+      | [x1] ->
+        let f1 = f ctr x1 in
+        [f1]
+      | [x1; x2] ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        [f1; f2]
+      | [x1; x2; x3] ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        let f3 = f (ctr + 2) x3 in
+        [f1; f2; f3]
+      | [x1; x2; x3; x4] ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        let f3 = f (ctr + 2) x3 in
+        let f4 = f (ctr + 3) x4 in
+        [f1; f2; f3; f4]
+      | x1 :: x2 :: x3 :: x4 :: x5 :: tl ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        let f3 = f (ctr + 2) x3 in
+        let f4 = f (ctr + 3) x4 in
+        let f5 = f (ctr + 4) x5 in
+        f1 :: f2 :: f3 :: f4 :: f5 ::
+          (if ctr > 5000
+           then mapi_slow ~f ~i:(ctr + 5) tl
+           else count_mapi ~f tl (ctr + 5))
+
+    let mapi l ~f = count_mapi ~f l 0
   end
 end
 open Internal_pervasives
@@ -807,11 +853,20 @@ module Native_string : NATIVE_STRING = struct
     with _ -> fail `out_of_bounds
 
   let iter t ~f = String.iter t ~f
+  let iteri t ~f = String.iteri t ~f
   let iter_reverse t ~f =
     for i = length t -1 downto 0 do
       f (get_exn t i)
     done
   let map t ~f = String.map t ~f
+
+  let mapi t ~f =
+    let buffer = String.create (String.length t) in
+    let ()     = String.iteri t ~f:(fun i c -> String.set buffer i (f i c)) in
+    buffer
+  (* TODO: Change this to 
+    let mapi t ~f = String.mapi t ~f
+    once we switch to 4.02 *)
 
   let for_all t ~f =
     try (iter t (fun x -> if not (f x) then raise Not_found else ()); true)
@@ -1039,11 +1094,13 @@ module List_of (Char: BASIC_CHARACTER) :
     match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
 
   let iter t ~f = List.iter t ~f
+  let iteri t ~f = List.iteri t ~f
   let iter_reverse t ~f =
     List.iter (List.rev t) ~f
 
   let fold t ~init ~f = List.fold_left t ~init ~f
   let map = Core_list_map.map
+  let mapi = Core_list_map.mapi
   let for_all t ~f = List.for_all t ~f
   let exists t ~f = List.exists t ~f
 
@@ -1081,8 +1138,6 @@ module List_of (Char: BASIC_CHARACTER) :
       List.rev !x
 
   let length = List.length
-
-
 
   let sub t ~index ~length =
     let r = ref [] in
@@ -1458,6 +1513,11 @@ module Of_mutable
       f (S.get t i)
     done
 
+  let iteri t ~f =
+    for i = 0 to length t - 1 do
+      f i (S.get t i)
+    done
+
   let iter_reverse t ~f =
     for i = length t -1 downto 0 do
       f (S.get t i)
@@ -1478,6 +1538,18 @@ module Of_mutable
       let res = make lgth (S.get t 0) in
       for i = 1 to lgth - 1 do
         S.set res i (f (S.get t i))
+      done;
+      res
+    end
+
+  let mapi t ~f =
+    let lgth = (length t) in
+    if lgth = 0
+    then empty
+    else begin
+      let res = make lgth (S.get t 0) in
+      for i = 1 to lgth - 1 do
+        S.set res i (f i (S.get t i))
       done;
       res
     end
