@@ -25,14 +25,17 @@
    Sys.chdir "../";
    ()
 
-
 let build () =
+  let preproc = if Sys.ocaml_version >= "4.02.0"
+                then "-pp \"camlp4o pa_macro.cmo -DOCAML_4_02\""
+                else "-pp \"camlp4o pa_macro.cmo -UOCAML_4_02\""
+  in
 in_build_directory (fun () ->
 chain 
 [
     "cp ../sosa.ml .";
-    "ocamlfind ocamlc  -c sosa.ml -o sosa.cmo";
-    "ocamlfind ocamlopt  -c sosa.ml  -annot -bin-annot -o sosa.cmx";
+    (sprintf "ocamlfind ocamlc %s -c sosa.ml -o sosa.cmo" preproc);
+    (sprintf "ocamlfind ocamlopt %s -c sosa.ml  -annot -bin-annot -o sosa.cmx" preproc);
     "ocamlc sosa.cmo -a -o sosa.cma";
     "ocamlopt sosa.cmx -a -o sosa.cmxa";
     "ocamlopt sosa.cmxa sosa.a -shared -o sosa.cmxs";
