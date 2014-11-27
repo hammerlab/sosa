@@ -841,6 +841,45 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
     test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
   end;
+  begin (* Test `filter` *)
+    let test ?from ?length l ~f ~expect fmt =
+      let name     = ksprintf (fun s -> s) fmt in
+      (* say "test: %s l : %d" name (List.length l); *)
+      let s        = List.filter_map l Chr.of_int |> Str.of_character_list in
+      (* say "test: %s s: %d" name (Str.length s); *)
+      let filtered = Str.filter ?from ?length s ~f:(fun c -> f (Chr.to_int c)) in
+      let res_ints = Str.to_character_list filtered |> List.map ~f:Chr.to_int in
+      let before   = Str.to_character_list s |> List.map ~f:Chr.to_int in
+      let pp l     = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+      test_assertf (expect = res_ints)
+        "test_filter: [%s=%s] → [%s] <> [%s] (%s)"
+        (pp l) (pp before) (pp res_ints) (pp expect)
+        name;
+    in
+    let always_true _   = true in
+    let always_false _  = false in
+    test [] ~f:always_true ~expect:[] "all empty";
+    test [1]  ~f:always_true ~expect:[1] "true 1";
+    test [1;2;3]  ~f:always_true ~expect:[1;2;3] "true 123";
+    test [1;1;1]  ~f:always_true ~expect:[1;1;1] "some 111";
+    test []  ~f:always_false ~expect:[] "all empty";
+    test [1]  ~f:always_false ~expect:[] "false 1";
+    test [1;2;3]  ~f:always_false ~expect:[] "false 123";
+    let opt_of_cond c = fun x -> c x in
+    test [1;2;3]  ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1";
+    test [1;2;3]  ~f:(opt_of_cond ((<) 2)) ~expect:[3] "opt_of_cond _ > 2";
+    test [1;2;3] ~from:1 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 from 1";
+    test [1;2;3] ~from:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1 from 2";
+    test [1;2;3] ~from:3 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 3";
+    test [1;2;3] ~from:4 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 4";
+    test [1;2;3]  ~length:0 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 0";
+    test [1;2;3]  ~length:1 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 1";
+    test [1;2;3]  ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[2] "opt_of_cond _ > 1 length 2";
+    test [1;2;3]  ~length:3 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 3";
+    test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
+    test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
+  end;
+
 
   begin (* Test the `split` function *)
     let test l ~on ~expect =
@@ -1049,6 +1088,58 @@ let do_basic_test (module Test : TEST_STRING) =
       test ~on:`Left  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
       test ~on:`Right ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
   end;
+
+  let ints_to_str x = List.filter_map x Chr.of_int |> Str.of_character_list
+  and optionMap f   = function | None   -> None
+                               | Some s -> f s
+  and defOptMap d f = function | None   -> d
+                               | Some s -> f s in
+  let pp_int_opt o  = defOptMap "None" (fun x -> "Some " ^ string_of_int x) o in
+
+  begin (* Test slice *)
+    let test ?start ?finish l ~expect =
+      let s   = ints_to_str l in
+      let exp = optionMap (fun e -> Some (ints_to_str e)) expect
+      and res = Str.slice ?start ?finish s
+      in
+      test_assertf (res = exp)
+        "slice: %s ?start:(%s) ?finish:(%s) expects %s but got %s"
+          (int_list_to_string l)
+          (pp_int_opt start)
+          (pp_int_opt finish)
+          (defOptMap "None" int_list_to_string expect)
+          (defOptMap "None" (fun r -> str_to_int_list r |> int_list_to_string) res)
+    in
+    test                          []       ~expect:(Some []);
+    test                          [1]      ~expect:(Some [1]);
+    test                          [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:0                 []       ~expect:(Some []);
+    test ~start:0                 [1]      ~expect:(Some [1]);
+    test ~start:0                 [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:0    ~finish:0    []       ~expect:(Some []);
+    test ~start:0    ~finish:1    [1]      ~expect:(Some [1]);
+    test ~start:0    ~finish:3    [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:1                 [1;2;3]  ~expect:(Some [2;3]);
+    test ~start:2                 [1;2;3]  ~expect:(Some [3]);
+    test             ~finish:1    [1;2;3]  ~expect:(Some [1]);
+    test             ~finish:2    [1;2;3]  ~expect:(Some [1;2]);
+    test ~start:1    ~finish:1    [1;2;3]  ~expect:(Some []);
+    test ~start:1    ~finish:2    [1;2;3]  ~expect:(Some [2]);
+
+    test ~start:(-1)              []       ~expect:None;
+    test ~start:(-1)              [1;2]    ~expect:None;
+    test ~start:1                 []       ~expect:None;
+    test ~start:2                 [1;2]    ~expect:None;
+
+    test             ~finish:(-1) []       ~expect:None;
+    test             ~finish:(-1) [1;2]    ~expect:None;
+
+    test             ~finish:1    []       ~expect:None;
+    test             ~finish:2    [1;2]    ~expect:(Some [1;2]);
+    test             ~finish:3    [1;2]    ~expect:None;
+
+  end;
+
 
   (* #### BENCHMARKS #### *)
 
