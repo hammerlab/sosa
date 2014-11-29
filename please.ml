@@ -25,21 +25,18 @@
    Sys.chdir "../";
    ()
 
-
 let build () =
-in_build_directory (fun () ->
-chain 
-[
-    "cp ../sosa.ml .";
-    "ocamlfind ocamlc  -c sosa.ml -o sosa.cmo";
-    "ocamlfind ocamlopt  -c sosa.ml  -annot -bin-annot -o sosa.cmx";
-    "ocamlc sosa.cmo -a -o sosa.cma";
-    "ocamlopt sosa.cmx -a -o sosa.cmxa";
-    "ocamlopt sosa.cmxa sosa.a -shared -o sosa.cmxs";
+  in_build_directory (fun () ->
+    chain 
+    [
+        "cp ../sosa.ml .";
+        "ocamlfind ocamlc -c sosa.ml -o sosa.cmo";
+        "ocamlfind ocamlopt -c sosa.ml  -annot -bin-annot -o sosa.cmx";
+        "ocamlc sosa.cmo -a -o sosa.cma";
+        "ocamlopt sosa.cmx -a -o sosa.cmxa";
+        "ocamlopt sosa.cmxa sosa.a -shared -o sosa.cmxs";
 
-]
-
-)
+    ])
 
 let install () =
     in_build_directory (fun () ->

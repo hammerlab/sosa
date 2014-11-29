@@ -1161,6 +1161,29 @@ let do_basic_test (module Test : TEST_STRING) =
     test             ~finish:3    [1;2]    ~expect:None;
 
   end;
+  begin (* Test mapi *)
+    let char_upper    = 199     (* Not really, but not / 5 *)
+    and char_lower    = 33 in   (* Before this come the odd ones in ASCII *)
+    let d = char_upper - char_lower in
+    let int_to_char i =
+      match Chr.of_int ((i mod d) + char_lower) with
+      | None   -> failwith "bad logic"
+      | Some c -> c
+    in
+    let rec make_list acc n =
+      if n < 0 then acc else make_list ((int_to_char n)::acc) (n - 1)
+    in
+    let test n =
+      let lst = make_list [] n in
+      let dum = Str.make (n + 1) (int_to_char 0) in
+      let exp = Str.of_character_list lst in
+      let res = Str.mapi dum ~f:(fun i _ -> int_to_char i) in
+      test_assertf (res = exp) "mapi: %d [%s] [%s]"
+        n (Str.to_native_string exp) (Str.to_native_string res)
+    in
+    test 10;
+    test 10000;    (* to cover that slow case *)
+  end;
 
   (* #### BENCHMARKS #### *)
 
