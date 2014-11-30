@@ -196,6 +196,16 @@ module type BASIC_STRING = sig
   val slice_exn: ?start:int -> ?finish:int -> t -> t
   (** Like [slice] but throw an exception instead of returning [None] *)
 
+  val splitAt: t -> int -> t * t
+  (** Return a tuple where the first string is a prefix of the specified length
+      and the second is the rest. *)
+
+  val take: t -> int -> t
+  (** Just the first part of splitAt *)
+
+  val drop: t -> int -> t
+  (** Just the second part of splitAt *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -722,6 +732,36 @@ module Make_strip_function (S:
     | Not_found -> empty
 end
 
+module Make_splitAt_function (A:
+    sig
+      type t
+      type character
+      val empty : t
+      val length : t -> int
+      val sub_exn : t -> index:int -> length:int -> t
+    end) = struct
+
+  let splitAt t n =
+    let l = A.length t in
+    if n < 0 then (A.empty, t)
+    else if n >= l then (t, A.empty)
+         else (A.sub_exn t ~index:0 ~length:n),
+              (A.sub_exn t ~index:n ~length:(l - n))
+
+  let take t n =
+    let l = A.length t in
+    if n < 0 then A.empty
+    else if n >= l then t
+         else A.sub_exn t ~index:0 ~length:n
+
+  let drop t n =
+    let l = A.length t in
+    if n < 0 then t
+    else if n >= l then A.empty
+         else (A.sub_exn t ~index:n ~length:(l - n))
+
+
+  end
 module Native_string : NATIVE_STRING = struct
 
   include StringLabels
@@ -981,6 +1021,14 @@ module Native_string : NATIVE_STRING = struct
       let index_of_character = index_of_character
     end)
 
+  include Make_splitAt_function(struct
+      type t = string
+      type character = char
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
+    end)
+
   module Make_output (Model: OUTPUT_MODEL) = Model
 
 end
@@ -1174,6 +1222,28 @@ module List_of (Char: BASIC_CHARACTER) :
   let slice ?start ?finish t =
     try Some (slice_exn ?start ?finish t)
     with _ -> None
+
+  let unrevSplit t n =
+    if n < 0
+    then [],t
+    else let rec offset i ((l,r) as p) =
+           if i = n
+           then p
+           else match r with
+                | []   -> p
+                | h::t -> offset (i + 1) (h::l,t)
+         in
+         offset 0 ([],t)
+
+  let splitAt t n =
+    let l,r = unrevSplit t n in
+    List.rev l, r
+
+  let take t n = fst (splitAt t n)
+
+  let drop t n =
+    let l,r = unrevSplit t n in
+    r
 
   let index_of_character t ?(from=0) c =
     let index = ref 0 in
@@ -1753,6 +1823,15 @@ module Of_mutable
       let index_of_string = index_of_string
       let index_of_character = index_of_character
     end)
+
+  include Make_splitAt_function(struct
+      type t = S.t
+      type character = S.character
+      let empty = empty
+      let length = length
+      let sub_exn t ~index ~length = sub_exn t index length
+    end)
+
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 
