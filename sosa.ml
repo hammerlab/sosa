@@ -196,6 +196,28 @@ module type BASIC_STRING = sig
   val slice_exn: ?start:int -> ?finish:int -> t -> t
   (** Like [slice] but throw an exception instead of returning [None] *)
 
+  val is_prefix: t -> prefix:t -> bool
+  (** Does [t] start with [prefix] ? *)
+
+  val is_suffix: t -> suffix:t -> bool
+  (** Does [t] end with [suffix] ? *)
+
+  val chop_prefix_exn: t -> prefix:t -> t
+  (** Return a copy of [t] with [prefix] removed from the beginning.
+      Throws Invalid_argument if [t] does not start with [prefix]. *)
+
+  val chop_prefix: t -> prefix:t -> t option
+  (** Like [chop_prefix_exn] but return [None] instead of throwing
+      an exception. *)
+
+  val chop_suffix_exn: t -> suffix:t -> t
+  (** Return a copy of [t] with [suffix] removed from the end.
+      Throws Invalid_argument if [t] does not end with [suffix]. *)
+
+  val chop_suffix: t -> suffix:t -> t option
+  (** Like [chop_suffix_exn] but return [None] instead of throwing
+      an exception. *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -728,6 +750,53 @@ module Make_strip_function (S:
     | Not_found -> empty
 end
 
+module Make_prefix_suffix_array (A:
+  sig
+    type t
+    type character
+    val get : t -> int -> character
+    val length: t -> int
+    val sub_exn: t -> index:int -> length:int -> t
+  end) = struct
+
+  let rec sub_same_tl t ~comp ~len ~off =
+    let rec loop i =
+      i = len || (A.get t (off + i) = A.get comp i) && loop (i + 1)
+    in
+    (A.length t >= len) && loop 0
+
+  let is_prefix t ~prefix =
+    let len = A.length prefix in
+    sub_same_tl t ~comp:prefix ~len ~off:0
+
+  let is_suffix t ~suffix =
+    let len = A.length suffix and lt = A.length t in
+    sub_same_tl t ~comp:suffix ~len ~off:(lt - len)
+
+  let chop_prefix_exn t ~prefix =
+    let len = A.length prefix and lt = A.length t in
+    if sub_same_tl t ~comp:prefix ~len ~off:0
+    then A.sub_exn t ~index:len ~length:(lt - len)
+    else raise (Invalid_argument "not a prefix")
+
+  let chop_prefix t ~prefix =
+    try Some (chop_prefix_exn t prefix)
+    with _ -> None
+
+  let chop_suffix_exn t ~suffix =
+    let len = A.length suffix and lt = A.length t in
+    if sub_same_tl t ~comp:suffix ~len ~off:(lt - len)
+    then A.sub_exn t ~index:0 ~length:(lt - len)
+    else raise (Invalid_argument "not a suffix")
+
+  let chop_suffix t ~suffix =
+    try Some (chop_suffix_exn t suffix)
+    with _ -> None
+
+
+
+
+end
 module Native_string : NATIVE_STRING = struct
 
   include StringLabels
@@ -987,6 +1056,14 @@ module Native_string : NATIVE_STRING = struct
       let index_of_character = index_of_character
     end)
 
+  include Make_prefix_suffix_array (struct
+    type t = string
+    type character = char
+    let length = length
+    let get = (fun s i -> s.[i])
+    let sub_exn = sub_exn
+    end)
+
   module Make_output (Model: OUTPUT_MODEL) = Model
 
   let take_while_with_index t ~f =
@@ -1171,7 +1248,7 @@ module List_of (Char: BASIC_CHARACTER) :
       if !c = length then Some (List.rev !r) else None
     with
     | Not_found -> Some (List.rev !r)
-    
+
   let sub_exn t ~index ~length =
     match sub t ~index ~length with
     | Some s -> s
@@ -1191,6 +1268,38 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let slice ?start ?finish t =
     try Some (slice_exn ?start ?finish t)
+    with _ -> None
+
+  let rec comp_loop p lst_pair =
+    if p
+    then match lst_pair with
+         | (i,[])           -> Some i
+         | ([],j)           -> None
+         | (i::is), (j::js) -> comp_loop (i = j) (is,js)
+    else None
+
+  let is_prefix t ~prefix =
+    match comp_loop true (t,prefix) with
+    | Some _  -> true
+    | None    -> false
+
+  let is_suffix t ~suffix =
+    is_prefix (List.rev t) ~prefix:(List.rev suffix)
+
+  let chop_prefix_exn t ~prefix =
+    match comp_loop true (t,prefix) with
+    | Some r  -> r
+    | None    -> raise (Invalid_argument "chop_prefix_exn: not a prefix")
+
+  let chop_prefix t ~prefix =
+    try Some (chop_prefix_exn t prefix)
+    with _ -> None
+
+  let chop_suffix_exn t ~suffix =
+    List.rev (chop_prefix_exn (List.rev t) ~prefix:(List.rev suffix))
+
+  let chop_suffix t ~suffix =
+    try Some (chop_suffix_exn t suffix)
     with _ -> None
 
   let index_of_character t ?(from=0) c =
@@ -1781,6 +1890,14 @@ module Of_mutable
       let sub_exn = sub_exn
       let index_of_string = index_of_string
       let index_of_character = index_of_character
+    end)
+
+  include Make_prefix_suffix_array (struct
+    type t = S.t
+    type character = S.character
+    let length = S.length
+    let get = S.get
+    let sub_exn = sub_exn
     end)
 
   module Make_output (Model: OUTPUT_MODEL) = struct

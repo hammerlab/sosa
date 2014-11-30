@@ -1185,6 +1185,86 @@ let do_basic_test (module Test : TEST_STRING) =
     test 10000;    (* to cover that slow case *)
   end;
 
+  begin (* Test is_prefix *)
+    let test l ~p ~expect =
+      let t      = ints_to_str l
+      and prefix = ints_to_str p in
+      test_assertf (expect = Str.is_prefix t ~prefix)
+        "is_prefix: %s prefix:(%s) expects %B"
+          (int_list_to_string l)
+          (int_list_to_string p)
+          expect
+    in
+    test []       ~p:[]         ~expect:true;
+    test [1;2;3]  ~p:[]         ~expect:true;
+    test [1;2;3]  ~p:[1]        ~expect:true;
+    test [1;2;3]  ~p:[1;2;3]    ~expect:true;
+    test [1;2;3]  ~p:[4]        ~expect:false;
+    test []       ~p:[1]        ~expect:false;
+    test [1;2;3]  ~p:[1;2;3;4]  ~expect:false;
+  end;
+  begin (* Test is_suffix *)
+    let test l ~s ~expect =
+      let t      = ints_to_str l
+      and suffix = ints_to_str s in
+      test_assertf (expect = Str.is_suffix t ~suffix)
+        "is_suffix: %s suffix:(%s) expects %B"
+          (int_list_to_string l)
+          (int_list_to_string s)
+          expect
+    in
+    test []       ~s:[]         ~expect:true;
+    test [1;2;3]  ~s:[]         ~expect:true;
+    test [1;2;3]  ~s:[3]        ~expect:true;
+    test [1;2;3]  ~s:[1;2;3]    ~expect:true;
+    test [1;2;3]  ~s:[4]        ~expect:false;
+    test []       ~s:[1]        ~expect:false;
+    test [1;2;3]  ~s:[1;2;3;4]  ~expect:false;
+  end;
+  begin (* Test chop_prefix *)
+    let test l ~p ~expect =
+      let t      = ints_to_str l
+      and prefix = ints_to_str p in
+      let res    = Str.chop_prefix t ~prefix
+      and exp    = optionMap (fun x -> Some (ints_to_str x)) expect in
+      test_assertf (exp = res)
+        "chop_prefix: %s prefix:(%s) expected %s but got %s"
+          (int_list_to_string l)
+          (int_list_to_string p)
+          (defOptMap "None" int_list_to_string expect)
+          (defOptMap "None" Str.to_native_string res)
+    in
+    test []       ~p:[]         ~expect:(Some []);
+    test [1;2;3]  ~p:[]         ~expect:(Some [1;2;3]);
+    test [1;2;3]  ~p:[1]        ~expect:(Some [2;3]);
+    test [1;2;3]  ~p:[1;2;3]    ~expect:(Some []);
+    test [1;2;3]  ~p:[4]        ~expect:None;
+    test []       ~p:[1]        ~expect:None;
+    test [1;2;3]  ~p:[1;2;3;4]  ~expect:None;
+  end;
+
+  begin (* Test chop_suffix *)
+    let test l ~s ~expect =
+      let t      = ints_to_str l
+      and suffix = ints_to_str s in
+      let res    = Str.chop_suffix t ~suffix
+      and exp    = optionMap (fun x -> Some (ints_to_str x)) expect in
+      test_assertf (exp = res)
+        "chop_suffix: %s suffix:(%s) expected %s but got %s"
+          (int_list_to_string l)
+          (int_list_to_string s)
+          (defOptMap "None" int_list_to_string expect)
+          (defOptMap "None" Str.to_native_string res)
+    in
+    test []       ~s:[]         ~expect:(Some []);
+    test [1;2;3]  ~s:[]         ~expect:(Some [1;2;3]);
+    test [1;2;3]  ~s:[3]        ~expect:(Some [1;2]);
+    test [1;2;3]  ~s:[1;2;3]    ~expect:(Some []);
+    test [1;2;3]  ~s:[4]        ~expect:None;
+    test []       ~s:[1]        ~expect:None;
+    test [1;2;3]  ~s:[1;2;3;4]  ~expect:None;
+  end;
+
   (* #### BENCHMARKS #### *)
 
   let converted_dna_reads =
