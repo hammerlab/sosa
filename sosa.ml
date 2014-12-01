@@ -190,7 +190,7 @@ module type BASIC_STRING = sig
 
   val slice: ?start:int -> ?finish:int -> t -> t option
   (** Create a sub-string from the [start] (default 0, within \[0,length\))
-      position to before the [finish] (default length, within \[0,length]))
+      position to before the [finish] (default length, within \[0,length\])
       if all of the indices are in bounds.  *)
 
   val slice_exn: ?start:int -> ?finish:int -> t -> t
