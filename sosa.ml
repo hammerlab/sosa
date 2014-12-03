@@ -218,6 +218,19 @@ module type BASIC_STRING = sig
   (** Like [chop_suffix_exn] but return [None] instead of throwing
       an exception. *)
 
+  val split_at: t -> int -> t * t
+  (** Return a tuple where the first string is a prefix of the specified length
+      and the second is the rest. If index is [=< 0] then the first element is
+      empty and the string is returned in the second element, similarly if the
+      index is [>= length t] then the first element is [t] and the second is
+      [empty]. *)
+
+  val take: t -> int -> t
+  (** Just the first part of split_at *)
+
+  val drop: t -> int -> t
+  (** Just the second part of split_at *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -750,6 +763,7 @@ module Make_strip_function (S:
     | Not_found -> empty
 end
 
+
 module Make_prefix_suffix_array (A:
   sig
     type t
@@ -793,10 +807,39 @@ module Make_prefix_suffix_array (A:
     try Some (chop_suffix_exn t suffix)
     with _ -> None
 
-
-
-
 end
+
+module Make_split_at_index_functions (A:
+    sig
+      type t
+      type character
+      val empty : t
+      val length : t -> int
+      val sub_exn : t -> index:int -> length:int -> t
+    end) = struct
+
+  let split_at t n =
+    let l = A.length t in
+    if n < 0 then (A.empty, t)
+    else if n >= l then (t, A.empty)
+         else (A.sub_exn t ~index:0 ~length:n),
+              (A.sub_exn t ~index:n ~length:(l - n))
+
+  let take t n =
+    let l = A.length t in
+    if n < 0 then A.empty
+    else if n >= l then t
+         else A.sub_exn t ~index:0 ~length:n
+
+  let drop t n =
+    let l = A.length t in
+    if n < 0 then t
+    else if n >= l then A.empty
+         else (A.sub_exn t ~index:n ~length:(l - n))
+
+
+  end
+
 module Native_string : NATIVE_STRING = struct
 
   include StringLabels
@@ -1056,12 +1099,21 @@ module Native_string : NATIVE_STRING = struct
       let index_of_character = index_of_character
     end)
 
+
   include Make_prefix_suffix_array (struct
-    type t = string
-    type character = char
-    let length = length
-    let get = (fun s i -> s.[i])
-    let sub_exn = sub_exn
+      type t = string
+      type character = char
+      let length = length
+      let get = (fun s i -> s.[i])
+      let sub_exn = sub_exn
+    end)
+
+  include Make_split_at_index_functions(struct
+      type t = string
+      type character = char
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
     end)
 
   module Make_output (Model: OUTPUT_MODEL) = Model
@@ -1270,6 +1322,7 @@ module List_of (Char: BASIC_CHARACTER) :
     try Some (slice_exn ?start ?finish t)
     with _ -> None
 
+
   let rec comp_loop p lst_pair =
     if p
     then match lst_pair with
@@ -1301,6 +1354,29 @@ module List_of (Char: BASIC_CHARACTER) :
   let chop_suffix t ~suffix =
     try Some (chop_suffix_exn t suffix)
     with _ -> None
+
+  let unrevSplit t n =
+    if n < 0
+    then [],t
+    else let rec offset i ((l,r) as p) =
+           if i = n
+           then p
+           else match r with
+                | []   -> p
+                | h::t -> offset (i + 1) (h::l,t)
+         in
+         offset 0 ([],t)
+
+  let split_at t n =
+    let l,r = unrevSplit t n in
+    List.rev l, r
+
+  let take t n = fst (split_at t n)
+
+  let drop t n =
+    let l,r = unrevSplit t n in
+    r
+
 
   let index_of_character t ?(from=0) c =
     let index = ref 0 in
@@ -1892,6 +1968,7 @@ module Of_mutable
       let index_of_character = index_of_character
     end)
 
+
   include Make_prefix_suffix_array (struct
     type t = S.t
     type character = S.character
@@ -1899,6 +1976,17 @@ module Of_mutable
     let get = S.get
     let sub_exn = sub_exn
     end)
+
+
+  include Make_split_at_index_functions(struct
+      type t = S.t
+      type character = S.character
+      let empty = empty
+      let length = length
+      let sub_exn t ~index ~length = sub_exn t index length
+    end)
+
+
 
   module Make_output (Model: OUTPUT_MODEL) = struct
 

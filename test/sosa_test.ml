@@ -1265,6 +1265,34 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~s:[1;2;3;4]  ~expect:None;
   end;
 
+  begin (* Test split_at, take and drop. *)
+    let test l n (le,ri) =
+      let s   = ints_to_str l
+      and le' = ints_to_str le
+      and ri' = ints_to_str ri in
+      let (rl,rr) as res = Str.split_at s n
+      and tres  = Str.take s n
+      and dres  = Str.drop s n in
+      test_assertf (res = (le',ri') && tres = le' && dres = ri')
+        "split_at: %s %d expects (%s,%s) but got (%s,%s)"
+          (int_list_to_string l)
+          n
+          (int_list_to_string le)
+          (int_list_to_string ri)
+          (Str.to_native_string rl)
+          (Str.to_native_string rr)
+    in
+    test []      (-1) ([],[]);
+    test []      (0)  ([],[]);
+    test []      (1)  ([],[]);
+    test [1;2;3] (-1) ([],[1;2;3]);
+    test [1;2;3] (0)  ([],[1;2;3]);
+    test [1;2;3] (1)  ([1],[2;3]);
+    test [1;2;3] (2)  ([1;2],[3]);
+    test [1;2;3] (3)  ([1;2;3],[]);
+    test [1;2;3] (4)  ([1;2;3],[]);
+  end;
+
   (* #### BENCHMARKS #### *)
 
   let converted_dna_reads =
