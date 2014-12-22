@@ -276,6 +276,10 @@ module type BASIC_STRING = sig
   val mapi: t -> f:(int -> character -> character) -> t
   (** Make a new string by applying [f] to all characters and their indices. *)
 
+  val map2_exn: t -> t -> f:(character -> character -> character) -> t
+  (** Make a new string by applying [f] to all pairs of characters of the
+      inputs. Fail if strings are not the same length. *)
+
   val for_all: t -> f:(character -> bool) -> bool
   (** Return [true] if-and-only-if [f] returns [true] on all characters. *)
 
@@ -510,6 +514,44 @@ module Internal_pervasives = struct
            else count_mapi ~f tl (ctr + 5))
 
     let mapi l ~f = count_mapi ~f l 0
+
+    let map2_slow l1 l2 ~f = List.rev (List.rev_map2 ~f l1 l2)
+
+    let rec count_map2_exn ~f l1 l2 ctr =
+      match l1, l2 with
+      | [], [] -> []
+      | [x1], [y1] ->
+        let f1 = f x1 y1 in
+        [f1]
+      | [x1; x2], [y1; y2] ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        [f1; f2]
+      | [x1; x2; x3], [y1; y2; y3] ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        let f3 = f x3 y3 in
+        [f1; f2; f3]
+      | [x1; x2; x3; x4], [y1; y2; y3; y4] ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        let f3 = f x3 y3 in
+        let f4 = f x4 y4 in
+        [f1; f2; f3; f4]
+      | x1 :: x2 :: x3 :: x4 :: x5 :: tl1,
+        y1 :: y2 :: y3 :: y4 :: y5 :: tl2 ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        let f3 = f x3 y3 in
+        let f4 = f x4 y4 in
+        let f5 = f x5 y5 in
+        f1 :: f2 :: f3 :: f4 :: f5 ::
+          (if ctr > 1000
+           then map2_slow ~f tl1 tl2
+           else count_map2_exn ~f tl1 tl2 (ctr + 1))
+      | _, _ -> failwith "count_map2"
+
+    let map2_exn l1 l2 ~f = count_map2_exn ~f l1 l2 0
   end
 end
 open Internal_pervasives
@@ -978,6 +1020,19 @@ module Native_string : NATIVE_STRING = struct
     done
   let map t ~f = String.map t ~f
 
+  let map2_exn t1 t2 ~f =
+    let lgth1 = (length t1) in
+    let lgth2 = (length t2) in
+    match lgth1, lgth2 with
+    | 0, 0 -> empty
+    | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
+    | lgth1, lgth2 ->
+       let res = make lgth1 (String.get t1 0) in
+       for i = 0 to lgth1 - 1 do
+         String.set res i (f (String.get t1 i) (String.get t2 i))
+       done;
+       res
+
   let mapi t ~f =
     let buffer = String.create (String.length t) in
     let ()     = String.iteri t ~f:(fun i c -> String.set buffer i (f i c)) in
@@ -1248,6 +1303,7 @@ module List_of (Char: BASIC_CHARACTER) :
   let fold t ~init ~f = List.fold_left t ~init ~f
   let map = Core_list_map.map
   let mapi = Core_list_map.mapi
+  let map2_exn = Core_list_map.map2_exn
   let for_all t ~f = List.for_all t ~f
   let exists t ~f = List.exists t ~f
 
@@ -1767,6 +1823,19 @@ module Of_mutable
       done;
       res
     end
+
+  let map2_exn t1 t2 ~f =
+    let lgth1 = (length t1) in
+    let lgth2 = (length t2) in
+    match lgth1, lgth2 with
+    | 0, 0 -> empty
+    | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
+    | lgth1, lgth2 ->
+       let res = make lgth1 (S.get t1 0) in
+       for i = 0 to lgth1 - 1 do
+         S.set res i (f (S.get t1 i) (S.get t2 i))
+       done;
+       res
 
   let for_all t ~f =
     try
