@@ -1806,7 +1806,7 @@ module Of_mutable
     then empty
     else begin
       let res = make lgth (S.get t 0) in
-      for i = 1 to lgth - 1 do
+      for i = 0 to lgth - 1 do
         S.set res i (f (S.get t i))
       done;
       res
