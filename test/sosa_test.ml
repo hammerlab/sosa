@@ -1185,9 +1185,10 @@ let do_basic_test (module Test : TEST_STRING) =
     test 10000;    (* to cover that slow case *)
   end;
   begin (* Test `map2_exn` *)
-    let test ?from ?length l1 l2 ~f ~expect fmt =
+    let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+    let test l1 l2 ~f ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
-      let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
       let s1 = into_str l1 in
       let s2 = into_str l2 in
       let test_fn_exn x y =
@@ -1200,18 +1201,43 @@ let do_basic_test (module Test : TEST_STRING) =
       let res_ints = Str.to_character_list mapped |> List.map ~f:Chr.to_int in
       let before1 = Str.to_character_list s1 |> List.map ~f:Chr.to_int in
       let before2 = Str.to_character_list s2 |> List.map ~f:Chr.to_int in
-      let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
       test_assertf (expect = res_ints)
         "test_map2_exn: [%s,%s=%s,%s] → [%s] <> [%s] (%s)"
         (pp l1) (pp l2) (pp before1) (pp before2) (pp res_ints) (pp expect)
         name;
     in
+    let test_fail l1 l2 ~f fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let s1 = into_str l1 in
+      let s2 = into_str l2 in
+      let failed =
+        begin try
+            Str.map2_exn s1 s2 ~f:f |> ignore;
+            false
+          with _ -> true
+        end
+      in
+      test_assertf failed
+        "test_map2_exn: should have failed on [%s,%s] (%s)"
+        (pp l1) (pp l2)
+        name;
+    in
     test [] [] ~f:(fun x _ -> x) ~expect:[] "all empty";
-    test [1] [2] ~f:(fun x _ -> x) ~expect:[1] "all 1";
-    test [1] [2] ~f:(fun _ y -> y) ~expect:[2] "all 2";
-    test [1;2;3;4] [2;3;4;3]  ~f:(fun _ y -> y) ~expect:[2;3;4;3] "all 2343";
-    test [9;2;3;4] [7;8;9;10]  ~f:(fun x y -> x + y)
-         ~expect:[16;10;12;14] "all 16,10,12,14";
+    test [1] [2] ~f:(fun x _ -> x) ~expect:[1] "1";
+    test [1] [2] ~f:(fun _ y -> y) ~expect:[2] "2";
+    test [1;2;3;4] [2;3;4;3]  ~f:(fun _ y -> y) ~expect:[2;3;4;3] "2343";
+    test [1;2;1;0] [2;1;1;3]  ~f:(fun x y -> x + y) ~expect:[3;3;2;3] "3323";
+    (* Make sure we hit map2_slow: *)
+    test (List.init 10000 (fun _ -> 0)) (List.init 10000 (fun _ -> 1))
+         ~f:(fun x _ -> x)
+         ~expect:(List.init 10000 (fun _ -> 0)) "long str";
+    test (List.init 10000 (fun _ -> 0)) (List.init 10000 (fun _ -> 1))
+         ~f:(fun _ y -> y)
+         ~expect:(List.init 10000 (fun _ -> 1)) "long str";
+    (* Make sure we fail on lists of different lengths: *)
+    test_fail [1;2] [] ~f:(fun x y -> x) "unequal length";
+    test_fail [] [1] ~f:(fun x y -> y) "other side unequal length";
+    test_fail [1;2;3] [1] ~f:(fun x y -> y) "nonempty unequal length";
   end;
   begin (* Test is_prefix *)
     let test l ~p ~expect =

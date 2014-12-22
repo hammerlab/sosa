@@ -1019,21 +1019,19 @@ module Native_string : NATIVE_STRING = struct
       f (get_exn t i)
     done
   let map t ~f = String.map t ~f
+
   let map2_exn t1 t2 ~f =
     let lgth1 = (length t1) in
     let lgth2 = (length t2) in
-    if lgth1 <> lgth2
-    then failwith "map2_exn"
-    else if lgth1 = 0
-    then empty
-    else begin
-      let res = String.make lgth1 (String.get t1 0) in
-      for i = 0 to lgth1 - 1 do
-        String.set res i (f (String.get t1 i) (String.get t2 i))
-      done;
-      res
-    end
-
+    match lgth1, lgth2 with
+    | 0, 0 -> empty
+    | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
+    | lgth1, lgth2 ->
+       let res = make lgth1 (String.get t1 0) in
+       for i = 0 to lgth1 - 1 do
+         String.set res i (f (String.get t1 i) (String.get t2 i))
+       done;
+       res
 
   let mapi t ~f =
     let buffer = String.create (String.length t) in
@@ -1829,17 +1827,15 @@ module Of_mutable
   let map2_exn t1 t2 ~f =
     let lgth1 = (length t1) in
     let lgth2 = (length t2) in
-    if lgth1 <> lgth2
-    then failwith "map2_exn"
-    else if lgth1 = 0
-    then empty
-    else begin
-      let res = make lgth1 (S.get t1 0) in
-      for i = 0 to lgth1 - 1 do
-        S.set res i (f (S.get t1 i) (S.get t2 i))
-      done;
-      res
-    end
+    match lgth1, lgth2 with
+    | 0, 0 -> empty
+    | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
+    | lgth1, lgth2 ->
+       let res = make lgth1 (S.get t1 0) in
+       for i = 0 to lgth1 - 1 do
+         S.set res i (f (S.get t1 i) (S.get t2 i))
+       done;
+       res
 
   let for_all t ~f =
     try
