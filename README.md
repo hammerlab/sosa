@@ -12,7 +12,7 @@ be.
 This is the development branch of the library, the latest released version is 
 [0.0.1](http://seb.mondet.org/software/sosa/doc.0.0.1/).
 
-See the `INSTALL` file for build instructions.
+See the [INSTALL](INSTALL.md) file for build instructions.
 
 Module Types (APIs)
 -------------------
