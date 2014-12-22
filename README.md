@@ -9,6 +9,11 @@ modules and functors implementing one or more of those interfaces.
 The APIs define what a *character* and a *string of characters* should
 be.
 
+This is the development branch of the library, the latest released version is 
+[0.0.1](http://seb.mondet.org/software/sosa/doc.0.0.1/).
+
+See the `INSTALL` file for build instructions.
+
 Module Types (APIs)
 -------------------
 
