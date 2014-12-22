@@ -360,7 +360,7 @@ let do_basic_test (module Test : TEST_STRING) =
         | `Error _ -> try_separators (n - 1)
         end
     in
-    try_separators 450;
+    try_separators 800;
   end;
 
   (* This tests `make` against `length` and `get`:  *)
@@ -841,6 +841,45 @@ let do_basic_test (module Test : TEST_STRING) =
     test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
     test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
   end;
+  begin (* Test `filter` *)
+    let test ?from ?length l ~f ~expect fmt =
+      let name     = ksprintf (fun s -> s) fmt in
+      (* say "test: %s l : %d" name (List.length l); *)
+      let s        = List.filter_map l Chr.of_int |> Str.of_character_list in
+      (* say "test: %s s: %d" name (Str.length s); *)
+      let filtered = Str.filter ?from ?length s ~f:(fun c -> f (Chr.to_int c)) in
+      let res_ints = Str.to_character_list filtered |> List.map ~f:Chr.to_int in
+      let before   = Str.to_character_list s |> List.map ~f:Chr.to_int in
+      let pp l     = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+      test_assertf (expect = res_ints)
+        "test_filter: [%s=%s] → [%s] <> [%s] (%s)"
+        (pp l) (pp before) (pp res_ints) (pp expect)
+        name;
+    in
+    let always_true _   = true in
+    let always_false _  = false in
+    test [] ~f:always_true ~expect:[] "all empty";
+    test [1]  ~f:always_true ~expect:[1] "true 1";
+    test [1;2;3]  ~f:always_true ~expect:[1;2;3] "true 123";
+    test [1;1;1]  ~f:always_true ~expect:[1;1;1] "some 111";
+    test []  ~f:always_false ~expect:[] "all empty";
+    test [1]  ~f:always_false ~expect:[] "false 1";
+    test [1;2;3]  ~f:always_false ~expect:[] "false 123";
+    let opt_of_cond c = fun x -> c x in
+    test [1;2;3]  ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1";
+    test [1;2;3]  ~f:(opt_of_cond ((<) 2)) ~expect:[3] "opt_of_cond _ > 2";
+    test [1;2;3] ~from:1 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 from 1";
+    test [1;2;3] ~from:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1 from 2";
+    test [1;2;3] ~from:3 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 3";
+    test [1;2;3] ~from:4 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 from 4";
+    test [1;2;3]  ~length:0 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 0";
+    test [1;2;3]  ~length:1 ~f:(opt_of_cond ((<) 1)) ~expect:[] "opt_of_cond _ > 1 length 1";
+    test [1;2;3]  ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[2] "opt_of_cond _ > 1 length 2";
+    test [1;2;3]  ~length:3 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 3";
+    test [1;2;3]  ~length:4 ~f:(opt_of_cond ((<) 1)) ~expect:[2;3] "opt_of_cond _ > 1 length 4";
+    test [1;2;3]  ~from:2 ~length:2 ~f:(opt_of_cond ((<) 1)) ~expect:[3] "opt_of_cond _ > 1";
+  end;
+
 
   begin (* Test the `split` function *)
     let test l ~on ~expect =
@@ -1048,6 +1087,238 @@ let do_basic_test (module Test : TEST_STRING) =
       test ~on:`Both  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
       test ~on:`Left  ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
       test ~on:`Right ~whitespace [2;0;1;2] ~expect:[2;0;1;2];
+  end;
+
+  begin (* Test `take_while{,_with_index}` *)
+    List.iter ~f:(fun subject ->
+        match Str.of_native_string subject with
+        | `Error _ -> ()
+        | `Ok s ->
+          test_assertf (Str.take_while s ~f:(fun _ -> true) = s)
+            "take_while-true (%S)" subject;
+          test_assertf (Str.take_while s ~f:(fun _ -> false) = Str.empty)
+            "take_while-false (%S)" subject;
+          let length = Random.int (Str.length s + 1) in
+          test_assertf (Str.take_while_with_index s ~f:(fun idx _ -> idx < length) 
+                        = Str.sub_exn s ~index:0 ~length)
+            "take_while < length (%S)" subject;
+          let rint = Random.int 42 in
+          test_assertf (
+            let prefix = Str.take_while s ~f:(fun c -> Chr.to_int c < rint) in
+            Str.fold prefix ~init:true ~f:(fun prev c ->
+                prev && Chr.to_int c < rint))
+            "take_while: char < random-int (%S)" subject;
+      ) test_native_subjects;
+  end;
+
+  let ints_to_str x = List.filter_map x Chr.of_int |> Str.of_character_list
+  and optionMap f   = function | None   -> None
+                               | Some s -> f s
+  and defOptMap d f = function | None   -> d
+                               | Some s -> f s in
+  let pp_int_opt o  = defOptMap "None" (fun x -> "Some " ^ string_of_int x) o in
+
+  begin (* Test slice *)
+    let test ?start ?finish l ~expect =
+      let s   = ints_to_str l in
+      let exp = optionMap (fun e -> Some (ints_to_str e)) expect
+      and res = Str.slice ?start ?finish s
+      in
+      test_assertf (res = exp)
+        "slice: %s ?start:(%s) ?finish:(%s) expects %s but got %s"
+          (int_list_to_string l)
+          (pp_int_opt start)
+          (pp_int_opt finish)
+          (defOptMap "None" int_list_to_string expect)
+          (defOptMap "None" (fun r -> str_to_int_list r |> int_list_to_string) res)
+    in
+    test                          []       ~expect:(Some []);
+    test                          [1]      ~expect:(Some [1]);
+    test                          [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:0                 []       ~expect:(Some []);
+    test ~start:0                 [1]      ~expect:(Some [1]);
+    test ~start:0                 [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:0    ~finish:0    []       ~expect:(Some []);
+    test ~start:0    ~finish:1    [1]      ~expect:(Some [1]);
+    test ~start:0    ~finish:3    [1;2;3]  ~expect:(Some [1;2;3]);
+    test ~start:1                 [1;2;3]  ~expect:(Some [2;3]);
+    test ~start:2                 [1;2;3]  ~expect:(Some [3]);
+    test             ~finish:1    [1;2;3]  ~expect:(Some [1]);
+    test             ~finish:2    [1;2;3]  ~expect:(Some [1;2]);
+    test ~start:1    ~finish:1    [1;2;3]  ~expect:(Some []);
+    test ~start:1    ~finish:2    [1;2;3]  ~expect:(Some [2]);
+
+    test ~start:(-1)              []       ~expect:None;
+    test ~start:(-1)              [1;2]    ~expect:None;
+    test ~start:1                 []       ~expect:None;
+    test ~start:2                 [1;2]    ~expect:None;
+
+    test             ~finish:(-1) []       ~expect:None;
+    test             ~finish:(-1) [1;2]    ~expect:None;
+
+    test             ~finish:1    []       ~expect:None;
+    test             ~finish:2    [1;2]    ~expect:(Some [1;2]);
+    test             ~finish:3    [1;2]    ~expect:None;
+
+  end;
+  begin (* Test mapi *)
+    let char_upper    = 199     (* Not really, but not / 5 *)
+    and char_lower    = 33 in   (* Before this come the odd ones in ASCII *)
+    let d = char_upper - char_lower in
+    let int_to_char i =
+      match Chr.of_int ((i mod d) + char_lower) with
+      | None   -> failwith "bad logic"
+      | Some c -> c
+    in
+    let rec make_list acc n =
+      if n < 0 then acc else make_list ((int_to_char n)::acc) (n - 1)
+    in
+    let test n =
+      let lst = make_list [] n in
+      let dum = Str.make (n + 1) (int_to_char 0) in
+      let exp = Str.of_character_list lst in
+      let res = Str.mapi dum ~f:(fun i _ -> int_to_char i) in
+      test_assertf (res = exp) "mapi: %d [%s] [%s]"
+        n (Str.to_native_string exp) (Str.to_native_string res)
+    in
+    test 10;
+    test 10000;    (* to cover that slow case *)
+  end;
+  begin (* Test `map2_exn` *)
+    let test ?from ?length l1 l2 ~f ~expect fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+      let s1 = into_str l1 in
+      let s2 = into_str l2 in
+      let test_fn_exn x y =
+        let res = f (Chr.to_int x) (Chr.to_int y) in
+        match Chr.of_int res with
+        | Some res -> res
+        | None -> failwith "bad char"
+      in
+      let mapped = Str.map2_exn s1 s2 ~f:test_fn_exn in
+      let res_ints = Str.to_character_list mapped |> List.map ~f:Chr.to_int in
+      let before1 = Str.to_character_list s1 |> List.map ~f:Chr.to_int in
+      let before2 = Str.to_character_list s2 |> List.map ~f:Chr.to_int in
+      let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+      test_assertf (expect = res_ints)
+        "test_map2_exn: [%s,%s=%s,%s] → [%s] <> [%s] (%s)"
+        (pp l1) (pp l2) (pp before1) (pp before2) (pp res_ints) (pp expect)
+        name;
+    in
+    test [] [] ~f:(fun x _ -> x) ~expect:[] "all empty";
+    test [1] [2] ~f:(fun x _ -> x) ~expect:[1] "all 1";
+    test [1] [2] ~f:(fun _ y -> y) ~expect:[2] "all 2";
+    test [1;2;3;4] [2;3;4;3]  ~f:(fun _ y -> y) ~expect:[2;3;4;3] "all 2343";
+    test [9;2;3;4] [7;8;9;10]  ~f:(fun x y -> x + y)
+         ~expect:[16;10;12;14] "all 16,10,12,14";
+  end;
+  begin (* Test is_prefix *)
+    let test l ~p ~expect =
+      let t      = ints_to_str l
+      and prefix = ints_to_str p in
+      test_assertf (expect = Str.is_prefix t ~prefix)
+        "is_prefix: %s prefix:(%s) expects %B"
+          (int_list_to_string l)
+          (int_list_to_string p)
+          expect
+    in
+    test []       ~p:[]         ~expect:true;
+    test [1;2;3]  ~p:[]         ~expect:true;
+    test [1;2;3]  ~p:[1]        ~expect:true;
+    test [1;2;3]  ~p:[1;2;3]    ~expect:true;
+    test [1;2;3]  ~p:[4]        ~expect:false;
+    test []       ~p:[1]        ~expect:false;
+    test [1;2;3]  ~p:[1;2;3;4]  ~expect:false;
+  end;
+  begin (* Test is_suffix *)
+    let test l ~s ~expect =
+      let t      = ints_to_str l
+      and suffix = ints_to_str s in
+      test_assertf (expect = Str.is_suffix t ~suffix)
+        "is_suffix: %s suffix:(%s) expects %B"
+          (int_list_to_string l)
+          (int_list_to_string s)
+          expect
+    in
+    test []       ~s:[]         ~expect:true;
+    test [1;2;3]  ~s:[]         ~expect:true;
+    test [1;2;3]  ~s:[3]        ~expect:true;
+    test [1;2;3]  ~s:[1;2;3]    ~expect:true;
+    test [1;2;3]  ~s:[4]        ~expect:false;
+    test []       ~s:[1]        ~expect:false;
+    test [1;2;3]  ~s:[1;2;3;4]  ~expect:false;
+  end;
+  begin (* Test chop_prefix *)
+    let test l ~p ~expect =
+      let t      = ints_to_str l
+      and prefix = ints_to_str p in
+      let res    = Str.chop_prefix t ~prefix
+      and exp    = optionMap (fun x -> Some (ints_to_str x)) expect in
+      test_assertf (exp = res)
+        "chop_prefix: %s prefix:(%s) expected %s but got %s"
+          (int_list_to_string l)
+          (int_list_to_string p)
+          (defOptMap "None" int_list_to_string expect)
+          (defOptMap "None" Str.to_native_string res)
+    in
+    test []       ~p:[]         ~expect:(Some []);
+    test [1;2;3]  ~p:[]         ~expect:(Some [1;2;3]);
+    test [1;2;3]  ~p:[1]        ~expect:(Some [2;3]);
+    test [1;2;3]  ~p:[1;2;3]    ~expect:(Some []);
+    test [1;2;3]  ~p:[4]        ~expect:None;
+    test []       ~p:[1]        ~expect:None;
+    test [1;2;3]  ~p:[1;2;3;4]  ~expect:None;
+  end;
+
+  begin (* Test chop_suffix *)
+    let test l ~s ~expect =
+      let t      = ints_to_str l
+      and suffix = ints_to_str s in
+      let res    = Str.chop_suffix t ~suffix
+      and exp    = optionMap (fun x -> Some (ints_to_str x)) expect in
+      test_assertf (exp = res)
+        "chop_suffix: %s suffix:(%s) expected %s but got %s"
+          (int_list_to_string l)
+          (int_list_to_string s)
+          (defOptMap "None" int_list_to_string expect)
+          (defOptMap "None" Str.to_native_string res)
+    in
+    test []       ~s:[]         ~expect:(Some []);
+    test [1;2;3]  ~s:[]         ~expect:(Some [1;2;3]);
+    test [1;2;3]  ~s:[3]        ~expect:(Some [1;2]);
+    test [1;2;3]  ~s:[1;2;3]    ~expect:(Some []);
+    test [1;2;3]  ~s:[4]        ~expect:None;
+    test []       ~s:[1]        ~expect:None;
+    test [1;2;3]  ~s:[1;2;3;4]  ~expect:None;
+  end;
+
+  begin (* Test split_at, take and drop. *)
+    let test l n (le,ri) =
+      let s   = ints_to_str l
+      and le' = ints_to_str le
+      and ri' = ints_to_str ri in
+      let (rl,rr) as res = Str.split_at s n
+      and tres  = Str.take s n
+      and dres  = Str.drop s n in
+      test_assertf (res = (le',ri') && tres = le' && dres = ri')
+        "split_at: %s %d expects (%s,%s) but got (%s,%s)"
+          (int_list_to_string l)
+          n
+          (int_list_to_string le)
+          (int_list_to_string ri)
+          (Str.to_native_string rl)
+          (Str.to_native_string rr)
+    in
+    test []      (-1) ([],[]);
+    test []      (0)  ([],[]);
+    test []      (1)  ([],[]);
+    test [1;2;3] (-1) ([],[1;2;3]);
+    test [1;2;3] (0)  ([],[1;2;3]);
+    test [1;2;3] (1)  ([1],[2;3]);
+    test [1;2;3] (2)  ([1;2],[3]);
+    test [1;2;3] (3)  ([1;2;3],[]);
+    test [1;2;3] (4)  ([1;2;3],[]);
   end;
 
   (* #### BENCHMARKS #### *)

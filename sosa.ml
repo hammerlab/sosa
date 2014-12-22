@@ -188,6 +188,49 @@ module type BASIC_STRING = sig
   val sub_exn: t -> index:int -> length:int -> t
   (** Do like [sub] but throw an exception instead of returning [None] *)
 
+  val slice: ?start:int -> ?finish:int -> t -> t option
+  (** Create a sub-string from the [start] (default 0, within \[0,length\))
+      position to before the [finish] (default length, within \[0,length\])
+      if all of the indices are in bounds.  *)
+
+  val slice_exn: ?start:int -> ?finish:int -> t -> t
+  (** Like [slice] but throw an exception instead of returning [None] *)
+
+  val is_prefix: t -> prefix:t -> bool
+  (** Does [t] start with [prefix] ? *)
+
+  val is_suffix: t -> suffix:t -> bool
+  (** Does [t] end with [suffix] ? *)
+
+  val chop_prefix_exn: t -> prefix:t -> t
+  (** Return a copy of [t] with [prefix] removed from the beginning.
+      Throws Invalid_argument if [t] does not start with [prefix]. *)
+
+  val chop_prefix: t -> prefix:t -> t option
+  (** Like [chop_prefix_exn] but return [None] instead of throwing
+      an exception. *)
+
+  val chop_suffix_exn: t -> suffix:t -> t
+  (** Return a copy of [t] with [suffix] removed from the end.
+      Throws Invalid_argument if [t] does not end with [suffix]. *)
+
+  val chop_suffix: t -> suffix:t -> t option
+  (** Like [chop_suffix_exn] but return [None] instead of throwing
+      an exception. *)
+
+  val split_at: t -> int -> t * t
+  (** Return a tuple where the first string is a prefix of the specified length
+      and the second is the rest. If index is [=< 0] then the first element is
+      empty and the string is returned in the second element, similarly if the
+      index is [>= length t] then the first element is [t] and the second is
+      [empty]. *)
+
+  val take: t -> int -> t
+  (** Just the first part of split_at *)
+
+  val drop: t -> int -> t
+  (** Just the second part of split_at *)
+
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
       (s1, index1, length1) (s2, index2, length2)].
@@ -220,6 +263,9 @@ module type BASIC_STRING = sig
   val iter: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively. *)
 
+  val iteri: t -> f:(int -> character -> unit) -> unit
+  (** Apply [f] on every character and its index. *)
+
   val iter_reverse: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively in reverse order. *)
 
@@ -227,12 +273,25 @@ module type BASIC_STRING = sig
   (** Make a new string by applying [f] to all characters of the
       input. *)
 
+  val mapi: t -> f:(int -> character -> character) -> t
+  (** Make a new string by applying [f] to all characters and their indices. *)
+
+  val map2_exn: t -> t -> f:(character -> character -> character) -> t
+  (** Make a new string by applying [f] to all pairs of characters of the
+      inputs. Fail if strings are not the same length. *)
+
   val for_all: t -> f:(character -> bool) -> bool
   (** Return [true] if-and-only-if [f] returns [true] on all characters. *)
 
   val exists: t -> f:(character -> bool) -> bool
   (** Return [true] if-and-only-if [f] returns [true] on at least one
       character. *)
+
+  val take_while: t -> f:(character -> bool) -> t
+  (** Take a prefix of the string until [f] returns [false]. *)
+
+  val take_while_with_index: t -> f:(int -> character -> bool) -> t
+  (** Like {!take_while} but the function also takes the current index. *)
 
   val index_of_character: t -> ?from:int -> character -> int option
   (** Find the first occurrence of a character in the string (starting
@@ -292,6 +351,12 @@ module type BASIC_STRING = sig
     f:(character -> character option) -> t
   (** Create a new string with the characters for which [f c] returned 
       [Some c]. One can restrict to the sub-string [(from, length)] (the
+      default is to use the whole string, “out-of-bound” values are restricted
+      to the bounds of the string). *)
+
+  val filter: ?from:int -> ?length:int -> t -> f:(character -> bool) -> t
+  (** Create a new string with the characters for which [f c] is true.
+      One can restrict to the sub-string [(from, length)] (the
       default is to use the whole string, “out-of-bound” values are restricted
       to the bounds of the string). *)
 
@@ -409,6 +474,84 @@ module Internal_pervasives = struct
 
     let map l ~f = count_map ~f l 0
 
+    let mapi_slow l ~f ~i =
+      let _, r = List.fold_left l
+        ~f:(fun (i, a) e -> (i + 1, ((f i e)::a)))
+        ~init:(i,[])
+      in
+      List.rev r
+
+    let rec count_mapi ~f l ctr =
+      match l with
+      | [] -> []
+      | [x1] ->
+        let f1 = f ctr x1 in
+        [f1]
+      | [x1; x2] ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        [f1; f2]
+      | [x1; x2; x3] ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        let f3 = f (ctr + 2) x3 in
+        [f1; f2; f3]
+      | [x1; x2; x3; x4] ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        let f3 = f (ctr + 2) x3 in
+        let f4 = f (ctr + 3) x4 in
+        [f1; f2; f3; f4]
+      | x1 :: x2 :: x3 :: x4 :: x5 :: tl ->
+        let f1 = f ctr x1 in
+        let f2 = f (ctr + 1) x2 in
+        let f3 = f (ctr + 2) x3 in
+        let f4 = f (ctr + 3) x4 in
+        let f5 = f (ctr + 4) x5 in
+        f1 :: f2 :: f3 :: f4 :: f5 ::
+          (if ctr > 5000
+           then mapi_slow ~f ~i:(ctr + 5) tl
+           else count_mapi ~f tl (ctr + 5))
+
+    let mapi l ~f = count_mapi ~f l 0
+
+    let map2_slow l1 l2 ~f = List.rev (List.rev_map2 ~f l1 l2)
+
+    let rec count_map2_exn ~f l1 l2 ctr =
+      match l1, l2 with
+      | [], [] -> []
+      | [x1], [y1] ->
+        let f1 = f x1 y1 in
+        [f1]
+      | [x1; x2], [y1; y2] ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        [f1; f2]
+      | [x1; x2; x3], [y1; y2; y3] ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        let f3 = f x3 y3 in
+        [f1; f2; f3]
+      | [x1; x2; x3; x4], [y1; y2; y3; y4] ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        let f3 = f x3 y3 in
+        let f4 = f x4 y4 in
+        [f1; f2; f3; f4]
+      | x1 :: x2 :: x3 :: x4 :: x5 :: tl1,
+        y1 :: y2 :: y3 :: y4 :: y5 :: tl2 ->
+        let f1 = f x1 y1 in
+        let f2 = f x2 y2 in
+        let f3 = f x3 y3 in
+        let f4 = f x4 y4 in
+        let f5 = f x5 y5 in
+        f1 :: f2 :: f3 :: f4 :: f5 ::
+          (if ctr > 1000
+           then map2_slow ~f tl1 tl2
+           else count_map2_exn ~f tl1 tl2 (ctr + 1))
+      | _, _ -> failwith "count_map2"
+
+    let map2_exn l1 l2 ~f = count_map2_exn ~f l1 l2 0
   end
 end
 open Internal_pervasives
@@ -662,6 +805,83 @@ module Make_strip_function (S:
     | Not_found -> empty
 end
 
+
+module Make_prefix_suffix_array (A:
+  sig
+    type t
+    type character
+    val get : t -> int -> character
+    val length: t -> int
+    val sub_exn: t -> index:int -> length:int -> t
+  end) = struct
+
+  let rec sub_same_tl t ~comp ~len ~off =
+    let rec loop i =
+      i = len || (A.get t (off + i) = A.get comp i) && loop (i + 1)
+    in
+    (A.length t >= len) && loop 0
+
+  let is_prefix t ~prefix =
+    let len = A.length prefix in
+    sub_same_tl t ~comp:prefix ~len ~off:0
+
+  let is_suffix t ~suffix =
+    let len = A.length suffix and lt = A.length t in
+    sub_same_tl t ~comp:suffix ~len ~off:(lt - len)
+
+  let chop_prefix_exn t ~prefix =
+    let len = A.length prefix and lt = A.length t in
+    if sub_same_tl t ~comp:prefix ~len ~off:0
+    then A.sub_exn t ~index:len ~length:(lt - len)
+    else raise (Invalid_argument "not a prefix")
+
+  let chop_prefix t ~prefix =
+    try Some (chop_prefix_exn t prefix)
+    with _ -> None
+
+  let chop_suffix_exn t ~suffix =
+    let len = A.length suffix and lt = A.length t in
+    if sub_same_tl t ~comp:suffix ~len ~off:(lt - len)
+    then A.sub_exn t ~index:0 ~length:(lt - len)
+    else raise (Invalid_argument "not a suffix")
+
+  let chop_suffix t ~suffix =
+    try Some (chop_suffix_exn t suffix)
+    with _ -> None
+
+end
+
+module Make_split_at_index_functions (A:
+    sig
+      type t
+      type character
+      val empty : t
+      val length : t -> int
+      val sub_exn : t -> index:int -> length:int -> t
+    end) = struct
+
+  let split_at t n =
+    let l = A.length t in
+    if n < 0 then (A.empty, t)
+    else if n >= l then (t, A.empty)
+         else (A.sub_exn t ~index:0 ~length:n),
+              (A.sub_exn t ~index:n ~length:(l - n))
+
+  let take t n =
+    let l = A.length t in
+    if n < 0 then A.empty
+    else if n >= l then t
+         else A.sub_exn t ~index:0 ~length:n
+
+  let drop t n =
+    let l = A.length t in
+    if n < 0 then t
+    else if n >= l then A.empty
+         else (A.sub_exn t ~index:n ~length:(l - n))
+
+
+  end
+
 module Native_string : NATIVE_STRING = struct
 
   include StringLabels
@@ -760,6 +980,26 @@ module Native_string : NATIVE_STRING = struct
       try Some (String.sub t index length)
       with e -> None
 
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = String.length t in
+    let bound_check strict m x =
+      let out_of_ub = if strict then x > length_of_t else x >= length_of_t in
+      if x < 0 || (not (is_empty t) && out_of_ub) then
+        ksprintf failwith "slice_exn: invalid %s %d" m x
+      else x
+    in
+    let _      = bound_check false "start" start
+    and finish =
+      match finish with
+      | None   -> length_of_t
+      | Some f -> bound_check true "finish" f
+    in
+    sub_exn t ~index:start ~length:(finish - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
+
   let mutate_exn t ~index c = String.set t index c
 
   let mutate t ~index c =
@@ -773,11 +1013,35 @@ module Native_string : NATIVE_STRING = struct
     with _ -> fail `out_of_bounds
 
   let iter t ~f = String.iter t ~f
+  let iteri t ~f = String.iteri t ~f
   let iter_reverse t ~f =
     for i = length t -1 downto 0 do
       f (get_exn t i)
     done
   let map t ~f = String.map t ~f
+  let map2_exn t1 t2 ~f =
+    let lgth1 = (length t2) in
+    let lgth2 = (length t2) in
+    if lgth1 <> lgth2
+    then failwith "map2_exn"
+    else if lgth1 = 0
+    then empty
+    else begin
+      let res = String.make lgth1 (String.get t1 0) in
+      for i = 0 to lgth1 - 1 do
+        String.set res i (f (String.get t1 i) (String.get t2 i))
+      done;
+      res
+    end
+
+
+  let mapi t ~f =
+    let buffer = String.create (String.length t) in
+    let ()     = String.iteri t ~f:(fun i c -> String.set buffer i (f i c)) in
+    buffer
+  (* TODO: Change this to 
+    let mapi t ~f = String.mapi t ~f
+    once we switch to 4.02 *)
 
   let for_all t ~f =
     try (iter t (fun x -> if not (f x) then raise Not_found else ()); true)
@@ -869,6 +1133,9 @@ module Native_string : NATIVE_STRING = struct
       Buffer.contents b
     end
 
+  let filter ?from ?length s ~f =
+      filter_map ?from ?length s ~f:(fun c -> if f c then Some c else None)
+
   include Make_strip_function (struct
       type t = string
       type character = char
@@ -889,7 +1156,36 @@ module Native_string : NATIVE_STRING = struct
       let index_of_character = index_of_character
     end)
 
+
+  include Make_prefix_suffix_array (struct
+      type t = string
+      type character = char
+      let length = length
+      let get = (fun s i -> s.[i])
+      let sub_exn = sub_exn
+    end)
+
+  include Make_split_at_index_functions(struct
+      type t = string
+      type character = char
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
+    end)
+
   module Make_output (Model: OUTPUT_MODEL) = Model
+
+  let take_while_with_index t ~f =
+    let buf = Buffer.create (length t) in
+    let rec loop idx =
+      match get t idx with
+      | Some c when f idx c -> Buffer.add_char buf c; loop (idx + 1)
+      | _ -> ()
+    in
+    loop 0;
+    Buffer.contents buf
+
+  let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
 
 end
 
@@ -1002,11 +1298,14 @@ module List_of (Char: BASIC_CHARACTER) :
     match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
 
   let iter t ~f = List.iter t ~f
+  let iteri t ~f = List.iteri t ~f
   let iter_reverse t ~f =
     List.iter (List.rev t) ~f
 
   let fold t ~init ~f = List.fold_left t ~init ~f
   let map = Core_list_map.map
+  let mapi = Core_list_map.mapi
+  let map2_exn = Core_list_map.map2_exn
   let for_all t ~f = List.for_all t ~f
   let exists t ~f = List.exists t ~f
 
@@ -1045,8 +1344,6 @@ module List_of (Char: BASIC_CHARACTER) :
 
   let length = List.length
 
-
-
   let sub t ~index ~length =
     let r = ref [] in
     let c = ref 0 in
@@ -1061,11 +1358,83 @@ module List_of (Char: BASIC_CHARACTER) :
       if !c = length then Some (List.rev !r) else None
     with
     | Not_found -> Some (List.rev !r)
-    
+
   let sub_exn t ~index ~length =
     match sub t ~index ~length with
     | Some s -> s
     | None -> ksprintf failwith "sub_exn(%d,%d)" index length
+
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = List.length t in
+    if start < 0 || (not (is_empty t) && start >= length_of_t) then
+      ksprintf failwith "slice_exn: invalid start %d" start
+    else
+      match finish with
+      | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
+      | Some f -> if f < 0 || f > length_of_t then
+                    ksprintf failwith "slice_exn: invalid finish %d" f
+                  else
+                    sub_exn t ~index:start ~length:(f - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
+
+
+  let rec comp_loop p lst_pair =
+    if p
+    then match lst_pair with
+         | (i,[])           -> Some i
+         | ([],j)           -> None
+         | (i::is), (j::js) -> comp_loop (i = j) (is,js)
+    else None
+
+  let is_prefix t ~prefix =
+    match comp_loop true (t,prefix) with
+    | Some _  -> true
+    | None    -> false
+
+  let is_suffix t ~suffix =
+    is_prefix (List.rev t) ~prefix:(List.rev suffix)
+
+  let chop_prefix_exn t ~prefix =
+    match comp_loop true (t,prefix) with
+    | Some r  -> r
+    | None    -> raise (Invalid_argument "chop_prefix_exn: not a prefix")
+
+  let chop_prefix t ~prefix =
+    try Some (chop_prefix_exn t prefix)
+    with _ -> None
+
+  let chop_suffix_exn t ~suffix =
+    List.rev (chop_prefix_exn (List.rev t) ~prefix:(List.rev suffix))
+
+  let chop_suffix t ~suffix =
+    try Some (chop_suffix_exn t suffix)
+    with _ -> None
+
+  let unrevSplit t n =
+    if n < 0
+    then [],t
+    else let rec offset i ((l,r) as p) =
+           if i = n
+           then p
+           else match r with
+                | []   -> p
+                | h::t -> offset (i + 1) (h::l,t)
+         in
+         offset 0 ([],t)
+
+  let split_at t n =
+    let l,r = unrevSplit t n in
+    List.rev l, r
+
+  let take t n = fst (split_at t n)
+
+  let drop t n =
+    let l,r = unrevSplit t n in
+    r
+
 
   let index_of_character t ?(from=0) c =
     let index = ref 0 in
@@ -1189,6 +1558,9 @@ module List_of (Char: BASIC_CHARACTER) :
     in
     filter_map_rec [] 0 0 t
 
+  let filter ?from ?length t ~f =
+      filter_map ?from ?length t ~f:(fun c -> if f c then Some c else None)
+
   include Make_strip_function (struct
       type t = Char.t list
       type character = Char.t
@@ -1220,6 +1592,17 @@ module List_of (Char: BASIC_CHARACTER) :
           Model.output chan (Char.to_native_string c))
 
   end
+
+  let take_while_with_index t ~f =
+    let rec loop idx acc =
+      function
+      | h :: t when f idx h -> loop (idx + 1) (h :: acc) t
+      | []
+      | _ :: _ -> List.rev acc
+    in
+    loop 0 [] t
+  let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
+
 
 end
 
@@ -1402,6 +1785,11 @@ module Of_mutable
       f (S.get t i)
     done
 
+  let iteri t ~f =
+    for i = 0 to length t - 1 do
+      f i (S.get t i)
+    done
+
   let iter_reverse t ~f =
     for i = length t -1 downto 0 do
       f (S.get t i)
@@ -1422,6 +1810,33 @@ module Of_mutable
       let res = make lgth (S.get t 0) in
       for i = 1 to lgth - 1 do
         S.set res i (f (S.get t i))
+      done;
+      res
+    end
+
+  let mapi t ~f =
+    let lgth = (length t) in
+    if lgth = 0
+    then empty
+    else begin
+      let res = make lgth (S.get t 0) in
+      for i = 1 to lgth - 1 do
+        S.set res i (f i (S.get t i))
+      done;
+      res
+    end
+
+  let map2_exn t1 t2 ~f =
+    let lgth1 = (length t1) in
+    let lgth2 = (length t2) in
+    if lgth1 <> lgth2
+    then failwith "map2_exn"
+    else if lgth1 = 0
+    then empty
+    else begin
+      let res = make lgth1 (S.get t1 0) in
+      for i = 0 to lgth1 - 1 do
+        S.set res i (f (S.get t1 i) (S.get t2 i))
       done;
       res
     end
@@ -1459,6 +1874,22 @@ module Of_mutable
     match sub t ~index ~length with
     | Some s -> s
     | None -> ksprintf failwith "sub_exn(%d,%d)" index length
+
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = S.length t in
+    if start < 0 || (not (is_empty t) && start >= length_of_t) then
+      ksprintf failwith "slice_exn: invalid start %d" start
+    else
+      match finish with
+      | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
+      | Some f -> if f < 0 || f > length_of_t then
+                    ksprintf failwith "slice_exn: invalid finish %d" f
+                  else
+                    sub_exn t ~index:start ~length:(f - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
 
   let to_string_hum t = to_native_string t |> sprintf "%S"
 
@@ -1587,6 +2018,9 @@ module Of_mutable
       of_character_list !res
     end
 
+  let filter ?from ?length s ~f =
+      filter_map ?from ?length s ~f:(fun c -> if f c then Some c else None)
+
   include Make_strip_function (struct
       type t = S.t
       type character = S.character
@@ -1607,6 +2041,26 @@ module Of_mutable
       let index_of_character = index_of_character
     end)
 
+
+  include Make_prefix_suffix_array (struct
+    type t = S.t
+    type character = S.character
+    let length = S.length
+    let get = S.get
+    let sub_exn = sub_exn
+    end)
+
+
+  include Make_split_at_index_functions(struct
+      type t = S.t
+      type character = S.character
+      let empty = empty
+      let length = length
+      let sub_exn t ~index ~length = sub_exn t index length
+    end)
+
+
+
   module Make_output (Model: OUTPUT_MODEL) = struct
 
     let (>>=) = Model.bind
@@ -1615,4 +2069,20 @@ module Of_mutable
       Model.output chan (to_native_string t)
 
   end
+
+  let take_while_with_index t ~f =
+    if length t = 0 then empty
+    else (
+      let buf = make (length t) (S.get t 0) in
+      let rec loop idx =
+        match get t idx with
+        | Some c when f idx c -> S.set buf idx c; loop (idx + 1)
+        | _ -> idx
+      in
+      let new_length = loop 0 in
+      sub_exn buf ~index:0 ~length:new_length
+    )
+
+  let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
+
 end
