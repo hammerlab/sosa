@@ -1184,7 +1184,35 @@ let do_basic_test (module Test : TEST_STRING) =
     test 10;
     test 10000;    (* to cover that slow case *)
   end;
-
+  begin (* Test `map2_exn` *)
+    let test ?from ?length l1 l2 ~f ~expect fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+      let s1 = into_str l1 in
+      let s2 = into_str l2 in
+      let test_fn_exn x y =
+        let res = f (Chr.to_int x) (Chr.to_int y) in
+        match Chr.of_int res with
+        | Some res -> res
+        | None -> failwith "bad char"
+      in
+      let mapped = Str.map2_exn s1 s2 ~f:test_fn_exn in
+      let res_ints = Str.to_character_list mapped |> List.map ~f:Chr.to_int in
+      let before1 = Str.to_character_list s1 |> List.map ~f:Chr.to_int in
+      let before2 = Str.to_character_list s2 |> List.map ~f:Chr.to_int in
+      let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+      test_assertf (expect = res_ints)
+        "test_map2_exn: [%s,%s=%s,%s] → [%s] <> [%s] (%s)"
+        (pp l1) (pp l2) (pp before1) (pp before2) (pp res_ints) (pp expect)
+        name;
+    in
+    test [] [] ~f:(fun x _ -> x) ~expect:[] "all empty";
+    test [1] [2] ~f:(fun x _ -> x) ~expect:[1] "all 1";
+    test [1] [2] ~f:(fun _ y -> y) ~expect:[2] "all 2";
+    test [1;2;3;4] [2;3;4;3]  ~f:(fun _ y -> y) ~expect:[2;3;4;3] "all 2343";
+    test [9;2;3;4] [7;8;9;10]  ~f:(fun x y -> x + y)
+         ~expect:[16;10;12;14] "all 16,10,12,14";
+  end;
   begin (* Test is_prefix *)
     let test l ~p ~expect =
       let t      = ints_to_str l
