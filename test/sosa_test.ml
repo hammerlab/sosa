@@ -1161,13 +1161,44 @@ let do_basic_test (module Test : TEST_STRING) =
     test             ~finish:3    [1;2]    ~expect:None;
 
   end;
+  begin (* Test map *)
+    let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+    let test_explicit l ~f ~expect fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let s = into_str l in
+      let test_fn_exn x =
+        let res = f (Chr.to_int x) in
+        match Chr.of_int res with
+        | Some res -> res
+        | None -> failwith "bad char"
+      in
+      let mapped = Str.map s ~f:test_fn_exn in
+      let res_ints = Str.to_character_list mapped |> List.map ~f:Chr.to_int in
+      let before = Str.to_character_list s |> List.map ~f:Chr.to_int in
+      test_assertf (expect = res_ints)
+        "test_mapi: [%s=%s] → [%s] <> [%s] (%s)"
+        (pp l) (pp before) (pp res_ints) (pp expect)
+        name;
+    in
+    test_explicit [1;2;1] ~f:(fun x -> x + 1) ~expect:[2;3;2] "map";
+    test_explicit [1;2;2] ~f:(fun x -> x + 1) ~expect:[2;3;3] "map";
+    test_explicit [1;2;3;0] ~f:(fun x -> x) ~expect:[1;2;3;0] "map";
+    (* Make sure map_slow works as well. *)
+    test_explicit (List.init 10000 (fun x -> x mod 50))
+                  ~f:(fun x -> (x + 1) mod 50)
+                  ~expect:(List.init 10000 (fun x -> (x + 1) mod 50))
+                  "map large";
+  end;
   begin (* Test mapi *)
     let char_upper    = 199     (* Not really, but not / 5 *)
     and char_lower    = 33 in   (* Before this come the odd ones in ASCII *)
     let d = char_upper - char_lower in
+    let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
     let int_to_char i =
       match Chr.of_int ((i mod d) + char_lower) with
-      | None   -> failwith "bad logic"
+      | None -> failwith "bad logic"
       | Some c -> c
     in
     let rec make_list acc n =
@@ -1181,8 +1212,36 @@ let do_basic_test (module Test : TEST_STRING) =
       test_assertf (res = exp) "mapi: %d [%s] [%s]"
         n (Str.to_native_string exp) (Str.to_native_string res)
     in
+    let test_explicit l ~f ~expect fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let s = into_str l in
+      let test_fn_exn i x =
+        let res = f i (Chr.to_int x) in
+        match Chr.of_int res with
+        | Some res -> res
+        | None -> failwith "bad char"
+      in
+      let mapped = Str.mapi s ~f:test_fn_exn in
+      let res_ints = Str.to_character_list mapped |> List.map ~f:Chr.to_int in
+      let before = Str.to_character_list s |> List.map ~f:Chr.to_int in
+      test_assertf (expect = res_ints)
+        "test_mapi: [%s=%s] → [%s] <> [%s] (%s)"
+        (pp l) (pp before) (pp res_ints) (pp expect)
+        name;
+    in
     test 10;
     test 10000;    (* to cover that slow case *)
+    test_explicit [1;2;1] ~f:(fun _ x -> x + 1) ~expect:[2;3;2] "mapi inc";
+    test_explicit [1;2;2] ~f:(fun i x -> i) ~expect:[0;1;2] "mapi indexed";
+    (* Make sure mapi_slow works as well. *)
+    test_explicit (List.init 10000 (fun x -> x mod 50))
+                  ~f:(fun _ x -> (x + 1) mod 50)
+                  ~expect:(List.init 10000 (fun x -> (x + 1) mod 50))
+                  "mapi large";
+    test_explicit (List.init 10000 (fun x -> x mod 50))
+                  ~f:(fun i _ -> i mod 50)
+                  ~expect:(List.init 10000 (fun x -> x mod 50))
+                  "mapi large";
   end;
   begin (* Test `map2_exn` *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
