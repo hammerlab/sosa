@@ -218,17 +218,17 @@ module type BASIC_STRING = sig
   (** Like [chop_suffix_exn] but return [None] instead of throwing
       an exception. *)
 
-  val split_at: t -> int -> t * t
+  val split_at: t -> index:int -> t * t
   (** Return a tuple where the first string is a prefix of the specified length
       and the second is the rest. If index is [=< 0] then the first element is
       empty and the string is returned in the second element, similarly if the
       index is [>= length t] then the first element is [t] and the second is
       [empty]. *)
 
-  val take: t -> int -> t
+  val take: t -> index:int -> t
   (** Just the first part of split_at *)
 
-  val drop: t -> int -> t
+  val drop: t -> index:int -> t
   (** Just the second part of split_at *)
 
   val compare_substring: t * int * int -> t * int * int -> int
@@ -860,24 +860,24 @@ module Make_split_at_index_functions (A:
       val sub_exn : t -> index:int -> length:int -> t
     end) = struct
 
-  let split_at t n =
+  let split_at t ~index =
     let l = A.length t in
-    if n < 0 then (A.empty, t)
-    else if n >= l then (t, A.empty)
-         else (A.sub_exn t ~index:0 ~length:n),
-              (A.sub_exn t ~index:n ~length:(l - n))
+    if index < 0 then (A.empty, t)
+    else if index >= l then (t, A.empty)
+         else (A.sub_exn t ~index:0 ~length:index),
+              (A.sub_exn t ~index:index ~length:(l - index))
 
-  let take t n =
+  let take t ~index =
     let l = A.length t in
-    if n < 0 then A.empty
-    else if n >= l then t
-         else A.sub_exn t ~index:0 ~length:n
+    if index < 0 then A.empty
+    else if index >= l then t
+         else A.sub_exn t ~index:0 ~length:index
 
-  let drop t n =
+  let drop t ~index =
     let l = A.length t in
-    if n < 0 then t
-    else if n >= l then A.empty
-         else (A.sub_exn t ~index:n ~length:(l - n))
+    if index < 0 then t
+    else if index >= l then A.empty
+         else (A.sub_exn t ~index:index ~length:(l - index))
 
 
   end
@@ -1423,14 +1423,14 @@ module List_of (Char: BASIC_CHARACTER) :
          in
          offset 0 ([],t)
 
-  let split_at t n =
-    let l,r = unrevSplit t n in
+  let split_at t ~index =
+    let l,r = unrevSplit t index in
     List.rev l, r
 
-  let take t n = fst (split_at t n)
+  let take t ~index = fst (split_at t index)
 
-  let drop t n =
-    let l,r = unrevSplit t n in
+  let drop t ~index =
+    let l,r = unrevSplit t index in
     r
 
 
