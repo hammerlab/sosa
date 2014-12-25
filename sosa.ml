@@ -176,6 +176,10 @@ module type BASIC_STRING = sig
   val fold: t -> init:'a -> f:('a -> character -> 'a) -> 'a
   (** The standard [fold] function, see [List.fold_left] for example. *)
 
+  val fold2_exn: t -> t -> init:'a -> f:('a -> character -> character -> 'a) -> 'a
+  (** The standard [fold2] function, see [List.fold_left2] for example. Fails on
+  [t]s of different length. *)
+
   val compare: t -> t -> int
   (** Comparison function (as expected by most common functors in the
       ecosystem). *)
@@ -965,12 +969,25 @@ module Native_string : NATIVE_STRING = struct
 
   let concat ?(sep="") sl = concat ~sep sl
 
-  let fold s ~init ~f =
+  let fold t ~init ~f =
     let res = ref init in
-    for i = 0 to String.length s - 1 do
-      res := f !res s.[i];
+    for i = 0 to String.length t - 1 do
+      res := f !res t.[i];
     done;
     !res
+
+  let fold2_exn t1 t2 ~init ~f =
+    let lgth1 = (length t1) in
+    let lgth2 = (length t2) in
+    match lgth1, lgth2 with
+    | 0, 0 -> init
+    | _, _ when lgth1 <> lgth2 -> failwith "fold2_exn"
+    | lgth1, lgth2 ->
+       let res = ref init in
+       for i = 0 to lgth1 - 1 do
+         res := f !res t1.[i] t2.[i];
+       done;
+       !res
 
   let sub_exn t ~index ~length =
     if length = 0 then empty else String.sub t index length
@@ -1301,6 +1318,7 @@ module List_of (Char: BASIC_CHARACTER) :
     List.iter (List.rev t) ~f
 
   let fold t ~init ~f = List.fold_left t ~init ~f
+  let fold2_exn t1 t2 ~init ~f = List.fold_left2 t1 t2 ~init ~f
   let map = Core_list_map.map
   let mapi = Core_list_map.mapi
   let map2_exn = Core_list_map.map2_exn
@@ -1799,6 +1817,19 @@ module Of_mutable
       x := f !x (S.get t i)
     done;
     !x
+
+  let fold2_exn t1 t2 ~init ~f =
+    let lgth1 = (length t1) in
+    let lgth2 = (length t2) in
+    match lgth1, lgth2 with
+    | 0, 0 -> init
+    | _, _ when lgth1 <> lgth2 -> failwith "fold2_exn"
+    | lgth1, lgth2 ->
+       let res = ref init in
+       for i = 0 to lgth1 - 1 do
+         res := f !res (S.get t1 i) (S.get t2 i);
+       done;
+       !res
 
   let map t ~f =
     let lgth = (length t) in
