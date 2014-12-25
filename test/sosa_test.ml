@@ -1298,6 +1298,49 @@ let do_basic_test (module Test : TEST_STRING) =
     test_fail [] [1] ~f:(fun x y -> y) "other side unequal length";
     test_fail [1;2;3] [1] ~f:(fun x y -> y) "nonempty unequal length";
   end;
+  begin (* Test `fold2_exn` *)
+    let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+    let test l1 l2 ~f ~init ~expect fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let s1 = into_str l1 in
+      let s2 = into_str l2 in
+      let test_fn_exn i x y = f i (Chr.to_int x) (Chr.to_int y) in
+      let res = Str.fold2_exn s1 s2 ~f:test_fn_exn ~init:init in
+      let before1 = Str.to_character_list s1 |> List.map ~f:Chr.to_int in
+      let before2 = Str.to_character_list s2 |> List.map ~f:Chr.to_int in
+      test_assertf (expect = res)
+        "test_fold2_exn: [%s,%s=%s,%s] init:%s → %s <> %s (%s)"
+        (pp l1) (pp l2) (pp before1) (pp before2) ((sprintf "%d") init)
+        ((sprintf "%d") res) ((sprintf "%d") expect)
+        name;
+    in
+    let test_fail l1 l2 ~f ~init fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let s1 = into_str l1 in
+      let s2 = into_str l2 in
+      let failed =
+        begin try
+            Str.fold2_exn s1 s2 ~f:f ~init:init |> ignore;
+            false
+          with _ -> true
+        end
+      in
+      test_assertf failed
+        "test_fold2_exn: should have failed on [%s,%s] (%s)"
+        (pp l1) (pp l2)
+        name;
+    in
+    test [] [] ~f:(fun _ _ _ -> 1) ~init:0 ~expect:0 "nothing";
+    test [1] [2] ~f:(fun i _ _ -> i) ~init:1 ~expect:1 "1";
+    test [1] [2] ~f:(fun _ _ y -> y) ~init:1 ~expect:2 "2";
+    test [0;1] [0;1]  ~f:(fun i x y -> x + y + i)
+         ~init:1 ~expect:3 "3";
+    (* Make sure we fail on lists of different lengths: *)
+    test_fail [1;2] [] ~f:(fun _ x y -> 1) ~init:0 "unequal length";
+    test_fail [] [1] ~f:(fun _ x y -> 1) ~init:0 "other side unequal length";
+    test_fail [1;2;3] [1] ~f:(fun _ x y -> 1) ~init:0 "nonempty unequal length";
+  end;
   begin (* Test is_prefix *)
     let test l ~p ~expect =
       let t      = ints_to_str l
