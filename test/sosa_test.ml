@@ -1161,6 +1161,24 @@ let do_basic_test (module Test : TEST_STRING) =
     test             ~finish:3    [1;2]    ~expect:None;
 
   end;
+  begin (* test `rev` *)
+    let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+    let test l ~expect fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let s = into_str l in
+      let reversed = Str.rev s in
+      let res_ints = Str.to_character_list reversed |> List.map ~f:Chr.to_int in
+      let before = Str.to_character_list s |> List.map ~f:Chr.to_int in
+      test_assertf (expect = res_ints)
+        "test_mapi: [%s=%s] → [%s] <> [%s] (%s)"
+        (pp l) (pp before) (pp res_ints) (pp expect)
+        name;
+    in
+    test [] ~expect:[] "empty";
+    test [1;2;3] ~expect:[3;2;1] "simple 123->321";
+    test [1] ~expect:[1] "single 1";
+  end;
   begin (* Test map *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
     let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
@@ -1398,7 +1416,6 @@ let do_basic_test (module Test : TEST_STRING) =
     test []       ~p:[1]        ~expect:None;
     test [1;2;3]  ~p:[1;2;3;4]  ~expect:None;
   end;
-
   begin (* Test chop_suffix *)
     let test l ~s ~expect =
       let t      = ints_to_str l

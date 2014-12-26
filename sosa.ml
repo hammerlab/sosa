@@ -273,6 +273,9 @@ module type BASIC_STRING = sig
   val iter_reverse: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively in reverse order. *)
 
+  val rev: t -> t
+  (** Reverse the string. **)
+
   val map: t -> f:(character -> character) -> t
   (** Make a new string by applying [f] to all characters of the
       input. *)
@@ -1035,6 +1038,9 @@ module Native_string : NATIVE_STRING = struct
     for i = length t -1 downto 0 do
       f (get_exn t i)
     done
+
+  let rev t = of_character_list (fold ~init:[] ~f:(fun acc c -> c :: acc) t)
+
   let map t ~f = String.map t ~f
 
   let map2_exn t1 t2 ~f =
@@ -1316,6 +1322,8 @@ module List_of (Char: BASIC_CHARACTER) :
   let iteri t ~f = List.iteri t ~f
   let iter_reverse t ~f =
     List.iter (List.rev t) ~f
+
+  let rev t = List.rev t
 
   let fold t ~init ~f = List.fold_left t ~init ~f
   let fold2_exn t1 t2 ~init ~f = List.fold_left2 t1 t2 ~init ~f
@@ -1830,6 +1838,8 @@ module Of_mutable
          res := f !res (S.get t1 i) (S.get t2 i);
        done;
        !res
+
+  let rev t = of_character_list (fold ~init:[] ~f:(fun acc c -> c :: acc) t)
 
   let map t ~f =
     let lgth = (length t) in
