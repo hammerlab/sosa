@@ -1039,7 +1039,16 @@ module Native_string : NATIVE_STRING = struct
       f (get_exn t i)
     done
 
-  let rev t = of_character_list (fold ~init:[] ~f:(fun acc c -> c :: acc) t)
+  let rev t =
+    let lgth = length t in
+    match lgth with
+    | 0 -> empty
+    | lgth ->
+       let res = make lgth (String.get t 0) in
+       for i = 0 to lgth - 1 do
+         String.set res i (String.get t (lgth - 1 - i))
+       done;
+       res
 
   let map t ~f = String.map t ~f
 
@@ -1839,7 +1848,16 @@ module Of_mutable
        done;
        !res
 
-  let rev t = of_character_list (fold ~init:[] ~f:(fun acc c -> c :: acc) t)
+  let rev t =
+    let lgth = length t in
+    match lgth with
+    | 0 -> empty
+    | lgth ->
+       let res = make lgth (S.get t 0) in
+       for i = 0 to lgth - 1 do
+         S.set res i (S.get t (lgth - 1 - i))
+       done;
+       res
 
   let map t ~f =
     let lgth = (length t) in
