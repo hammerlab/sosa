@@ -176,6 +176,10 @@ module type BASIC_STRING = sig
   val fold: t -> init:'a -> f:('a -> character -> 'a) -> 'a
   (** The standard [fold] function, see [List.fold_left] for example. *)
 
+  val foldi: t -> init:'a -> f:(int -> 'a -> character -> 'a) -> 'a
+  (** Pass an accumulator over the string's characters and their ordinals,
+      starting with the first; left most. *)
+
   val fold2_exn: t -> t -> init:'a -> f:('a -> character -> character -> 'a) -> 'a
   (** The standard [fold2] function, see [List.fold_left2] for example. Fails on
   [t]s of different length. *)
@@ -978,6 +982,13 @@ module Native_string : NATIVE_STRING = struct
       res := f !res t.[i];
     done;
     !res
+  
+  let foldi t ~init ~f =
+    let res = ref init in
+    for i = 0 to String.length t - 1 do
+      res := f i !res t.[i];
+    done;
+    !res
 
   let fold2_exn t1 t2 ~init ~f =
     let lgth1 = (length t1) in
@@ -1335,6 +1346,9 @@ module List_of (Char: BASIC_CHARACTER) :
   let rev t = List.rev t
 
   let fold t ~init ~f = List.fold_left t ~init ~f
+  let foldi t ~init ~f = 
+    snd (List.fold_left t ~init:(0,init)
+          ~f:(fun (i,a) c -> (i+1,f i a c)))
   let fold2_exn t1 t2 ~init ~f = List.fold_left2 t1 t2 ~init ~f
   let map = Core_list_map.map
   let mapi = Core_list_map.mapi
@@ -1832,6 +1846,13 @@ module Of_mutable
     let x = ref init in
     for i = 0 to length t - 1 do
       x := f !x (S.get t i)
+    done;
+    !x
+
+  let foldi t ~init ~f =
+    let x = ref init in
+    for i = 0 to length t - 1 do
+      x := f i !x (S.get t i)
     done;
     !x
 
