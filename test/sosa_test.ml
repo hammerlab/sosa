@@ -1316,6 +1316,24 @@ let do_basic_test (module Test : TEST_STRING) =
     test_fail [] [1] ~f:(fun x y -> y) "other side unequal length";
     test_fail [1;2;3] [1] ~f:(fun x y -> y) "nonempty unequal length";
   end;
+  begin (* Test `foldi` *)
+    let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
+    let test lst ~init ~expect fmt =
+      let name = ksprintf (fun s -> s) fmt in
+      let s = into_str lst in
+      let folded = Str.foldi s ~init ~f:(fun i a c -> i + a + Chr.to_int c) in
+      test_assertf (folded = expect)
+        "test_foldi: init %d + the indices and chars of [%s] → [%d] <> %d %s"
+          init (pp lst) folded expect name;
+    in
+    test [] ~init:0 ~expect:0 "empty";
+    test [0] ~init:100 ~expect:100 "singleton, zero-indexed";
+    test [0;0;0;0;0] ~init:0 ~expect:10 
+      "adding the indices of 5 long string should be ten";
+    test [100;100;100;100] ~init:0 ~expect:406 
+      "test uses string values."
+  end;
   begin (* Test `fold2_exn` *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
     let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
