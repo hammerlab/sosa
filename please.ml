@@ -25,17 +25,34 @@
    Sys.chdir "../";
    ()
 
-let build () =
+ let sys_string cmd =
+  let ic = Unix.open_process_in cmd in
+  let line = input_line ic in
+  close_in ic;
+  line
+
+let build coverage =
+  let pp_step =
+    if coverage then
+      let d = sys_string "ocamlfind query bisect" in
+      if Sys.file_exists d then
+        sprintf "-pp 'camlp4o str.cma %s/bisect_pp.cmo' -package bisect " d
+      else begin
+        say "Bisect is not installed, no coverage.";
+         ""
+      end
+    else
+      ""
+  in
   in_build_directory (fun () ->
-    chain 
+    chain
     [
         "cp ../sosa.ml .";
-        "ocamlfind ocamlc -c sosa.ml -o sosa.cmo";
-        "ocamlfind ocamlopt -c sosa.ml  -annot -bin-annot -o sosa.cmx";
+        sprintf "ocamlfind ocamlc %s -c sosa.ml -o sosa.cmo" pp_step;
+        sprintf "ocamlfind ocamlopt %s -c sosa.ml  -annot -bin-annot -o sosa.cmx" pp_step;
         "ocamlc sosa.cmo -a -o sosa.cma";
         "ocamlopt sosa.cmx -a -o sosa.cmxa";
         "ocamlopt sosa.cmxa sosa.a -shared -o sosa.cmxs";
-
     ])
 
 let install () =
@@ -43,7 +60,6 @@ let install () =
         chain [
           "ocamlfind install sosa ../META sosa.cmx sosa.cmo sosa.cma sosa.cmi sosa.cmxa sosa.cmxs sosa.a sosa.o"
         ])
-
 
 let uninstall () =
     chain [
@@ -55,7 +71,7 @@ let merlinize () =
     chain [
       "echo 'S .' > .merlin";
       "echo 'B _build' >> .merlin";
-      
+
      ]
 
 
@@ -73,7 +89,12 @@ let () = begin
 match args with
 | _ :: "build" :: [] ->(
 say "Building";
-build ();
+build false;
+say "Done."
+)
+| _ :: "build" :: "coverage" :: [] ->(
+say "Building";
+build true;
 say "Done."
 )
 | _ :: "build_doc" :: [] ->(

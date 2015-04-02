@@ -24,6 +24,10 @@ else
   echo "#$SKIP \"$0\"" > $ML_FILE
   tail -n +$SKIP $0 >> $ML_FILE
 
+  if ocamlobjinfo _build/sosa.cmxa | grep Bisect
+  then
+    PACKAGES=$PACKAGES,bisect
+  fi
   ocamlfind ocamlopt -g -I _build/ sosa.cmxa -thread -package $PACKAGES  -linkpkg -o $EXEC $ML_FILE \
     && $EXEC $*
   RETURN_CODE=$?
