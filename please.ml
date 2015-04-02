@@ -123,7 +123,7 @@ cmdf "rm -fr _build";
 say "Done."
 )
 | _ ->(
-say "usage: ocaml %s [build|install|uninstall|clean|build_doc|melinize]" Sys.argv.(0)
+say "usage: ocaml %s [build|install|uninstall|clean|build_doc|merlinize]" Sys.argv.(0)
 )
 
 end
