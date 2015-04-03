@@ -430,7 +430,7 @@ end
 
 open Printf
 
-(* Internal “Pervasives” module, tu be used in all the following
+(* Internal “Pervasives” module, to be used in all the following
    implementations. *)
 module Internal_pervasives = struct
   module List = ListLabels
