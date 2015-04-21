@@ -5,11 +5,11 @@ BISECT_DIR=$(shell ocamlfind query bisect)
 default:
 	@echo "available targets:"
 	@echo "  build        compile sosa"
-	@echo "  coverage			compile sosa with instrumented Bisect coverage"
+	@echo "  coverage     compile sosa with instrumented Bisect coverage"
 	@echo "  clean        remove build directory"
 	@echo "  install      install via ocamlfind"
 	@echo "  uninstall    unintall via ocamlfind"
-	@echo "  merlinize    unintall via ocamlfind"
+	@echo "  merlinize    create .merlin file"
 	@echo "  doc          create documentation"
 
 build:
@@ -41,7 +41,7 @@ merlinize:
 	echo 'S .' > .merlin
 	echo 'B _build' >> .merlin
 
-doc: 
+doc:
 	mkdir -p doc
 	ocamlfind ocamldoc  -charset UTF-8 -keep-code -colorize-code -html sosa.ml -d doc/
 
