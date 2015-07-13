@@ -26,7 +26,7 @@ else
 
   if ocamlobjinfo _build/sosa.cmxa | grep Bisect
   then
-    PACKAGES=$PACKAGES,bisect
+    PACKAGES=$PACKAGES,bisect_ppx
   fi
   ocamlfind ocamlopt -g -I _build/ sosa.cmxa -thread -package $PACKAGES  -linkpkg -o $EXEC $ML_FILE \
     && $EXEC $*
