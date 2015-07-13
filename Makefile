@@ -5,7 +5,8 @@ BISECT_DIR=$(shell ocamlfind query bisect)
 default:
 	@echo "available targets:"
 	@echo "  build        compile sosa"
-	@echo "  coverage     compile sosa with instrumented Bisect coverage"
+	@echo "  coverage     compile sosa with instrumented bisect_ppx coverage"
+	@echo "  cov_report   create a coverage report from the latest coverage run"
 	@echo "  clean        remove build directory"
 	@echo "  install      install via ocamlfind"
 	@echo "  uninstall    unintall via ocamlfind"
@@ -16,9 +17,7 @@ build:
 	ocamlbuild sosa.cmo sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
 
 coverage:
-	ocamlbuild -pp 'camlp4o str.cma $(BISECT_DIR)/bisect_pp.cmo' -package bisect sosa.cmo sosa.cmx sosa.cma
-	ocamlopt _build/sosa.cmx -a -o _build/sosa.cmxa
-	ocamlopt _build/sosa.cmxa _build/sosa.a -shared -o _build/sosa.cmxs
+	ocamlbuild -use-ocamlfind -package bisect_ppx sosa.cmo sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
 
 clean:
 	ocamlbuild -clean
@@ -45,3 +44,7 @@ doc:
 	mkdir -p doc
 	ocamlfind ocamldoc  -charset UTF-8 -keep-code -colorize-code -html sosa.ml -d doc/
 
+cov_report:
+	cp _build/sosa.cmp . && \
+	bisect-ppx-report -html report_dir $(shell ls -t bisect*.out | head -1) && \
+	rm sosa.cmp
