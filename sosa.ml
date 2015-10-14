@@ -252,7 +252,7 @@ module type BASIC_STRING = sig
       [compare_substring] {i must} return [d] such as [c] = [d] or
       [c] × [d] > 0 (i.e. strictly same sign).
 
-      In other words, is [sub a ~index:ia ~length:la] returns [Some suba] and
+      In other words, if [sub a ~index:ia ~length:la] returns [Some suba] and
       [sub b ~index:ib ~length:lb] returns [Some subb], then
       [compare_substring (a, ia, la) (b, ib, lb)] will behave like
       [compare suba subb] (again, with the same sign).
