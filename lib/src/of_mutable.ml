@@ -2,7 +2,7 @@ open Sosa_pervasives
 open Printf
 module F = Functors
 
-module M
+module Make
     (S: Api.MINIMALISTIC_MUTABLE_STRING) :
   Api.BASIC_STRING
   with type character = S.character

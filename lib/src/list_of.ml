@@ -5,7 +5,7 @@ open Sosa_utilities
 
 module F = Functors
 
-module M (Char: Api.BASIC_CHARACTER) :
+module Make (Char: Api.BASIC_CHARACTER) :
   Api.BASIC_STRING
   with type character = Char.t
   with type t = Char.t list = struct

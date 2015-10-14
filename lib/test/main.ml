@@ -1552,19 +1552,19 @@ let () =
       let test_name = "List of natives"
       let can_have_wrong_char = false
       module Chr = Native_character
-      module Str = List_of.M (Native_character)
+      module Str = List_of.Make (Native_character)
   end);
   do_basic_test (module struct
       let test_name = "List of UTF-8 Integers"
       let can_have_wrong_char = true
       module Chr = Int_utf8_character
-      module Str = List_of.M (Int_utf8_character)
+      module Str = List_of.Make (Int_utf8_character)
   end);
   do_basic_test (module struct
       let test_name = "Of_mutable(utf8-int array)"
       let can_have_wrong_char = true
       module Chr = Int_utf8_character
-      module Str = Of_mutable.M (struct
+      module Str = Of_mutable.Make (struct
           type character = Chr.t
           type t = int array
           let empty = [| |]
@@ -1620,7 +1620,7 @@ let () =
       open Bigarray
       type char_bigarray = (char, int8_unsigned_elt, c_layout) Array1.t
       module Chr = Native_character
-      module Str = Of_mutable.M (struct
+      module Str = Of_mutable.Make (struct
           type character = Chr.t
           type t = char_bigarray
           let empty = Array1.create char c_layout 0
