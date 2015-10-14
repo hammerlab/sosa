@@ -1,6 +1,6 @@
 BISECT_DIR=$(shell ocamlfind query bisect)
 
-.PHONY: clean build install uninstall default
+.PHONY: clean build install uninstall default doc
 
 default:
 	@echo "available targets:"
@@ -48,8 +48,14 @@ merlinize:
 	echo 'B _build' >> .merlin
 
 doc:
-	mkdir -p doc
-	ocamlfind ocamldoc  -charset UTF-8 -keep-code -colorize-code -html sosa.ml -d doc/
+	cp lib/src/sosa.mlpack sosa.odocl && \
+	ocamlbuild -I lib/src/ sosa.docdir/index.html && \
+	rm sosa.docdir && \
+	ln -s _build/sosa.docdir/ doc && \
+	rm sosa.odocl
+
+
+##ocamlfind ocamldoc -charset UTF-8 -keep-code -colorize-code -html lib/src/sosa.odocl -d doc/
 
 cov_report:
 	cp _build/sosa.cmp . && \
