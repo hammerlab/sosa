@@ -31,14 +31,14 @@ clean:
 
 install:
 	ocamlfind install sosa META \
-		_build/sosa.cmi \
-		_build/sosa.cmo \
-		_build/sosa.cmx \
-		_build/sosa.a \
-		_build/sosa.o \
-		_build/sosa.cma \
-		_build/sosa.cmxa \
-		_build/sosa.cmxs
+		_build/lib/src/sosa.cmi \
+		_build/lib/src/sosa.cmo \
+		_build/lib/src/sosa.cmx \
+		_build/lib/src/sosa.a \
+		_build/lib/src/sosa.o \
+		_build/lib/src/sosa.cma \
+		_build/lib/src/sosa.cmxa \
+		_build/lib/src/sosa.cmxs
 
 uninstall:
 	ocamlfind remove sosa
