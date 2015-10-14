@@ -63,7 +63,7 @@ module M (Char: Api.BASIC_CHARACTER) :
 
   let compare (a : Char.t list) (b: Char.t list) = compare a b
   let of_native_substring s ~offset ~length =
-    F.Make_native_conversions.of_native_substring
+    Conversions.of_native_substring
       ~empty ~init:(fun () -> ref [])
       ~on_new_character:(fun x c -> x := c :: !x)
       ~finalize:(fun x -> List.rev !x)
@@ -71,11 +71,11 @@ module M (Char: Api.BASIC_CHARACTER) :
       s ~offset ~length
 
   let of_native_string s =
-    F.Make_native_conversions.of_native_string
+    Conversions.of_native_string
       of_native_substring s
 
   let to_native_string l =
-    F.Make_native_conversions.to_native_string_knowing_size
+    Conversions.to_native_string_knowing_size
       ~future_size:(fun l ->
           List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c))
       ~iter ~write_char_to_native_string:Char.write_to_native_string

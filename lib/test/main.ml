@@ -1,41 +1,3 @@
-#! /bin/sh
-# This is a self-compiling OCaml script
-
-PACKAGES=nonstd,bigarray
-
-MD5CMD="md5sum"
-if [[ "$OSTYPE" =~ ^darwin ]]; then
-  MD5CMD="md5 -r"
-fi
-MD5=`$MD5CMD $0 | cut -d ' ' -f 1`
-BASE=/tmp/ocaml_script_$MD5/
-mkdir -p $BASE
-
-ML_FILE=${BASE}/source.ml
-EXEC=${BASE}/`basename $0`
-
-if test -f $BASE
-then
-  $EXEC $*
-  RETURN_CODE=$?
-else
-
-  SKIP=`awk '/^__OCAML_FOLLOWS__/ { print NR + 1; exit 0; }' $0`
-  echo "#$SKIP \"$0\"" > $ML_FILE
-  tail -n +$SKIP $0 >> $ML_FILE
-
-  if ocamlobjinfo _build/sosa.cmxa | grep Bisect
-  then
-    PACKAGES=$PACKAGES,bisect_ppx
-  fi
-  ocamlfind ocamlopt -g -I _build/ sosa.cmxa -thread -package $PACKAGES  -linkpkg -o $EXEC $ML_FILE \
-    && $EXEC $*
-  RETURN_CODE=$?
-fi
-exit $RETURN_CODE
-
-__OCAML_FOLLOWS__
-
 (*M
 
 Tests of the Sosa library
@@ -219,8 +181,8 @@ M*)
 module type TEST_STRING = sig
   val test_name: string
   val can_have_wrong_char: bool
-  module Chr: BASIC_CHARACTER
-  module Str: BASIC_STRING with type character = Chr.t
+  module Chr: Api.BASIC_CHARACTER
+  module Str: Api.BASIC_STRING with type character = Chr.t
 end
 
 let do_basic_test (module Test : TEST_STRING) =
@@ -1589,19 +1551,19 @@ let () =
       let test_name = "List of natives"
       let can_have_wrong_char = false
       module Chr = Native_character
-      module Str = List_of (Native_character)
+      module Str = List_of.M (Native_character)
   end);
   do_basic_test (module struct
       let test_name = "List of UTF-8 Integers"
       let can_have_wrong_char = true
       module Chr = Int_utf8_character
-      module Str = List_of (Int_utf8_character)
+      module Str = List_of.M (Int_utf8_character)
   end);
   do_basic_test (module struct
       let test_name = "Of_mutable(utf8-int array)"
       let can_have_wrong_char = true
       module Chr = Int_utf8_character
-      module Str = Of_mutable (struct
+      module Str = Of_mutable.M (struct
           type character = Chr.t
           type t = int array
           let empty = [| |]
@@ -1628,7 +1590,7 @@ let () =
           let compare_char = Int.compare
 
           let of_native_substring natstr ~offset ~length =
-            Make_native_conversions.of_native_substring
+            Conversions.of_native_substring
               ~empty ~init:(fun () -> ref [])
               ~on_new_character:(fun x c -> x := c :: !x)
               ~finalize:(fun x -> List.rev !x |> Array.of_list)
@@ -1636,11 +1598,11 @@ let () =
               natstr ~offset ~length
 
           let of_native_string natstr =
-            Make_native_conversions.of_native_string
+            Conversions.of_native_string
               of_native_substring natstr
 
           let to_native_string l =
-            Make_native_conversions.to_native_string_knowing_size
+            Conversions.to_native_string_knowing_size
               ~future_size:(fun l ->
                   let s = ref 0 in
                   Array.iter l ~f:(fun c -> s := !s + Chr.size c);
@@ -1657,7 +1619,7 @@ let () =
       open Bigarray
       type char_bigarray = (char, int8_unsigned_elt, c_layout) Array1.t
       module Chr = Native_character
-      module Str = Of_mutable (struct
+      module Str = Of_mutable.M (struct
           type character = Chr.t
           type t = char_bigarray
           let empty = Array1.create char c_layout 0
@@ -1689,7 +1651,7 @@ let () =
           let compare_char = Char.compare
 
           let of_native_substring natstr ~offset ~length =
-            Make_native_conversions.of_native_substring
+            Conversions.of_native_substring
               ~empty ~init:(fun () -> ref [])
               ~on_new_character:(fun x c -> x := c :: !x)
               ~finalize:(fun x ->
@@ -1707,7 +1669,7 @@ let () =
             with _ -> `Error `out_of_bounds
 
           let of_native_string natstr =
-            Make_native_conversions.of_native_string of_native_substring natstr
+            Conversions.of_native_string of_native_substring natstr
 
           let to_native_string l =
             let s = String.make (Array1.dim l) '0' in
