@@ -1,6 +1,8 @@
 
 open Sosa_pervasives
 open Printf
+open Sosa_utilities
+
 module F = Functors
 
 module M (Char: Api.BASIC_CHARACTER) :

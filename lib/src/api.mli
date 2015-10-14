@@ -1,3 +1,4 @@
+(** The module types that define Sosa's API. *)
 
 type ('a, 'b) result = [
   | `Ok of 'a
@@ -6,9 +7,10 @@ type ('a, 'b) result = [
 (** The type [result] is a reusable version the classical [Result.t]
     type. *)
 
+
+(** A monadic thread model (like [Lwt], [Async]) and an [output]
+    function. *)
 module type OUTPUT_MODEL = sig
-  (** A monadic thread model (like [Lwt], [Async]) and an [output]
-  function. *)
 
   type ('a, 'b, 'c) thread
   (** The type of the threads, the type parameters are there in case
@@ -34,31 +36,8 @@ module type OUTPUT_MODEL = sig
 
 end (* OUTPUT_MODEL *)
 
-module type NATIVE_CONVERSIONS = sig
-  (** API definition of conversions from native OCaml strings to a
-      given string type or vice-versa. *)
-
-  type t
-  (** The string type. *)
-
-  val of_native_string: string -> (t, [> `wrong_char_at of int ]) result
-  (** Convert a native string to the current representation.
-      [of_native_string] returns [`Error (`wrong_char_at index)]
-      when the native string contains a character not representable
-      with the type [character]. *)
-
-  val of_native_substring: string -> offset:int -> length:int ->
-    (t, [> `wrong_char_at of int | `out_of_bounds ]) result
-  (** Convert a native string like [of_native_string] but take a
-      subset of the string. *)
-
-  val to_native_string: t -> string
-  (** Serialize the string to a native string. *)
-
-end (* NATIVE_CONVERSIONS *)
-
+(** The minimal API implemented by characters. *)
 module type BASIC_CHARACTER = sig
-  (** The minimal API implemented by characters. *)
 
   type t
   (** The type representing the character. *)
@@ -77,7 +56,6 @@ module type BASIC_CHARACTER = sig
   val size: t -> int
   (** Get the size of the character, the exact semantics are
       implementation-specific (c.f. {!write_to_native_string}) *)
-
 
   val write_to_native_string: t -> buf:String.t -> index:int -> (int, [> `out_of_bounds]) result
   (** [write_to_native_string c ~buf ~index] serializes
@@ -110,8 +88,31 @@ module type BASIC_CHARACTER = sig
 
 end (* BASIC_CHARACTER *)
 
+(** API definition of conversions from native OCaml strings to a
+    given string type or vice-versa. *)
+module type NATIVE_CONVERSIONS = sig
+
+  type t
+  (** The string type. *)
+
+  val of_native_string: string -> (t, [> `wrong_char_at of int ]) result
+  (** Convert a native string to the current representation.
+      [of_native_string] returns [`Error (`wrong_char_at index)]
+      when the native string contains a character not representable
+      with the type [character]. *)
+
+  val of_native_substring: string -> offset:int -> length:int ->
+    (t, [> `wrong_char_at of int | `out_of_bounds ]) result
+  (** Convert a native string like [of_native_string] but take a
+      subset of the string. *)
+
+  val to_native_string: t -> string
+  (** Serialize the string to a native string. *)
+
+end (* NATIVE_CONVERSIONS *)
+
+(** The minimal API implemented by string modules. *)
 module type BASIC_STRING = sig
-  (** The minimal API implemented by string modules. *)
 
   type character
   (** A string is a string of characters. *)
@@ -396,13 +397,13 @@ module type BASIC_STRING = sig
 
 end (* BASIC_STRING *)
 
-module type UNSAFELY_MUTABLE = sig
-  (** This interface defines functions that may be implemented by
-      particular string types that are actually mutable.
+(** This interface defines functions that may be implemented by
+    particular string types that are actually mutable.
 
-      They are considered “unsafe” because they break the immutability
-      invariants assumed by the rest of this library; you'd better
-      know what you're doing. *)
+    They are considered “unsafe” because they break the immutability
+    invariants assumed by the rest of this library; you'd better
+    know what you're doing. *)
+module type UNSAFELY_MUTABLE = sig
 
   type t
   type character
@@ -426,8 +427,10 @@ module type UNSAFELY_MUTABLE = sig
 
 end (* UNSAFELY_MUTABLE *)
 
+(** Native {i OCaml} character. *) 
 module type NATIVE_CHARACTER = BASIC_CHARACTER with type t = char
 
+(** Native {i OCaml} string. *) 
 module type NATIVE_STRING = sig
 
   include BASIC_STRING
@@ -440,6 +443,7 @@ module type NATIVE_STRING = sig
 
 end (* NATIVE_STRING *)
 
+(** Abstract mutable string used as argument of the {!module:Of_mutable} functor. *)
 module type MINIMALISTIC_MUTABLE_STRING = sig
   type character
   type t

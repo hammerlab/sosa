@@ -12,6 +12,7 @@ open Nonstd
 module String = StringLabels
 open Printf
 open Sosa
+open Sosa_utilities
 
 let say fmt = printf (fmt ^^ "\n%!")
 

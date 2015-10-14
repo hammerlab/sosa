@@ -1,4 +1,3 @@
-(** Richer interface to the built in [string] type. *)
 
 open Sosa_pervasives
 open Printf
