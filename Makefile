@@ -14,7 +14,7 @@ default:
 	@echo "  doc          create documentation"
 
 build:
-	ocamlbuild sosa.cmo sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
+	ocamlbuild -use-ocamlfind -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
 
 coverage:
 	ocamlbuild -use-ocamlfind -package bisect_ppx sosa.cmo sosa.cmx sosa.cma sosa.cmxa sosa.cmxs

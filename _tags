@@ -1,0 +1,2 @@
+true: annot, bin_annot, principal
+<lib/src/*.cmx> and not <lib/src/sosa.cm*>: for-pack(Sosa)
