@@ -21,7 +21,7 @@ let size x =
 let is_print t = int_of_char ' ' <= t && t <= int_of_char '~'
 
 let to_string_hum x =
-  if is_print x then Bytes.make 1 (char_of_int x)
+  if is_print x then String.make 1 (char_of_int x)
   else sprintf "&#x%X;" x
 
 let write_to_native_bytes c ~buf ~index =
@@ -45,7 +45,7 @@ let write_to_native_bytes c ~buf ~index =
     return sz
   with _ -> fail `out_of_bounds
 
-let read_from_native_bytes ~buf ~index =
+let read_from_native_string ~buf ~index =
   try
     let first_char = buf.[index] |> int_of_char in
     let size, mask =
@@ -73,7 +73,7 @@ let to_native_bytes x =
   begin match write_to_native_bytes x ~buf ~index:0 with
   | `Ok _ -> ()
   | `Error e ->
-    dbg "buf: %S siz: %d x: %d" buf (size x) x;
+    dbg "buf: %S siz: %d x: %d" (Bytes.to_string buf) (size x) x;
     assert false
   end;
   buf

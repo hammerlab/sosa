@@ -303,6 +303,7 @@ module Make_native (B :
     val rindex_from : t -> int -> char -> int
     val sub : t -> pos:int -> len:int -> t
     val of_buffer : Buffer.t -> t
+    val string_for_output : t -> string
   end) = struct
 
   type character = char
@@ -597,7 +598,11 @@ module Make_native (B :
       let sub_exn = sub_exn
     end)
 
-  module Make_output (Model: Api.OUTPUT_MODEL) = Model
+  module Make_output (Model: Api.OUTPUT_MODEL) = struct
+
+    let output chan t = Model.output chan (B.string_for_output t)
+
+  end
 
   let take_while_with_index t ~f =
     let buf = Buffer.create (length t) in

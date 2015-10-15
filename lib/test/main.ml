@@ -9,7 +9,7 @@ Test Utilities
 M*)
 
 open Nonstd
-module Bytes = BytesLabels
+module String = StringLabels
 open Printf
 open Sosa
 open Sosa_utilities
@@ -43,10 +43,7 @@ let test_assert msg cond =
 let test_assertf cond fmt =
   ksprintf (fun s -> test_assert s cond) fmt
 
-let make_string l f =
-  let s = Bytes.create l in
-  for i = 0 to l - 1 do Bytes.set s i (f i); done;
-  s
+let make_string = String.init
 
 let list_dot_init l f =
   Array.init l f |> Array.to_list
@@ -63,7 +60,8 @@ let random_utf8_string i =
   let length = Random.int i in
   list_dot_init length (fun _ -> Random.int 0x10_FFFF)
   |> List.map ~f:Int_utf8_character.to_native_bytes
-  |> Bytes.concat ~sep:""
+  |> List.map ~f:Bytes.to_string
+  |> String.concat ~sep:""
 
 let test_native_subjects =
   "" :: "A" :: "\x00" :: "Invalid UTF-8: \197"
@@ -138,34 +136,34 @@ module Benchmark = struct
       "Implementation" :: experiments
     in
     let row_widths =
-      List.map first_row (fun s -> ref (Bytes.length s)) in
-    (* say "row widths: %s" (Bytes.concat ~sep:", "
+      List.map first_row (fun s -> ref (String.length s)) in
+    (* say "row widths: %s" (String.concat ~sep:", "
        (List.map row_widths (fun r -> sprintf "%d" !r))); *)
     let other_rows =
       List.map !benchmarks_table (fun (impl, l) ->
           let w = List.nth_exn row_widths 0 in
-          w := max !w (Bytes.length impl);
+          w := max !w (String.length impl);
           impl :: List.mapi experiments (fun i exp ->
               let res = List.assoc exp !l in
                let w = List.nth_exn row_widths (i  + 1) in
-              (* say "w: %d, i: %d lgth: %d" !w i (Bytes.length res); *)
-              w := max !w (Bytes.length res);
+              (* say "w: %d, i: %d lgth: %d" !w i (String.length res); *)
+              w := max !w (String.length res);
               res)) in
     let row_to_string row =
       row
       |> List.mapi ~f:(fun i c ->
-          (* say "%d %s %d %d" i c !(List.nth_exn row_widths i) (Bytes.length c); *)
+          (* say "%d %s %d %d" i c !(List.nth_exn row_widths i) (String.length c); *)
           sprintf "%s%s" c
-            (Bytes.make (1 + !(List.nth_exn row_widths i) - Bytes.length c) ' '))
-      |> Bytes.concat ~sep:"  "
+            (String.make (1 + !(List.nth_exn row_widths i) - String.length c) ' '))
+      |> String.concat ~sep:"  "
     in
     sprintf "%s\n%s\n%s\n"
       (first_row |> row_to_string)
-      (List.map row_widths (fun s -> Bytes.make (!s) '-')
-       |> Bytes.concat ~sep:"   ")
+      (List.map row_widths (fun s -> String.make (!s) '-')
+       |> String.concat ~sep:"   ")
       (other_rows
        |> List.map ~f:row_to_string
-       |> Bytes.concat ~sep:"\n")
+       |> String.concat ~sep:"\n")
 
 end
 
@@ -220,7 +218,7 @@ let do_basic_test (module Test : TEST_STRING) =
             (to_string fold) (to_string refold)
         in
         folding ~init:[] ~f:(fun p c -> c :: p)
-          (fun c -> Bytes.concat ~sep:", " (List.map c Chr.to_string_hum));
+          (fun c -> String.concat ~sep:", " (List.map c Chr.to_string_hum));
         folding ~init:42 ~f:(fun p c -> Hashtbl.hash (p, c)) (sprintf "%d");
 
         (* This a function that displays an Str.t (extracts the
@@ -228,9 +226,9 @@ let do_basic_test (module Test : TEST_STRING) =
         let str_to_hum s =
           sprintf "[%S.%d,%dB]"
             (Str.to_native_string s |> sprintf "%s"
-             |> (fun s -> Bytes.sub s 0 (min (Bytes.length s) 10)))
+             |> (fun s -> String.sub s 0 (min (String.length s) 10)))
             (Str.length s)
-            (Str.to_native_string s |> Bytes.length) in
+            (Str.to_native_string s |> String.length) in
 
 
         (* We test `Str.sub` by comparing it with an implementation
@@ -285,7 +283,7 @@ let do_basic_test (module Test : TEST_STRING) =
         (* If the conversion fails, we check that the error value points
            to an invalid character: *)
         test_assert (sprintf "test_ofto %S -> wrong char at index %d" s i)
-          (Chr.read_from_native_bytes ~buf:s ~index:i = None)
+          (Chr.read_from_native_string ~buf:s ~index:i = None)
       end;
     in
     List.iter test_native_subjects test_ofto;
@@ -314,13 +312,13 @@ let do_basic_test (module Test : TEST_STRING) =
                 | `Error (`wrong_char_at c) -> None) in
             List.map zipped ~f:fst, List.map zipped ~f:snd
           in
-          let concated = Bytes.concat ~sep viable_strings in
+          let concated = String.concat ~sep viable_strings in
           let concated2 = Str.concat ~sep:csep converted in
           (* say "separators %S" sep; *)
           incr tried_separators;
           test_assertf (Str.to_native_string concated2 = concated)
             "try_separators %d (%dth): %S %s →\n  %S Vs\n  %s" n !tried_separators sep
-            (Bytes.concat ~sep:", " (List.map viable_strings (sprintf "%S")))
+            (String.concat ~sep:", " (List.map viable_strings (sprintf "%S")))
             concated
             (Str.to_string_hum concated2);
           try_separators (n - 1)
@@ -414,7 +412,7 @@ let do_basic_test (module Test : TEST_STRING) =
     List.iter test_native_subjects begin fun str ->
       let offset = Random.int 42 in
       let length = Random.int 42 in
-      let substr = try (Bytes.sub str offset length) with _ -> "" in
+      let substr = try (String.sub str offset length) with _ -> "" in
       begin match Str.of_native_substring str ~offset ~length with
       | `Ok _ as o ->
         i_have_been_to_ok := true;
@@ -437,7 +435,7 @@ let do_basic_test (module Test : TEST_STRING) =
 
   let int_list_to_string l =
     sprintf "[%s]"
-    (List.map ~f:Int.to_string l |> Bytes.concat ~sep:",") in
+    (List.map ~f:Int.to_string l |> String.concat ~sep:",") in
 
   let str_to_int_list s =
     Str.to_character_list s |> List.map ~f:Chr.to_int in
@@ -780,10 +778,10 @@ let do_basic_test (module Test : TEST_STRING) =
         Str.to_character_list s |> List.map ~f:Chr.to_int in
       test_assertf (expect = res_ints)
         "test_filter_map: [%s=%s] → [%s] <> [%s] (%s)"
-        (List.map l (sprintf "%d") |> Bytes.concat ~sep:",")
-        (List.map before (sprintf "%d") |> Bytes.concat ~sep:",")
-        (List.map res_ints (sprintf "%d") |> Bytes.concat ~sep:",")
-        (List.map expect (sprintf "%d") |> Bytes.concat ~sep:",")
+        (List.map l (sprintf "%d") |> String.concat ~sep:",")
+        (List.map before (sprintf "%d") |> String.concat ~sep:",")
+        (List.map res_ints (sprintf "%d") |> String.concat ~sep:",")
+        (List.map expect (sprintf "%d") |> String.concat ~sep:",")
         name;
     in
     let some = fun s -> Some s in
@@ -817,7 +815,7 @@ let do_basic_test (module Test : TEST_STRING) =
       let filtered = Str.filter ?from ?length s ~f:(fun c -> f (Chr.to_int c)) in
       let res_ints = Str.to_character_list filtered |> List.map ~f:Chr.to_int in
       let before   = Str.to_character_list s |> List.map ~f:Chr.to_int in
-      let pp l     = List.map l (sprintf "%d") |> Bytes.concat ~sep:";" in
+      let pp l     = List.map l (sprintf "%d") |> String.concat ~sep:";" in
       test_assertf (expect = res_ints)
         "test_filter: [%s=%s] → [%s] <> [%s] (%s)"
         (pp l) (pp before) (pp res_ints) (pp expect)
@@ -868,9 +866,9 @@ let do_basic_test (module Test : TEST_STRING) =
         (match on with
          | `C c -> sprintf "`Character %d"  c
          | `S s -> sprintf "`Bytes %s" (int_list_to_string s))
-        (List.map ~f:int_list_to_string expect |> Bytes.concat ~sep:" -- ")
-        (List.map ~f:int_list_to_string res_list |> Bytes.concat ~sep:" -- ")
-        (List.map ~f:Str.to_string_hum res |> Bytes.concat ~sep:"; ")
+        (List.map ~f:int_list_to_string expect |> String.concat ~sep:" -- ")
+        (List.map ~f:int_list_to_string res_list |> String.concat ~sep:" -- ")
+        (List.map ~f:Str.to_string_hum res |> String.concat ~sep:"; ")
     in
     let on_one t ~expect =
       test t ~on:(`C 1) ~expect;
@@ -1129,7 +1127,7 @@ let do_basic_test (module Test : TEST_STRING) =
   end;
   begin (* test `rev` *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
-    let pp l = List.map l (sprintf "%d") |> Bytes.concat ~sep:";" in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
     let test l ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
       let s = into_str l in
@@ -1147,7 +1145,7 @@ let do_basic_test (module Test : TEST_STRING) =
   end;
   begin (* Test map *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
-    let pp l = List.map l (sprintf "%d") |> Bytes.concat ~sep:";" in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
     let test_explicit l ~f ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
       let s = into_str l in
@@ -1179,7 +1177,7 @@ let do_basic_test (module Test : TEST_STRING) =
     and char_lower    = 33 in   (* Before this come the odd ones in ASCII *)
     let d = char_upper - char_lower in
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
-    let pp l = List.map l (sprintf "%d") |> Bytes.concat ~sep:";" in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
     let int_to_char i =
       match Chr.of_int ((i mod d) + char_lower) with
       | None -> failwith "bad logic"
@@ -1229,7 +1227,7 @@ let do_basic_test (module Test : TEST_STRING) =
   end;
   begin (* Test `map2_exn` *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
-    let pp l = List.map l (sprintf "%d") |> Bytes.concat ~sep:";" in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
     let test l1 l2 ~f ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
       let s1 = into_str l1 in
@@ -1284,7 +1282,7 @@ let do_basic_test (module Test : TEST_STRING) =
   end;
   begin (* Test `foldi` *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
-    let pp l = List.map l (sprintf "%d") |> Bytes.concat ~sep:";" in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
     let test lst ~init ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
       let s = into_str lst in
@@ -1302,7 +1300,7 @@ let do_basic_test (module Test : TEST_STRING) =
   end;
   begin (* Test `fold2_exn` *)
     let into_str l = List.filter_map l Chr.of_int |> Str.of_character_list in
-    let pp l = List.map l (sprintf "%d") |> Bytes.concat ~sep:";" in
+    let pp l = List.map l (sprintf "%d") |> String.concat ~sep:";" in
     let test l1 l2 ~f ~init ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
       let s1 = into_str l1 in
@@ -1519,17 +1517,17 @@ let utf8_specific_test () =
     "ß", 0xDF; (* German Stuff *)
   ] in
   List.iter ground_truth (fun (s, i) ->
-      let actual_test = Utf8.to_native_bytes i in
+      let actual_test = Utf8.to_native_bytes i |> Bytes.to_string in
       test_assertf (actual_test = s) "utf8_specific_test: (%S, %d) Vs %S"
         s i actual_test;
-      begin match Utf8.read_from_native_bytes ~buf:s ~index:0 with
+      begin match Utf8.read_from_native_string ~buf:s ~index:0 with
       | Some (v, sz) ->
         test_assertf (v = i)
-          "utf8_specific_test: Utf8.read_from_native_bytes: %d <> %d" v i;
-        test_assertf (sz = Bytes.length s)
-          "utf8_specific_test: Utf8.read_from_native_bytes: size %d Vs %S" sz s;
+          "utf8_specific_test: Utf8.read_from_native_string: %d <> %d" v i;
+        test_assertf (sz = String.length s)
+          "utf8_specific_test: Utf8.read_from_native_string: size %d Vs %S" sz s;
       | None ->
-        test_assertf false "utf8_specific_test: Utf8.read_from_native_bytes fail"
+        test_assertf false "utf8_specific_test: Utf8.read_from_native_string fail"
       end
     );
   ()
@@ -1594,7 +1592,7 @@ let () =
               ~empty ~init:(fun () -> ref [])
               ~on_new_character:(fun x c -> x := c :: !x)
               ~finalize:(fun x -> List.rev !x |> Array.of_list)
-              ~read_character_from_native_string:Chr.read_from_native_bytes
+              ~read_character_from_native_string:Chr.read_from_native_string
               natstr ~offset ~length
 
           let of_native_string natstr =
@@ -1608,8 +1606,9 @@ let () =
                   Array.iter l ~f:(fun c -> s := !s + Chr.size c);
                   !s)
               ~iter:(fun a ~f -> Array.iter a ~f)
-              ~write_char_to_native_string:Chr.write_to_native_bytes
+              ~write_char_to_native_bytes:Chr.write_to_native_bytes
               l
+            |> Bytes.to_string
 
         end)
   end);
@@ -1656,7 +1655,7 @@ let () =
               ~on_new_character:(fun x c -> x := c :: !x)
               ~finalize:(fun x ->
                   Array1.of_array char c_layout (List.rev !x |> Array.of_list))
-              ~read_character_from_native_string:Chr.read_from_native_bytes
+              ~read_character_from_native_string:Chr.read_from_native_string
               natstr ~offset ~length
 
           let of_native_substring natstr ~offset ~length =
@@ -1672,11 +1671,7 @@ let () =
             Conversions.of_native_string of_native_substring natstr
 
           let to_native_string l =
-            let s = Bytes.make (Array1.dim l) '0' in
-            for i = 0 to (Array1.dim l) - 1 do
-              Bytes.set s i (Array1.get l i)
-            done;
-            s
+            String.init (Array1.dim l) (Array1.get l)
 
         end)
   end);

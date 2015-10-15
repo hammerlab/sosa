@@ -22,8 +22,8 @@ let write_to_native_bytes c ~buf ~index =
   try Bytes.set buf index c; return 1
   with _ -> fail `out_of_bounds
 
-let read_from_native_bytes ~buf ~index =
-  try Some (Bytes.get buf index, 1)
+let read_from_native_string ~buf ~index =
+  try Some (String.get buf index, 1)
   with _ -> None
 
 let is_whitespace =

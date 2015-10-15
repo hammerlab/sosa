@@ -1,10 +1,11 @@
 
 open Sosa_pervasives
 
-module N = Functors.Make_native(struct 
+module N = Functors.Make_native(struct
   include StringLabels
   let of_buffer = Buffer.contents
   let empty = ""
+  let string_for_output s = s
   end)
 
 include N

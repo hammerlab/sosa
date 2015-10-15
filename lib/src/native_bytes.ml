@@ -1,9 +1,11 @@
 
 open Sosa_pervasives
 
-module N = Functors.Make_native(struct 
+module N = Functors.Make_native(struct
   include BytesLabels
   let of_buffer = Buffer.to_bytes
+  (* Would this be an appropriate place for Bytes.unsafe_to_string?*)
+  let string_for_output = to_string
   end)
 
 include N

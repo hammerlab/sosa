@@ -402,4 +402,4 @@ module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
 
   let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
 
-end (* Of_mutable *)
+end (* Make *)
