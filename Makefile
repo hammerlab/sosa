@@ -15,13 +15,13 @@ default:
 	@echo "  doc          create documentation"
 
 build:
-	ocamlbuild -use-ocamlfind -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
+	ocamlbuild -use-ocamlfind -cflag -safe-string -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
 
 coverage:
-	ocamlbuild -use-ocamlfind -package bisect_ppx -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
+	ocamlbuild -use-ocamlfind -package bisect_ppx -cflag -safe-string -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
 
 test:
-	ocamlbuild -use-ocamlfind -package nonstd -package unix -package bigarray -I lib/src -I lib/test main.native  && \
+	ocamlbuild -use-ocamlfind -package nonstd -package unix -package bigarray -cflag -safe-string -I lib/src -I lib/test main.native  && \
 	rm -f main.native  && \
 	mv _build/lib/test/main.native sosa_tests
 

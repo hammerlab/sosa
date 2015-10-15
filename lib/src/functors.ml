@@ -607,7 +607,7 @@ module Make_native (B :
       | _ -> ()
     in
     loop 0;
-    Buffer.contents buf
+    B.of_buffer buf
 
   let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
 

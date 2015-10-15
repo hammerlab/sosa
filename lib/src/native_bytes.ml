@@ -4,7 +4,6 @@ open Sosa_pervasives
 module N = Functors.Make_native(struct 
   include BytesLabels
   let of_buffer = Buffer.to_bytes
-  let empty = ""
   end)
 
 include N
@@ -21,12 +20,13 @@ let blit ~src ~src_index ~dst ~dst_index ~length =
   try blit_exn ~src ~src_index ~dst ~dst_index ~length; return ()
   with _ -> fail `out_of_bounds
 
-let to_native_string x = BytesLabels.copy x
-let of_native_string x = return (BytesLabels.copy x)
+let to_native_string x = BytesLabels.to_string x
+let of_native_string x = return (BytesLabels.of_string x)
 let of_native_substring x ~offset ~length =
-  if length = 0 then return ""
+  if length = 0 then return BytesLabels.empty
   else
-    try return (BytesLabels.sub x ~pos:offset ~len:length)
+    try return (StringLabels.sub x ~pos:offset ~len:length
+                |> BytesLabels.of_string)
     with e -> fail `out_of_bounds
 
-let to_string_hum x = Printf.sprintf "%S" x
+let to_string_hum x = Printf.sprintf "%S" (Bytes.to_string x)

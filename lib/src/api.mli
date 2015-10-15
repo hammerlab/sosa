@@ -20,7 +20,6 @@ module type OUTPUT_MODEL = sig
       thread = 'a Lwt.t], but with [Pvem.DEFERRED_RESULT]: [type ('a, 'b, 'c)
       thread = ('a, 'b) Deferred_result.t]. *)
 
-
   type ('a, 'b, 'c) channel
   (** The of the channels, channels can have up to 3 type-parameters
       too.  *)
@@ -75,7 +74,7 @@ module type BASIC_CHARACTER = sig
       or [None] if there is no representable/valid character at that
       index. *)
 
-  val to_string_hum: t -> Bytes.t
+  val to_string_hum: t -> String.t
   (** Convert the character to a human-readable native string (in the
       spirit of [sprintf "%s"]). *)
 
@@ -387,8 +386,9 @@ module type BASIC_STRING = sig
       the implemented character.
   *)
 
-  module Make_output: functor (Model: OUTPUT_MODEL) -> sig
-
+  (*module Make_output: functor (Model: OUTPUT_MODEL) -> sig *)
+  module Make_output (Model : OUTPUT_MODEL ) : sig
+    
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
     (** Output a string to a channel. *)
 
