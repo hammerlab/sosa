@@ -143,7 +143,6 @@ module type BASIC_STRING = sig
   val to_character_list: t -> character list
   (** Explode a string into a list of characters. *)
 
-
   val get: t -> index:int -> character option
   (** Get the n-th char, indexes are not necessarily bytes, they can
       be bits. [get] returns [None] when [index] is out of bounds. *)

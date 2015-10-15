@@ -292,7 +292,7 @@ let filter ?from ?length s ~f =
     filter_map ?from ?length s ~f:(fun c -> if f c then Some c else None)
 
 include F.Make_strip_function (struct
-    type t = string
+    type t = bytes
     type character = char
     let empty = empty
     let length = length
@@ -303,7 +303,7 @@ include F.Make_strip_function (struct
   end)
 
 include F.Make_split_function(struct
-    type t = string
+    type t = bytes
     type character = char
     let length = length
     let sub_exn = sub_exn
@@ -313,7 +313,7 @@ include F.Make_split_function(struct
 
 
 include F.Make_prefix_suffix_array (struct
-    type t = string
+    type t = bytes
     type character = char
     let length = length
     let get = (fun s i -> s.[i])
@@ -321,7 +321,7 @@ include F.Make_prefix_suffix_array (struct
   end)
 
 include F.Make_split_at_index_functions(struct
-    type t = string
+    type t = bytes
     type character = char
     let empty = empty
     let length = length

@@ -1546,7 +1546,7 @@ let () =
       let test_name = "Both natives"
       let can_have_wrong_char = false
       module Chr = Native_character
-      module Str = Native_string
+      module Str = Native_bytes
     end);
   do_basic_test (module struct
       let test_name = "List of natives"
