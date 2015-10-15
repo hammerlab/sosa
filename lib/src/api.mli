@@ -55,27 +55,27 @@ module type BASIC_CHARACTER = sig
 
   val size: t -> int
   (** Get the size of the character, the exact semantics are
-      implementation-specific (c.f. {!write_to_native_string}) *)
+      implementation-specific (c.f. {!write_to_native_bytes}) *)
 
-  val write_to_native_string: t -> buf:String.t -> index:int -> (int, [> `out_of_bounds]) result
-  (** [write_to_native_string c ~buf ~index] serializes
+  val write_to_native_bytes: t -> buf:Bytes.t -> index:int -> (int, [> `out_of_bounds]) result
+  (** [write_to_native_bytes c ~buf ~index] serializes
       the character [c] at position [index] in the native string
       [buf] (writing [size c] units). Note, as with {!size} that the
       meaning of [index] is implementation dependent (can be the {i
       index-th} byte, the {i index-th} bit, etc.). *)
 
-  val to_native_string: t -> String.t
-  (** [to_native_string c] creates a string containing the
+  val to_native_bytes: t -> Bytes.t
+  (** [to_native_bytes c] creates a string containing the
       serialization of the character [c] (if [size c] is not a
       multiple of 8, the end-padding is undefined). *)
 
-  val read_from_native_string: buf:String.t -> index:int -> (t * int) option
+  val read_from_native_bytes: buf:Bytes.t -> index:int -> (t * int) option
   (** Read a character at a given [index] in a native string, returns
       [Some (c, s)], the character [c] and the number of units read [s],
       or [None] if there is no representable/valid character at that
       index. *)
 
-  val to_string_hum: t -> String.t
+  val to_string_hum: t -> Bytes.t
   (** Convert the character to a human-readable native string (in the
       spirit of [sprintf "%s"]). *)
 
