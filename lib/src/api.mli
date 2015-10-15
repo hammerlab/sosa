@@ -127,7 +127,9 @@ module type BASIC_STRING = sig
   (** Test whether a string is empty. *)
 
   val make: int -> character -> t
-  (** Build a new string like [String.make]. *)
+  (** Build a new string like [String.make]. 
+   
+   @raise Invalid_argument if size is [< 0] or TODO *)
 
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
@@ -437,11 +439,20 @@ module type NATIVE_STRING = sig
     with type t = String.t
     with type character = char
 
+end (* NATIVE_STRING *)
+
+(** Native {i OCaml} byte. *) 
+module type NATIVE_BYTES = sig
+
+  include BASIC_STRING
+    with type t = Bytes.t
+    with type character = char
+
   include UNSAFELY_MUTABLE
-    with type t := String.t
+    with type t := Bytes.t
     with type character := char
 
-end (* NATIVE_STRING *)
+end (* NATIVE_BYTES *)
 
 (** Abstract mutable string used as argument of the {!module:Of_mutable} functor. *)
 module type MINIMALISTIC_MUTABLE_STRING = sig

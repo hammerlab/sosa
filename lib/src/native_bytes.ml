@@ -2,20 +2,24 @@
 open Sosa_pervasives
 open Printf
 open Api
-include StringLabels
+(*include BytesLabels *)
 
 module F = Functors
 
 type character = char
+type t = bytes
 
 let empty = ""
 let is_empty t = (compare "" t = 0)
 
-let of_character = make 1
+let make = BytesLabels.make
+let length = BytesLabels.length
+
+let of_character = Bytes.make 1
 let of_character_list cl =
   let length = List.length cl in
-  let buf = String.make length '\x00' in
-  List.iteri cl ~f:(fun i c -> buf.[i] <- c);
+  let buf = Bytes.make length '\x00' in
+  List.iteri cl ~f:(Bytes.set buf); 
   buf
 
 let to_character_list s =
@@ -30,16 +34,18 @@ let get s ~index =
   with _ -> None
 
 let set s ~index ~v =
-  if index > String.length s - 1
+  if index > length s - 1
   then None
   else begin
-    let cop = String.copy s in
-    cop.[index] <- v;
+    let cop = Bytes.copy s in
+    Bytes.set cop index v;
     Some cop
   end
 let get_exn s ~index = s.[index]
 let set_exn s ~index ~v =
   match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
+
+let compare = BytesLabels.compare
 
 let compare_substring (a, idxa, lena) (b, idxb, lenb) =
   let module With_exns = struct
@@ -66,36 +72,38 @@ let compare_substring (a, idxa, lena) (b, idxb, lenb) =
   end in
   With_exns.f ()
 
-type s = t
+(*type s = Bytes.t *)
 module T_length_and_compsub = struct
-  type t = s let length = length let compare_substring = compare_substring
+  type t = Bytes.t
+  let length = length
+  let compare_substring = compare_substring
 end
 include F.Compare_substring_strict_of_loose(T_length_and_compsub)
 include F.Make_index_of_string(T_length_and_compsub)
 
 
-let to_native_string x = String.copy x
-let of_native_string x = return (String.copy x)
+let to_native_string x = Bytes.copy x
+let of_native_string x = return (Bytes.copy x)
 let of_native_substring x ~offset ~length =
   if length = 0 then return ""
   else
-    try return (String.sub x offset length)
+    try return (Bytes.sub x offset length)
     with e -> fail `out_of_bounds
 
 let to_string_hum x = sprintf "%S" x
 
-let concat ?(sep="") sl = concat ~sep sl
+let concat ?(sep="") sl = BytesLabels.concat ~sep sl
 
 let fold t ~init ~f =
   let res = ref init in
-  for i = 0 to String.length t - 1 do
+  for i = 0 to length t - 1 do
     res := f !res t.[i];
   done;
   !res
 
 let foldi t ~init ~f =
   let res = ref init in
-  for i = 0 to String.length t - 1 do
+  for i = 0 to length t - 1 do
     res := f i !res t.[i];
   done;
   !res
@@ -114,15 +122,15 @@ let fold2_exn t1 t2 ~init ~f =
       !res
 
 let sub_exn t ~index ~length =
-  if length = 0 then empty else String.sub t index length
+  if length = 0 then empty else Bytes.sub t index length
 
 let sub t ~index ~length =
   if length = 0 then Some empty else
-    try Some (String.sub t index length)
+    try Some (Bytes.sub t index length)
     with e -> None
 
 let slice_exn ?(start=0) ?finish t =
-  let length_of_t = String.length t in
+  let length_of_t = length t in
   let bound_check strict m x =
     let out_of_ub = if strict then x > length_of_t else x >= length_of_t in
     if x < 0 || (not (is_empty t) && out_of_ub) then
@@ -141,20 +149,20 @@ let slice ?start ?finish t =
   try Some (slice_exn ?start ?finish t)
   with _ -> None
 
-let mutate_exn t ~index c = String.set t index c
+let mutate_exn t ~index c = Bytes.set t index c
 
 let mutate t ~index c =
-  try String.set t index c; return () with _ -> fail `out_of_bounds
+  try Bytes.set t index c; return () with _ -> fail `out_of_bounds
 
 let blit_exn ~src ~src_index ~dst ~dst_index ~length =
-  blit ~src ~src_pos:src_index ~dst ~dst_pos:dst_index ~len:length
+  BytesLabels.blit ~src ~src_pos:src_index ~dst ~dst_pos:dst_index ~len:length
 
 let blit ~src ~src_index ~dst ~dst_index ~length =
   try blit_exn ~src ~src_index ~dst ~dst_index ~length; return ()
   with _ -> fail `out_of_bounds
 
-let iter t ~f = String.iter t ~f
-let iteri t ~f = String.iteri t ~f
+let iter t ~f = BytesLabels.iter t ~f
+let iteri t ~f = BytesLabels.iteri t ~f
 let iter_reverse t ~f =
   for i = length t -1 downto 0 do
     f (get_exn t i)
@@ -165,13 +173,13 @@ let rev t =
   match lgth with
   | 0 -> empty
   | lgth ->
-      let res = make lgth (String.get t 0) in
+      let res = make lgth (Bytes.get t 0) in
       for i = 0 to lgth - 1 do
-        String.set res i (String.get t (lgth - 1 - i))
+        Bytes.set res i (Bytes.get t (lgth - 1 - i))
       done;
       res
 
-let map t ~f = String.map t ~f
+let map t ~f = BytesLabels.map t ~f
 
 let map2_exn t1 t2 ~f =
   let lgth1 = (length t1) in
@@ -180,19 +188,13 @@ let map2_exn t1 t2 ~f =
   | 0, 0 -> empty
   | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
   | lgth1, lgth2 ->
-      let res = make lgth1 (String.get t1 0) in
+      let res = make lgth1 (Bytes.get t1 0) in
       for i = 0 to lgth1 - 1 do
-        String.set res i (f (String.get t1 i) (String.get t2 i))
+        Bytes.set res i (f (Bytes.get t1 i) (Bytes.get t2 i))
       done;
       res
 
-let mapi t ~f =
-  let buffer = String.create (String.length t) in
-  let ()     = String.iteri t ~f:(fun i c -> String.set buffer i (f i c)) in
-  buffer
-(* TODO: Change this to
-  let mapi t ~f = String.mapi t ~f
-  once we switch to 4.02 *)
+let mapi t ~f = BytesLabels.mapi t ~f
 
 let for_all t ~f =
   try (iter t (fun x -> if not (f x) then raise Not_found else ()); true)
@@ -204,7 +206,7 @@ let exists t ~f =
 
 let index_of_character t ?(from=0) c =
   let from = if from <= 0 then 0 else min (length t) from in
-  try Some (String.index_from t from c)
+  try Some (Bytes.index_from t from c)
   with _ -> None
 
 let index_of_character_reverse t ?from c =
@@ -216,7 +218,7 @@ let index_of_character_reverse t ?from c =
     | Some s when s > length_of_t - 1 -> length_of_t - 1
     | Some s -> s
   in
-  try Some (String.rindex_from t from c)
+  try Some (Bytes.rindex_from t from c)
   with _ -> None
 
 let resize_from_length ~from ?length ~length_of_s =
@@ -229,8 +231,10 @@ let resize_from_length ~from ?length ~length_of_s =
   in
   (from, length)
 
+let blength = length
+
 let find ?(from=0) ?length s ~f =
-  let length_of_s = String.length s in
+  let length_of_s = blength s in
   let from, length = resize_from_length ~from ?length ~length_of_s in
   let found = ref None in
   let i = ref 0 in
@@ -242,7 +246,7 @@ let find ?(from=0) ?length s ~f =
   !found
 
 let find_reverse ?from ?length s ~f =
-  let length_of_s = String.length s in
+  let length_of_s = blength s in
   if length_of_s = 0 then None
   else begin
     let from =
@@ -271,7 +275,7 @@ let find_reverse ?from ?length s ~f =
   end
 
 let filter_map ?(from=0) ?length s ~f =
-  let length_of_s = String.length s in
+  let length_of_s = blength s in
   let from, length = resize_from_length ~from ?length ~length_of_s in
   if length = 0 then empty
   else begin
