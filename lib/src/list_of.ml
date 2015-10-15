@@ -53,7 +53,7 @@ module Make (Char: Api.BASIC_CHARACTER) :
   let rev t = List.rev t
 
   let fold t ~init ~f = List.fold_left t ~init ~f
-  let foldi t ~init ~f = 
+  let foldi t ~init ~f =
     snd (List.fold_left t ~init:(0,init)
           ~f:(fun (i,a) c -> (i+1,f i a c)))
   let fold2_exn t1 t2 ~init ~f = List.fold_left2 t1 t2 ~init ~f
@@ -282,11 +282,11 @@ module Make (Char: Api.BASIC_CHARACTER) :
       | h :: t, _ when index >= from && f h -> Some index
       | h :: t, _ -> find_from (index + 1) (virtual_length + 1) t
     in
-    find_from 0 0 s 
+    find_from 0 0 s
 
   let find_reverse ?from ?length s ~f =
     let length_of_s = List.length s in
-    let from = 
+    let from =
       match from with
       | None -> None
       | Some s when s < 0 -> Some length_of_s
@@ -298,7 +298,7 @@ module Make (Char: Api.BASIC_CHARACTER) :
     | Some i -> Some (length_of_s - 1 - i)
 
   let filter_map ?(from=0) ?length t ~f =
-    let rec filter_map_rec acc index virtual_length l = 
+    let rec filter_map_rec acc index virtual_length l =
       match l, length with
       | [], _ -> List.rev acc
       | _, Some lgth when lgth <= virtual_length -> List.rev acc

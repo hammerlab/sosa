@@ -26,6 +26,6 @@ let read_from_native_string ~buf ~index =
   try Some (buf.[index], 1)
   with _ -> None
 
-let is_whitespace = 
+let is_whitespace =
   function ' ' | '\t' | '\r' | '\n' -> true | _ -> false
 

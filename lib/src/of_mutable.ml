@@ -300,9 +300,9 @@ module Make
     let length_of_s = S.length s in
     if length_of_s = 0 then None
     else begin
-      let from = 
+      let from =
         match from with
-        | None -> length_of_s - 1 
+        | None -> length_of_s - 1
         | Some s when s < 0 -> -1
         | Some s when s >= length_of_s - 1 -> length_of_s - 1
         | Some s -> s

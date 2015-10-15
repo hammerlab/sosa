@@ -78,8 +78,8 @@ let to_native_string x =
   end;
   buf
 
-let is_whitespace c = 
-  try 
+let is_whitespace c =
+  try
     match char_of_int c with
     | ' ' | '\t' | '\r' | '\n' -> true | _ -> false
   with _ -> false

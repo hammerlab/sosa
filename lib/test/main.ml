@@ -113,7 +113,7 @@ module Benchmark = struct
        exps := (experiment, result) :: !exps
     | None ->
        benchmarks_table := (implementation, ref [experiment, result]) :: !benchmarks_table
-       
+
   let measure ?(repeats=1000) f =
     let start = now () in
     for i = 1 to repeats do
@@ -122,8 +122,8 @@ module Benchmark = struct
     let stop = (now ()) in
     (1000. *. (stop -. start) /. (float repeats))
 
-  let declare ?repeats ~implementation ~experiment f = 
-    if should_do_benchmarks then 
+  let declare ?repeats ~implementation ~experiment f =
+    if should_do_benchmarks then
       let time = measure ?repeats f in
        let result = sprintf "%.3f ms" time in
        add ~implementation ~experiment ~result
@@ -139,7 +139,7 @@ module Benchmark = struct
     in
     let row_widths =
       List.map first_row (fun s -> ref (String.length s)) in
-    (* say "row widths: %s" (String.concat ~sep:", " 
+    (* say "row widths: %s" (String.concat ~sep:", "
        (List.map row_widths (fun r -> sprintf "%d" !r))); *)
     let other_rows =
       List.map !benchmarks_table (fun (impl, l) ->
@@ -533,7 +533,7 @@ let do_basic_test (module Test : TEST_STRING) =
     test ~from:4 [0] 0 ~should_find:0;
     test ~from:4 [1;2;0] 0 ~should_find:2;
 
-    
+
     (* A test of index_of_character and index_of_character_reverse, we
            create a big cartesian product
            (nat_string, (from_index, char_to_find)) and we run both searches. *)
@@ -764,7 +764,7 @@ let do_basic_test (module Test : TEST_STRING) =
     let test ?from ?length l ~f ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
       (* say "test: %s l : %d" name (List.length l); *)
-      let s = 
+      let s =
         List.filter_map l Chr.of_int |>  Str.of_character_list in
       (* say "test: %s s: %d" name (Str.length s); *)
       let filtered =
@@ -853,16 +853,16 @@ let do_basic_test (module Test : TEST_STRING) =
       let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
       let on_converted =
         match on with
-        | `C c -> 
+        | `C c ->
           `Character (Option.value_exn ~msg:"Chr.of_int" (Chr.of_int c))
         | `S l ->
           `String (List.filter_map l Chr.of_int |>  Str.of_character_list)
       in
-      let res = 
+      let res =
         Str.split s ~on:on_converted in
       let res_list = List.map  res ~f:str_to_int_list
       in
-      test_assertf (res_list = expect) 
+      test_assertf (res_list = expect)
         "split: l: %s = %s on:(%s)\n    expect: {%s}\n     res: {%s}: %s."
         (int_list_to_string l)
         (Str.to_string_hum s)
@@ -903,7 +903,7 @@ let do_basic_test (module Test : TEST_STRING) =
     on_empty [] ~expect:[ [] ];
     on_empty [1] ~expect:[ [1] ];
     on_empty [1;2;4;5] ~expect:[ [1]; [2]; [4]; [5] ];
-  end;    
+  end;
 
   begin (* Test `find` *)
     let test ?from ?length ?should_find l ~f =
@@ -914,7 +914,7 @@ let do_basic_test (module Test : TEST_STRING) =
         "find: %s (%s, %s) expects  %s but got %s"
         (str_to_int_list s |> int_list_to_string)
         (int_option_to_string from)
-        (int_option_to_string length) 
+        (int_option_to_string length)
         (int_option_to_string should_find)
         (int_option_to_string res);
       if from = None then (
@@ -924,7 +924,7 @@ let do_basic_test (module Test : TEST_STRING) =
           "find: %s (%s →, %s) expects  %s but got %s"
           (str_to_int_list s |> int_list_to_string)
           (int_option_to_string from)
-          (int_option_to_string length) 
+          (int_option_to_string length)
           (int_option_to_string should_find)
           (int_option_to_string res);
       );
@@ -966,7 +966,7 @@ let do_basic_test (module Test : TEST_STRING) =
         "find_reverse: %s (%s, %s) expects  %s but got %s"
         (str_to_int_list s |> int_list_to_string)
         (int_option_to_string from)
-        (int_option_to_string length) 
+        (int_option_to_string length)
         (int_option_to_string should_find)
         (int_option_to_string res);
       if from = None then (
@@ -976,7 +976,7 @@ let do_basic_test (module Test : TEST_STRING) =
           "find_reverse: %s (%s → added, %s) expects  %s but got %s"
           (str_to_int_list s |> int_list_to_string)
           (int_option_to_string from)
-          (int_option_to_string length) 
+          (int_option_to_string length)
           (int_option_to_string should_find)
           (int_option_to_string res);
       );
@@ -1012,7 +1012,7 @@ let do_basic_test (module Test : TEST_STRING) =
   begin (* Test `strip` *)
     let test ?on ~whitespace l ~expect =
       let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
-      let expect_str = 
+      let expect_str =
         List.filter_map expect Chr.of_int |>  Str.of_character_list in
       let whitespace x = List.mem (Chr.to_int x) whitespace in
       let res = Str.strip ?on ~whitespace s in
@@ -1066,7 +1066,7 @@ let do_basic_test (module Test : TEST_STRING) =
           test_assertf (Str.take_while s ~f:(fun _ -> false) = Str.empty)
             "take_while-false (%S)" subject;
           let length = Random.int (Str.length s + 1) in
-          test_assertf (Str.take_while_with_index s ~f:(fun idx _ -> idx < length) 
+          test_assertf (Str.take_while_with_index s ~f:(fun idx _ -> idx < length)
                         = Str.sub_exn s ~index:0 ~length)
             "take_while < length (%S)" subject;
           let rint = Random.int 42 in
@@ -1296,9 +1296,9 @@ let do_basic_test (module Test : TEST_STRING) =
     in
     test [] ~init:0 ~expect:0 "empty";
     test [0] ~init:100 ~expect:100 "singleton, zero-indexed";
-    test [0;0;0;0;0] ~init:0 ~expect:10 
+    test [0;0;0;0;0] ~init:0 ~expect:10
       "adding the indices of 5 long string should be ten";
-    test [100;100;100;100] ~init:0 ~expect:406 
+    test [100;100;100;100] ~init:0 ~expect:406
       "test uses string values."
   end;
   begin (* Test `fold2_exn` *)

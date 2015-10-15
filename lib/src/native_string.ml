@@ -190,7 +190,7 @@ let mapi t ~f =
   let buffer = String.create (String.length t) in
   let ()     = String.iteri t ~f:(fun i c -> String.set buffer i (f i c)) in
   buffer
-(* TODO: Change this to 
+(* TODO: Change this to
   let mapi t ~f = String.mapi t ~f
   once we switch to 4.02 *)
 
@@ -245,9 +245,9 @@ let find_reverse ?from ?length s ~f =
   let length_of_s = String.length s in
   if length_of_s = 0 then None
   else begin
-    let from = 
+    let from =
       match from with
-      | None -> length_of_s - 1 
+      | None -> length_of_s - 1
       | Some s when s < 0 -> -1
       | Some s when s >= length_of_s - 1 -> length_of_s - 1
       | Some s -> s

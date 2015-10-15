@@ -52,7 +52,7 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
       let f () =
         (* Readjust the arguments: *)
         let length_of_t = length t in
-        let from = 
+        let from =
           if from <= 0 then 0 else min length_of_t from in
         let total_length_of_sub = length sub in
         let sub_index =
@@ -91,9 +91,9 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
       let f () =
         let length_of_t = length t in
         let last = length_of_t - 1 in
-        let from = 
+        let from =
           match from with
-          | None -> last 
+          | None -> last
           | Some f when f >= last -> last
           | Some f -> f in
         let total_length_of_sub = length sub in
@@ -139,7 +139,7 @@ module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
       let rec loop acc from =
         match S.index_of_character t ~from c with
         | Some index ->
-          loop (S.sub_exn t ~index:from ~length:(index - from) :: acc) 
+          loop (S.sub_exn t ~index:from ~length:(index - from) :: acc)
             (index + 1)
         | None ->
           (S.sub_exn t ~index:from ~length:(length_of_t - from) :: acc)
@@ -150,12 +150,12 @@ module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
       let rec loop acc from =
         match S.index_of_string t ~from ~sub:s with
         | Some index ->
-          loop (S.sub_exn t ~index:from ~length:(index - from) :: acc) 
+          loop (S.sub_exn t ~index:from ~length:(index - from) :: acc)
             (index + length_of_s)
         | None ->
           (S.sub_exn t ~index:from ~length:(length_of_t - from) :: acc)
       in
-      if length_of_s > 0 
+      if length_of_s > 0
       then List.rev (loop [] 0)
       else if length_of_t = 0
       then [ t ]
@@ -204,7 +204,7 @@ module Make_strip_function (S:
       | `Right ->
         let last = last_non () in
         sub_exn t ~index:0 ~length:(last + 1)
-    with 
+    with
     | Not_found -> empty
 end (* Make_strip_function *)
 
