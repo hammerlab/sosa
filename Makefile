@@ -5,6 +5,7 @@ BISECT_DIR=$(shell ocamlfind query bisect)
 default:
 	@echo "available targets:"
 	@echo "  build        compile sosa"
+	@echo "  test	        compile sosa_tests, a test suite"
 	@echo "  coverage     compile sosa with instrumented bisect_ppx coverage"
 	@echo "  cov_report   create a coverage report from the latest coverage run"
 	@echo "  clean        remove build directory"
