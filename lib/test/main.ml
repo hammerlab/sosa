@@ -1,41 +1,3 @@
-#! /bin/sh
-# This is a self-compiling OCaml script
-
-PACKAGES=nonstd,bigarray
-
-MD5CMD="md5sum"
-if [[ "$OSTYPE" =~ ^darwin ]]; then
-  MD5CMD="md5 -r"
-fi
-MD5=`$MD5CMD $0 | cut -d ' ' -f 1`
-BASE=/tmp/ocaml_script_$MD5/
-mkdir -p $BASE
-
-ML_FILE=${BASE}/source.ml
-EXEC=${BASE}/`basename $0`
-
-if test -f $BASE
-then
-  $EXEC $*
-  RETURN_CODE=$?
-else
-
-  SKIP=`awk '/^__OCAML_FOLLOWS__/ { print NR + 1; exit 0; }' $0`
-  echo "#$SKIP \"$0\"" > $ML_FILE
-  tail -n +$SKIP $0 >> $ML_FILE
-
-  if ocamlobjinfo _build/sosa.cmxa | grep Bisect
-  then
-    PACKAGES=$PACKAGES,bisect_ppx
-  fi
-  ocamlfind ocamlopt -g -I _build/ sosa.cmxa -thread -package $PACKAGES  -linkpkg -o $EXEC $ML_FILE \
-    && $EXEC $*
-  RETURN_CODE=$?
-fi
-exit $RETURN_CODE
-
-__OCAML_FOLLOWS__
-
 (*M
 
 Tests of the Sosa library
@@ -50,6 +12,7 @@ open Nonstd
 module String = StringLabels
 open Printf
 open Sosa
+open Sosa_utilities
 
 let say fmt = printf (fmt ^^ "\n%!")
 
@@ -150,7 +113,7 @@ module Benchmark = struct
        exps := (experiment, result) :: !exps
     | None ->
        benchmarks_table := (implementation, ref [experiment, result]) :: !benchmarks_table
-       
+
   let measure ?(repeats=1000) f =
     let start = now () in
     for i = 1 to repeats do
@@ -159,8 +122,8 @@ module Benchmark = struct
     let stop = (now ()) in
     (1000. *. (stop -. start) /. (float repeats))
 
-  let declare ?repeats ~implementation ~experiment f = 
-    if should_do_benchmarks then 
+  let declare ?repeats ~implementation ~experiment f =
+    if should_do_benchmarks then
       let time = measure ?repeats f in
        let result = sprintf "%.3f ms" time in
        add ~implementation ~experiment ~result
@@ -176,7 +139,7 @@ module Benchmark = struct
     in
     let row_widths =
       List.map first_row (fun s -> ref (String.length s)) in
-    (* say "row widths: %s" (String.concat ~sep:", " 
+    (* say "row widths: %s" (String.concat ~sep:", "
        (List.map row_widths (fun r -> sprintf "%d" !r))); *)
     let other_rows =
       List.map !benchmarks_table (fun (impl, l) ->
@@ -219,8 +182,8 @@ M*)
 module type TEST_STRING = sig
   val test_name: string
   val can_have_wrong_char: bool
-  module Chr: BASIC_CHARACTER
-  module Str: BASIC_STRING with type character = Chr.t
+  module Chr: Api.BASIC_CHARACTER
+  module Str: Api.BASIC_STRING with type character = Chr.t
 end
 
 let do_basic_test (module Test : TEST_STRING) =
@@ -570,7 +533,7 @@ let do_basic_test (module Test : TEST_STRING) =
     test ~from:4 [0] 0 ~should_find:0;
     test ~from:4 [1;2;0] 0 ~should_find:2;
 
-    
+
     (* A test of index_of_character and index_of_character_reverse, we
            create a big cartesian product
            (nat_string, (from_index, char_to_find)) and we run both searches. *)
@@ -801,7 +764,7 @@ let do_basic_test (module Test : TEST_STRING) =
     let test ?from ?length l ~f ~expect fmt =
       let name = ksprintf (fun s -> s) fmt in
       (* say "test: %s l : %d" name (List.length l); *)
-      let s = 
+      let s =
         List.filter_map l Chr.of_int |>  Str.of_character_list in
       (* say "test: %s s: %d" name (Str.length s); *)
       let filtered =
@@ -890,16 +853,16 @@ let do_basic_test (module Test : TEST_STRING) =
       let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
       let on_converted =
         match on with
-        | `C c -> 
+        | `C c ->
           `Character (Option.value_exn ~msg:"Chr.of_int" (Chr.of_int c))
         | `S l ->
           `String (List.filter_map l Chr.of_int |>  Str.of_character_list)
       in
-      let res = 
+      let res =
         Str.split s ~on:on_converted in
       let res_list = List.map  res ~f:str_to_int_list
       in
-      test_assertf (res_list = expect) 
+      test_assertf (res_list = expect)
         "split: l: %s = %s on:(%s)\n    expect: {%s}\n     res: {%s}: %s."
         (int_list_to_string l)
         (Str.to_string_hum s)
@@ -940,7 +903,7 @@ let do_basic_test (module Test : TEST_STRING) =
     on_empty [] ~expect:[ [] ];
     on_empty [1] ~expect:[ [1] ];
     on_empty [1;2;4;5] ~expect:[ [1]; [2]; [4]; [5] ];
-  end;    
+  end;
 
   begin (* Test `find` *)
     let test ?from ?length ?should_find l ~f =
@@ -951,7 +914,7 @@ let do_basic_test (module Test : TEST_STRING) =
         "find: %s (%s, %s) expects  %s but got %s"
         (str_to_int_list s |> int_list_to_string)
         (int_option_to_string from)
-        (int_option_to_string length) 
+        (int_option_to_string length)
         (int_option_to_string should_find)
         (int_option_to_string res);
       if from = None then (
@@ -961,7 +924,7 @@ let do_basic_test (module Test : TEST_STRING) =
           "find: %s (%s →, %s) expects  %s but got %s"
           (str_to_int_list s |> int_list_to_string)
           (int_option_to_string from)
-          (int_option_to_string length) 
+          (int_option_to_string length)
           (int_option_to_string should_find)
           (int_option_to_string res);
       );
@@ -1003,7 +966,7 @@ let do_basic_test (module Test : TEST_STRING) =
         "find_reverse: %s (%s, %s) expects  %s but got %s"
         (str_to_int_list s |> int_list_to_string)
         (int_option_to_string from)
-        (int_option_to_string length) 
+        (int_option_to_string length)
         (int_option_to_string should_find)
         (int_option_to_string res);
       if from = None then (
@@ -1013,7 +976,7 @@ let do_basic_test (module Test : TEST_STRING) =
           "find_reverse: %s (%s → added, %s) expects  %s but got %s"
           (str_to_int_list s |> int_list_to_string)
           (int_option_to_string from)
-          (int_option_to_string length) 
+          (int_option_to_string length)
           (int_option_to_string should_find)
           (int_option_to_string res);
       );
@@ -1049,7 +1012,7 @@ let do_basic_test (module Test : TEST_STRING) =
   begin (* Test `strip` *)
     let test ?on ~whitespace l ~expect =
       let s = List.filter_map l Chr.of_int |>  Str.of_character_list in
-      let expect_str = 
+      let expect_str =
         List.filter_map expect Chr.of_int |>  Str.of_character_list in
       let whitespace x = List.mem (Chr.to_int x) whitespace in
       let res = Str.strip ?on ~whitespace s in
@@ -1103,7 +1066,7 @@ let do_basic_test (module Test : TEST_STRING) =
           test_assertf (Str.take_while s ~f:(fun _ -> false) = Str.empty)
             "take_while-false (%S)" subject;
           let length = Random.int (Str.length s + 1) in
-          test_assertf (Str.take_while_with_index s ~f:(fun idx _ -> idx < length) 
+          test_assertf (Str.take_while_with_index s ~f:(fun idx _ -> idx < length)
                         = Str.sub_exn s ~index:0 ~length)
             "take_while < length (%S)" subject;
           let rint = Random.int 42 in
@@ -1333,9 +1296,9 @@ let do_basic_test (module Test : TEST_STRING) =
     in
     test [] ~init:0 ~expect:0 "empty";
     test [0] ~init:100 ~expect:100 "singleton, zero-indexed";
-    test [0;0;0;0;0] ~init:0 ~expect:10 
+    test [0;0;0;0;0] ~init:0 ~expect:10
       "adding the indices of 5 long string should be ten";
-    test [100;100;100;100] ~init:0 ~expect:406 
+    test [100;100;100;100] ~init:0 ~expect:406
       "test uses string values."
   end;
   begin (* Test `fold2_exn` *)
@@ -1589,19 +1552,19 @@ let () =
       let test_name = "List of natives"
       let can_have_wrong_char = false
       module Chr = Native_character
-      module Str = List_of (Native_character)
+      module Str = List_of.Make (Native_character)
   end);
   do_basic_test (module struct
       let test_name = "List of UTF-8 Integers"
       let can_have_wrong_char = true
       module Chr = Int_utf8_character
-      module Str = List_of (Int_utf8_character)
+      module Str = List_of.Make (Int_utf8_character)
   end);
   do_basic_test (module struct
       let test_name = "Of_mutable(utf8-int array)"
       let can_have_wrong_char = true
       module Chr = Int_utf8_character
-      module Str = Of_mutable (struct
+      module Str = Of_mutable.Make (struct
           type character = Chr.t
           type t = int array
           let empty = [| |]
@@ -1628,7 +1591,7 @@ let () =
           let compare_char = Int.compare
 
           let of_native_substring natstr ~offset ~length =
-            Make_native_conversions.of_native_substring
+            Conversions.of_native_substring
               ~empty ~init:(fun () -> ref [])
               ~on_new_character:(fun x c -> x := c :: !x)
               ~finalize:(fun x -> List.rev !x |> Array.of_list)
@@ -1636,11 +1599,11 @@ let () =
               natstr ~offset ~length
 
           let of_native_string natstr =
-            Make_native_conversions.of_native_string
+            Conversions.of_native_string
               of_native_substring natstr
 
           let to_native_string l =
-            Make_native_conversions.to_native_string_knowing_size
+            Conversions.to_native_string_knowing_size
               ~future_size:(fun l ->
                   let s = ref 0 in
                   Array.iter l ~f:(fun c -> s := !s + Chr.size c);
@@ -1657,7 +1620,7 @@ let () =
       open Bigarray
       type char_bigarray = (char, int8_unsigned_elt, c_layout) Array1.t
       module Chr = Native_character
-      module Str = Of_mutable (struct
+      module Str = Of_mutable.Make (struct
           type character = Chr.t
           type t = char_bigarray
           let empty = Array1.create char c_layout 0
@@ -1689,7 +1652,7 @@ let () =
           let compare_char = Char.compare
 
           let of_native_substring natstr ~offset ~length =
-            Make_native_conversions.of_native_substring
+            Conversions.of_native_substring
               ~empty ~init:(fun () -> ref [])
               ~on_new_character:(fun x c -> x := c :: !x)
               ~finalize:(fun x ->
@@ -1707,7 +1670,7 @@ let () =
             with _ -> `Error `out_of_bounds
 
           let of_native_string natstr =
-            Make_native_conversions.of_native_string of_native_substring natstr
+            Conversions.of_native_string of_native_substring natstr
 
           let to_native_string l =
             let s = String.make (Array1.dim l) '0' in

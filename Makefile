@@ -1,10 +1,11 @@
 BISECT_DIR=$(shell ocamlfind query bisect)
 
-.PHONY: clean build install uninstall default
+.PHONY: clean build install uninstall default doc
 
 default:
 	@echo "available targets:"
 	@echo "  build        compile sosa"
+	@echo "  test	        compile sosa_tests, a test suite"
 	@echo "  coverage     compile sosa with instrumented bisect_ppx coverage"
 	@echo "  cov_report   create a coverage report from the latest coverage run"
 	@echo "  clean        remove build directory"
@@ -14,24 +15,31 @@ default:
 	@echo "  doc          create documentation"
 
 build:
-	ocamlbuild sosa.cmo sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
+	ocamlbuild -use-ocamlfind -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
 
 coverage:
-	ocamlbuild -use-ocamlfind -package bisect_ppx sosa.cmo sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
+	ocamlbuild -use-ocamlfind -package bisect_ppx -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
+
+test:
+	ocamlbuild -use-ocamlfind -package nonstd -package unix -package bigarray -I lib/src -I lib/test main.native  && \
+	rm -f main.native  && \
+	mv _build/lib/test/main.native sosa_tests
+
 
 clean:
-	ocamlbuild -clean
+	ocamlbuild -clean && \
+	rm -f main.native
 
 install:
 	ocamlfind install sosa META \
-		_build/sosa.cmi \
-		_build/sosa.cmo \
-		_build/sosa.cmx \
-		_build/sosa.a \
-		_build/sosa.o \
-		_build/sosa.cma \
-		_build/sosa.cmxa \
-		_build/sosa.cmxs
+		_build/lib/src/sosa.cmi \
+		_build/lib/src/sosa.cmo \
+		_build/lib/src/sosa.cmx \
+		_build/lib/src/sosa.a \
+		_build/lib/src/sosa.o \
+		_build/lib/src/sosa.cma \
+		_build/lib/src/sosa.cmxa \
+		_build/lib/src/sosa.cmxs
 
 uninstall:
 	ocamlfind remove sosa
@@ -41,8 +49,14 @@ merlinize:
 	echo 'B _build' >> .merlin
 
 doc:
-	mkdir -p doc
-	ocamlfind ocamldoc  -charset UTF-8 -keep-code -colorize-code -html sosa.ml -d doc/
+	cp lib/src/sosa.mlpack sosa.odocl && \
+	ocamlbuild -I lib/src/ sosa.docdir/index.html && \
+	rm sosa.docdir && \
+	ln -s _build/sosa.docdir/ doc && \
+	rm sosa.odocl
+
+
+##ocamlfind ocamldoc -charset UTF-8 -keep-code -colorize-code -html lib/src/sosa.odocl -d doc/
 
 cov_report:
 	cp _build/sosa.cmp . && \
