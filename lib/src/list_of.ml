@@ -7,7 +7,7 @@ module F = Functors
 
 module Make (Char: Api.BASIC_CHARACTER) :
   Api.BASIC_STRING
-  with type character := Char.t
+  with type character = Char.t
   with type t = Char.t list = struct
 
   type character = Char.t

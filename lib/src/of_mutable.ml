@@ -3,7 +3,7 @@ open Printf
 module F = Functors
 
 module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
-  with type character := S.character
+  with type character = S.character
   with type t = S.t = struct
 
   include S
