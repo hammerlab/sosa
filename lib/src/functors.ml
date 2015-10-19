@@ -309,6 +309,7 @@ module Make_native (B :
   type character = char
   type t = B.t
 
+  let max_string_length = Some Sys.max_string_length
   let empty = B.empty
   let compare = B.compare
   let is_empty t = (compare B.empty t = 0)
