@@ -62,8 +62,8 @@ module type BASIC_CHARACTER = sig
       meaning of [index] is implementation dependent (can be the {i
       index-th} byte, the {i index-th} bit, etc.). *)
 
-  val to_native_bytes: t -> Bytes.t
-  (** [to_native_bytes c] creates a string containing the
+  val to_native_string: t -> String.t
+  (** [to_native_string c] creates a string containing the
       serialization of the character [c] (if [size c] is not a
       multiple of 8, the end-padding is undefined). *)
 

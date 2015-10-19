@@ -68,7 +68,7 @@ let read_from_native_string ~buf ~index =
     Some (!the_int, size)
   with _ -> None
 
-let to_native_bytes x =
+let to_native_string x =
   let buf = Bytes.make (size x) 'B' in
   begin match write_to_native_bytes x ~buf ~index:0 with
   | `Ok _ -> ()
@@ -76,7 +76,7 @@ let to_native_bytes x =
     dbg "buf: %S siz: %d x: %d" (Bytes.to_string buf) (size x) x;
     assert false
   end;
-  buf
+  Bytes.to_string buf
 
 let is_whitespace c =
   try
