@@ -10,8 +10,8 @@ module N = Functors.Make_native(struct
 
 include N
 
-let to_native_string x = StringLabels.copy x
-let of_native_string x = return (StringLabels.copy x)
+let to_native_string x = x
+let of_native_string x = return x
 let of_native_substring x ~offset ~length =
   if length = 0 then return ""
   else
