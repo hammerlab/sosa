@@ -43,10 +43,7 @@ let test_assert msg cond =
 let test_assertf cond fmt =
   ksprintf (fun s -> test_assert s cond) fmt
 
-let make_string l f =
-  let s = String.create l in
-  for i = 0 to l - 1 do s.[i] <- f i; done;
-  s
+let make_string = String.init
 
 let list_dot_init l f =
   Array.init l f |> Array.to_list
@@ -183,7 +180,7 @@ module type TEST_STRING = sig
   val test_name: string
   val can_have_wrong_char: bool
   module Chr: Api.BASIC_CHARACTER
-  module Str: Api.BASIC_STRING with type character = Chr.t
+  module Str: Api.BASIC_STRING with type character := Chr.t
 end
 
 let do_basic_test (module Test : TEST_STRING) =
@@ -858,8 +855,7 @@ let do_basic_test (module Test : TEST_STRING) =
         | `S l ->
           `String (List.filter_map l Chr.of_int |>  Str.of_character_list)
       in
-      let res =
-        Str.split s ~on:on_converted in
+      let res = Str.split s ~on:on_converted in
       let res_list = List.map  res ~f:str_to_int_list
       in
       test_assertf (res_list = expect)
@@ -868,7 +864,7 @@ let do_basic_test (module Test : TEST_STRING) =
         (Str.to_string_hum s)
         (match on with
          | `C c -> sprintf "`Character %d"  c
-         | `S s -> sprintf "`String %s" (int_list_to_string s))
+         | `S s -> sprintf "`Bytes %s" (int_list_to_string s))
         (List.map ~f:int_list_to_string expect |> String.concat ~sep:" -- ")
         (List.map ~f:int_list_to_string res_list |> String.concat ~sep:" -- ")
         (List.map ~f:Str.to_string_hum res |> String.concat ~sep:"; ")
@@ -1546,7 +1542,7 @@ let () =
       let test_name = "Both natives"
       let can_have_wrong_char = false
       module Chr = Native_character
-      module Str = Native_string
+      module Str = Native_bytes
     end);
   do_basic_test (module struct
       let test_name = "List of natives"
@@ -1568,6 +1564,7 @@ let () =
           type character = Chr.t
           type t = int array
           let empty = [| |]
+          let max_string_length = Some Sys.max_array_length
           let length = Array.length
           let make = Array.make
           let get t i = t.(i)
@@ -1609,8 +1606,9 @@ let () =
                   Array.iter l ~f:(fun c -> s := !s + Chr.size c);
                   !s)
               ~iter:(fun a ~f -> Array.iter a ~f)
-              ~write_char_to_native_string:Chr.write_to_native_string
+              ~write_char_to_native_bytes:Chr.write_to_native_bytes
               l
+            |> Bytes.to_string
 
         end)
   end);
@@ -1624,6 +1622,7 @@ let () =
           type character = Chr.t
           type t = char_bigarray
           let empty = Array1.create char c_layout 0
+          let max_string_length = None
           let length = Array1.dim
           let make len c  =
             let res = Array1.create char c_layout len in
@@ -1673,11 +1672,7 @@ let () =
             Conversions.of_native_string of_native_substring natstr
 
           let to_native_string l =
-            let s = String.make (Array1.dim l) '0' in
-            for i = 0 to (Array1.dim l) - 1 do
-              s.[i] <- Array1.get l i
-            done;
-            s
+            String.init (Array1.dim l) (Array1.get l)
 
         end)
   end);

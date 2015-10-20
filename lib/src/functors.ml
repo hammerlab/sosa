@@ -1,4 +1,5 @@
-(* Components for implementing common logic throughout implementations.*)
+(** Components for implementing common logic throughout Sosa's implementation.*)
+
 open Sosa_pervasives
 open Printf
 
@@ -283,3 +284,337 @@ module Make_split_at_index_functions (A:
 
 
   end (* Make_split_at_index_functions *)
+
+module Make_native (B :
+  sig
+    type t
+    val empty : t
+    val length : t -> int
+    val get : t -> int -> char
+    val make : int -> char -> t
+    val init : int -> f:(int -> char) -> t
+    val compare : t -> t -> int
+    val concat : sep:t -> t list -> t
+    val iter : f:(char -> unit) -> t -> unit
+    val iteri : f:(int -> char -> unit) -> t-> unit
+    val map : f:(char -> char) -> t -> t
+    val mapi : f:(int -> char -> char) -> t -> t
+    val index_from : t -> int -> char -> int
+    val rindex_from : t -> int -> char -> int
+    val sub : t -> pos:int -> len:int -> t
+    val of_buffer : Buffer.t -> t
+    val string_for_output : t -> string
+  end) = struct
+
+  type character = char
+  type t = B.t
+
+  let max_string_length = Some Sys.max_string_length
+  let empty = B.empty
+  let compare = B.compare
+  let is_empty t = (compare B.empty t = 0)
+
+  let make = B.make
+  let length = B.length
+
+  let of_character = B.make 1
+
+  let of_character_list cl =
+    let r = ref cl in
+    B.init (List.length cl) ~f:(fun _ ->
+      let c = List.hd !r in
+      r := List.tl !r;
+      c)
+
+  let to_character_list s =
+    let res = ref [] in
+    for i = length s - 1 downto 0 do
+      res := (B.get s i) :: !res
+    done;
+    !res
+
+  let get s ~index =
+    try Some (B.get s index)
+    with _ -> None
+
+  (* Since our set always returns a copy! *)
+  let set s ~index ~v =
+    if index > length s - 1
+    then None
+    else Some (B.mapi (fun i c -> if i = index then v else c) s)
+
+  let get_exn s ~index = B.get s index
+
+  let set_exn s ~index ~v =
+    match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
+
+  let compare = B.compare
+
+  let compare_substring (a, idxa, lena) (b, idxb, lenb) =
+    let module With_exns = struct
+      exception Return of int
+      exception Left_out of int
+      exception Right_out of int
+      let f () =
+        try
+          let shortest = min lena lenb in
+          for i = 0 to shortest - 1 do
+            let ca = try B.get a (idxa + i) with _ -> raise (Left_out i) in
+            let cb = try B.get b (idxb + i) with _ -> raise (Right_out i) in
+            let c = Char.compare ca cb in
+            if c <> 0
+            then raise (Return c)
+            else ()
+          done;
+          (Pervasives.compare (lena : int) lenb)
+        with
+        | Return c -> c
+        | Left_out c -> (* a went out of bounds at 'c + idxa' *) -1
+        | Right_out _ -> (* b went out of bounds at 'c + idxb' *)
+          (* so, a is “longer” *) 1
+    end in
+    With_exns.f ()
+
+  type s = t
+  module T_length_and_compsub = struct
+    type t = s
+    let length = length
+    let compare_substring = compare_substring
+  end
+
+  include Compare_substring_strict_of_loose(T_length_and_compsub)
+  include Make_index_of_string(T_length_and_compsub)
+
+  let concat ?(sep=B.empty) sl = B.concat ~sep sl
+
+  let fold t ~init ~f =
+    let res = ref init in
+    for i = 0 to length t - 1 do
+      res := f !res (B.get t i);
+    done;
+    !res
+
+  let foldi t ~init ~f =
+    let res = ref init in
+    for i = 0 to length t - 1 do
+      res := f i !res (B. get t i);
+    done;
+    !res
+
+  let fold2_exn t1 t2 ~init ~f =
+    let lgth1 = (length t1) in
+    let lgth2 = (length t2) in
+    match lgth1, lgth2 with
+    | 0, 0 -> init
+    | _, _ when lgth1 <> lgth2 -> failwith "fold2_exn"
+    | lgth1, lgth2 ->
+        let res = ref init in
+        for i = 0 to lgth1 - 1 do
+          res := f !res (B.get t1 i) (B.get t2 i);
+        done;
+        !res
+
+  let sub_exn t ~index ~length =
+    if length = 0 then empty else B.sub t ~pos:index ~len:length
+
+  let sub t ~index ~length =
+    if length = 0 then Some empty else
+      try Some (B.sub t ~pos:index ~len:length)
+      with e -> None
+
+  let slice_exn ?(start=0) ?finish t =
+    let length_of_t = length t in
+    let bound_check strict m x =
+      let out_of_ub = if strict then x > length_of_t else x >= length_of_t in
+      if x < 0 || (not (is_empty t) && out_of_ub) then
+        Printf.ksprintf failwith "slice_exn: invalid %s %d" m x
+      else x
+    in
+    let _      = bound_check false "start" start
+    and finish =
+      match finish with
+      | None   -> length_of_t
+      | Some f -> bound_check true "finish" f
+    in
+    sub_exn t ~index:start ~length:(finish - start)
+
+  let slice ?start ?finish t =
+    try Some (slice_exn ?start ?finish t)
+    with _ -> None
+
+  let iter t ~f = B.iter t ~f
+  let iteri t ~f = B.iteri t ~f
+  let iter_reverse t ~f =
+    for i = length t -1 downto 0 do
+      f (get_exn t i)
+    done
+
+  let rev t =
+    let lgth = length t in
+    match lgth with
+    | 0 -> empty
+    | lgth ->
+        let o = lgth - 1 in
+        B.mapi ~f:(fun i _ -> B.get t (o - i)) t
+
+  let map t ~f = B.map t ~f
+
+  let map2_exn t1 t2 ~f =
+    let lgth1 = (length t1) in
+    let lgth2 = (length t2) in
+    match lgth1, lgth2 with
+    | 0, 0 -> empty
+    | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
+    | lgth1, lgth2 ->
+        B.mapi ~f:(fun i c -> f c (B.get t2 i)) t1
+
+  let mapi t ~f = B.mapi t ~f
+
+  let for_all t ~f =
+    try (iter t (fun x -> if not (f x) then raise Not_found else ()); true)
+    with Not_found -> false
+
+  let exists t ~f =
+    try (iter t (fun x -> if f x then raise Not_found else ()); false)
+    with Not_found -> true
+
+  let index_of_character t ?(from=0) c =
+    let from = if from <= 0 then 0 else min (length t) from in
+    try Some (B.index_from t from c)
+    with _ -> None
+
+  let index_of_character_reverse t ?from c =
+    let from =
+      let length_of_t = length t in
+      match from with
+      | None -> length_of_t - 1
+      | Some s when s < 0 -> -1
+      | Some s when s > length_of_t - 1 -> length_of_t - 1
+      | Some s -> s
+    in
+    try Some (B.rindex_from t from c)
+    with _ -> None
+
+  let resize_from_length ~from ?length ~length_of_s =
+    let from = if from <= 0 then 0 else min length_of_s from in
+    let length =
+      match length with
+      | None -> length_of_s - from
+      | Some lg when lg <= 0 -> 0
+      | Some lg -> min (length_of_s - from) lg
+    in
+    (from, length)
+
+  let find ?(from=0) ?length s ~f =
+    let length_of_s = B.length s in
+    let from, length = resize_from_length ~from ?length ~length_of_s in
+    let found = ref None in
+    let i = ref 0 in
+    while !found = None && !i  < length do
+      if f (get_exn s (!i + from))
+      then found := Some (!i + from)
+      else incr i
+    done;
+    !found
+
+  let find_reverse ?from ?length s ~f =
+    let length_of_s = B.length s in
+    if length_of_s = 0 then None
+    else begin
+      let from =
+        match from with
+        | None -> length_of_s - 1
+        | Some s when s < 0 -> -1
+        | Some s when s >= length_of_s - 1 -> length_of_s - 1
+        | Some s -> s
+      in
+      let length =
+        match length with
+        | None -> from + 1
+        | Some l when l <= 0 -> 0
+        | Some l when l >= from + 1 -> from + 1
+        | Some l -> l
+      in
+      let found = ref None in
+      let i = ref from in
+      while !found = None && !i >= from - length + 1 do
+        (* dbg "i: %d from: %d length: %d" !i from length; *)
+        if f (get_exn s !i)
+        then found := Some (!i)
+        else decr i
+      done;
+      !found
+    end
+
+  let filter_map ?(from=0) ?length s ~f =
+    let length_of_s = B.length s in
+    let from, length = resize_from_length ~from ?length ~length_of_s in
+    if length = 0 then empty
+    else begin
+      let b = Buffer.create length in
+      for i = 0 to length - 1 do
+        match f (get_exn s (i + from)) with
+        | Some c -> Buffer.add_char b c
+        | None -> ()
+      done;
+      B.of_buffer b
+    end
+
+  let filter ?from ?length s ~f =
+      filter_map ?from ?length s ~f:(fun c -> if f c then Some c else None)
+
+  include Make_strip_function (struct
+      type t = s
+      type character = char
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
+      let find = find
+      let find_reverse = find_reverse
+      let is_whitespace = Native_character.is_whitespace
+    end)
+
+  include Make_split_function(struct
+      type t = s
+      type character = char
+      let length = length
+      let sub_exn = sub_exn
+      let index_of_string = index_of_string
+      let index_of_character = index_of_character
+    end)
+
+  include Make_prefix_suffix_array (struct
+      type t = s
+      type character = char
+      let length = length
+      let get = B.get
+      let sub_exn = sub_exn
+    end)
+
+  include Make_split_at_index_functions(struct
+      type t = s
+      type character = char
+      let empty = empty
+      let length = length
+      let sub_exn = sub_exn
+    end)
+
+  module Make_output (Model: Api.OUTPUT_MODEL) = struct
+
+    let output chan t = Model.output chan (B.string_for_output t)
+
+  end
+
+  let take_while_with_index t ~f =
+    let buf = Buffer.create (length t) in
+    let rec loop idx =
+      match get t idx with
+      | Some c when f idx c -> Buffer.add_char buf c; loop (idx + 1)
+      | _ -> ()
+    in
+    loop 0;
+    B.of_buffer buf
+
+  let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
+
+end  (* Make_native *)

@@ -2,9 +2,7 @@ open Sosa_pervasives
 open Printf
 module F = Functors
 
-module Make
-    (S: Api.MINIMALISTIC_MUTABLE_STRING) :
-  Api.BASIC_STRING
+module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
   with type character = S.character
   with type t = S.t = struct
 
@@ -404,4 +402,4 @@ module Make
 
   let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
 
-end (* Of_mutable *)
+end (* Make *)
