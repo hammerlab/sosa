@@ -18,12 +18,12 @@ let to_string_hum x =
   if is_print x then String.make 1 x
   else sprintf "0x%2x" (int_of_char x)
 
-let write_to_native_string c ~buf ~index =
-  try buf.[index] <- c; return 1
+let write_to_native_bytes c ~buf ~index =
+  try Bytes.set buf index c; return 1
   with _ -> fail `out_of_bounds
 
 let read_from_native_string ~buf ~index =
-  try Some (buf.[index], 1)
+  try Some (String.get buf index, 1)
   with _ -> None
 
 let is_whitespace =

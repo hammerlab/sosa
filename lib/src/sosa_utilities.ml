@@ -50,12 +50,12 @@ module Conversions = struct
 
 
   let to_native_string_knowing_size
-      ~future_size ~iter ~write_char_to_native_string l =
+      ~future_size ~iter ~write_char_to_native_bytes l =
     let length = future_size l in
-    let buf = String.make length 'B' in
+    let buf = Bytes.make length 'B' in
     let index = ref 0 in
     iter l ~f:begin fun c ->
-      match write_char_to_native_string c ~buf ~index:!index with
+      match write_char_to_native_bytes c ~buf ~index:!index with
       | `Ok siz ->  index := !index + siz
       | `Error `out_of_bounds ->
         failwith "Bug in Make_native_conversions.to_native_string"

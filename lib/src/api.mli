@@ -7,7 +7,6 @@ type ('a, 'b) result = [
 (** The type [result] is a reusable version the classical [Result.t]
     type. *)
 
-
 (** A monadic thread model (like [Lwt], [Async]) and an [output]
     function. *)
 module type OUTPUT_MODEL = sig
@@ -15,11 +14,10 @@ module type OUTPUT_MODEL = sig
   type ('a, 'b, 'c) thread
   (** The type of the threads, the type parameters are there in case
       the user needs up to 3 of them.
-      
+
       For instance, if implement with [Lwt], we will have [type ('a, 'b, 'c)
       thread = 'a Lwt.t], but with [Pvem.DEFERRED_RESULT]: [type ('a, 'b, 'c)
       thread = ('a, 'b) Deferred_result.t]. *)
-
 
   type ('a, 'b, 'c) channel
   (** The of the channels, channels can have up to 3 type-parameters
@@ -55,10 +53,10 @@ module type BASIC_CHARACTER = sig
 
   val size: t -> int
   (** Get the size of the character, the exact semantics are
-      implementation-specific (c.f. {!write_to_native_string}) *)
+      implementation-specific (c.f. {!write_to_native_bytes}) *)
 
-  val write_to_native_string: t -> buf:String.t -> index:int -> (int, [> `out_of_bounds]) result
-  (** [write_to_native_string c ~buf ~index] serializes
+  val write_to_native_bytes: t -> buf:Bytes.t -> index:int -> (int, [> `out_of_bounds]) result
+  (** [write_to_native_bytes c ~buf ~index] serializes
       the character [c] at position [index] in the native string
       [buf] (writing [size c] units). Note, as with {!size} that the
       meaning of [index] is implementation dependent (can be the {i
@@ -120,6 +118,10 @@ module type BASIC_STRING = sig
   type t
   (** The type of the string. *)
 
+  val max_string_length : int option
+  (** If the representation of strings is bounded,
+      the maximum length of a string. *)
+
   val empty: t
   (** An “empty” string. *)
 
@@ -127,7 +129,10 @@ module type BASIC_STRING = sig
   (** Test whether a string is empty. *)
 
   val make: int -> character -> t
-  (** Build a new string like [String.make]. *)
+  (** Build a new string like [String.make].
+
+   @raise Invalid_argument if size is [< 0] or
+     [> {max_string_length}] if it is bounded.*)
 
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
@@ -140,7 +145,6 @@ module type BASIC_STRING = sig
 
   val to_character_list: t -> character list
   (** Explode a string into a list of characters. *)
-
 
   val get: t -> index:int -> character option
   (** Get the n-th char, indexes are not necessarily bytes, they can
@@ -306,7 +310,7 @@ module type BASIC_STRING = sig
   val index_of_character: t -> ?from:int -> character -> int option
   (** Find the first occurrence of a character in the string (starting
       at position [from]).
-      
+
       Default value for [from] is [0].
       If [from] is negative, [0] will be used.
       If [from >= length t], [None] will be returned.
@@ -324,7 +328,7 @@ module type BASIC_STRING = sig
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
   (** Find the first occurrence of the substring [(sub, sub_index,
       sub_length)] in a given string, starting at index [from].
-  
+
       The [from] parameter behaves like for {!index_of_character}.
 
       The [(sub_index, sub_length)] parameters are constrained to [(0, length
@@ -337,7 +341,7 @@ module type BASIC_STRING = sig
 
   val index_of_string_reverse: ?from:int ->
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
-  (** Do like [index_of_string] but start from the end of the string. 
+  (** Do like [index_of_string] but start from the end of the string.
 
       The [from] parameter behaves like for {!index_of_character_reverse}.
 
@@ -357,9 +361,9 @@ module type BASIC_STRING = sig
       default is to use the whole string,  “out-of-bound” values are restricted
       to the bounds of the string). *)
 
-  val filter_map: ?from:int -> ?length:int -> t -> 
+  val filter_map: ?from:int -> ?length:int -> t ->
     f:(character -> character option) -> t
-  (** Create a new string with the characters for which [f c] returned 
+  (** Create a new string with the characters for which [f c] returned
       [Some c]. One can restrict to the sub-string [(from, length)] (the
       default is to use the whole string, “out-of-bound” values are restricted
       to the bounds of the string). *)
@@ -370,10 +374,10 @@ module type BASIC_STRING = sig
       default is to use the whole string, “out-of-bound” values are restricted
       to the bounds of the string). *)
 
-  val split: t -> 
+  val split: t ->
     on:[ `Character of character | `String of t ] ->
     t list
-  (** Split the string using [on] as separator. 
+  (** Split the string using [on] as separator.
       Splitting the empty string returns  [[empty]], splitting [on] the empty
       string explodes the string into a list of one-character strings. *)
 
@@ -386,7 +390,8 @@ module type BASIC_STRING = sig
       the implemented character.
   *)
 
-  module Make_output: functor (Model: OUTPUT_MODEL) -> sig
+  (*module Make_output: functor (Model: OUTPUT_MODEL) -> sig *)
+  module Make_output (Model : OUTPUT_MODEL) : sig
 
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
     (** Output a string to a channel. *)
@@ -427,21 +432,30 @@ module type UNSAFELY_MUTABLE = sig
 
 end (* UNSAFELY_MUTABLE *)
 
-(** Native {i OCaml} character. *) 
+(** Native {i OCaml} character. *)
 module type NATIVE_CHARACTER = BASIC_CHARACTER with type t = char
 
-(** Native {i OCaml} string. *) 
+(** Native {i OCaml} string. *)
 module type NATIVE_STRING = sig
 
   include BASIC_STRING
     with type t = String.t
     with type character = char
 
+end (* NATIVE_STRING *)
+
+(** Native {i OCaml} byte. *)
+module type NATIVE_BYTES = sig
+
+  include BASIC_STRING
+    with type t = Bytes.t
+    with type character = char
+
   include UNSAFELY_MUTABLE
-    with type t := String.t
+    with type t := Bytes.t
     with type character := char
 
-end (* NATIVE_STRING *)
+end (* NATIVE_BYTES *)
 
 (** Abstract mutable string used as argument of the {!module:Of_mutable} functor. *)
 module type MINIMALISTIC_MUTABLE_STRING = sig
@@ -449,6 +463,7 @@ module type MINIMALISTIC_MUTABLE_STRING = sig
   type t
 
   val empty: t
+  val max_string_length : int option
   val make: int -> character -> t
   val length: t -> int
   val compare: t -> t -> int

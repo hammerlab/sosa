@@ -17,6 +17,8 @@ module Make (Char: Api.BASIC_CHARACTER) :
   let empty = []
   let is_empty = (=) []
 
+  let max_string_length = None
+
   let make length c =
     let rec loop n acc =
       if n >= length then acc else loop (n + 1) (c :: acc)
@@ -80,8 +82,9 @@ module Make (Char: Api.BASIC_CHARACTER) :
     Conversions.to_native_string_knowing_size
       ~future_size:(fun l ->
           List.fold_left l ~init:0 ~f:(fun sum c -> sum + Char.size c))
-      ~iter ~write_char_to_native_string:Char.write_to_native_string
+      ~iter ~write_char_to_native_bytes:Char.write_to_native_bytes
       l
+    |> Bytes.to_string
 
   let to_string_hum l = sprintf "%S" (to_native_string l)
 
@@ -342,6 +345,7 @@ module Make (Char: Api.BASIC_CHARACTER) :
     let output chan l =
       List.fold_left l ~init:(Model.return ()) ~f:(fun prev_m c ->
           prev_m >>= fun () ->
+          (* TODO: Safe to call Bytes.unsafe_to_string? *)
           Model.output chan (Char.to_native_string c))
 
   end
@@ -356,4 +360,4 @@ module Make (Char: Api.BASIC_CHARACTER) :
     loop 0 [] t
   let take_while t ~f = take_while_with_index t ~f:(fun _ c -> f c)
 
-end (* S *)
+end (* Make *)
