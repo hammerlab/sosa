@@ -17,6 +17,8 @@ module Make (Char: Api.BASIC_CHARACTER) :
   let empty = []
   let is_empty = (=) []
 
+  let max_string_length = None
+
   let make length c =
     let rec loop n acc =
       if n >= length then acc else loop (n + 1) (c :: acc)

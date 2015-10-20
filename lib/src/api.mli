@@ -118,6 +118,10 @@ module type BASIC_STRING = sig
   type t
   (** The type of the string. *)
 
+  val max_string_length : int option
+  (** If the representation of strings is bounded,
+      the maximum length of a string. *)
+
   val empty: t
   (** An “empty” string. *)
 
@@ -127,7 +131,8 @@ module type BASIC_STRING = sig
   val make: int -> character -> t
   (** Build a new string like [String.make].
 
-   @raise Invalid_argument if size is [< 0] or TODO *)
+   @raise Invalid_argument if size is [< 0] or
+     [> {max_string_length}] if it is bounded.*)
 
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
@@ -458,6 +463,7 @@ module type MINIMALISTIC_MUTABLE_STRING = sig
   type t
 
   val empty: t
+  val max_string_length : int option
   val make: int -> character -> t
   val length: t -> int
   val compare: t -> t -> int
