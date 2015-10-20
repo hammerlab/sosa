@@ -346,7 +346,7 @@ module Make_native (B :
   let get_exn s ~index = B.get s index
 
   let set_exn s ~index ~v =
-    match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
+    match set s ~index ~v with None -> invalid_arg "set_exn" | Some s -> s
 
   let compare = B.compare
 
@@ -406,7 +406,7 @@ module Make_native (B :
     let lgth2 = (length t2) in
     match lgth1, lgth2 with
     | 0, 0 -> init
-    | _, _ when lgth1 <> lgth2 -> failwith "fold2_exn"
+    | _, _ when lgth1 <> lgth2 -> invalid_arg "fold2_exn"
     | lgth1, lgth2 ->
         let res = ref init in
         for i = 0 to lgth1 - 1 do
@@ -427,7 +427,7 @@ module Make_native (B :
     let bound_check strict m x =
       let out_of_ub = if strict then x > length_of_t else x >= length_of_t in
       if x < 0 || (not (is_empty t) && out_of_ub) then
-        Printf.ksprintf failwith "slice_exn: invalid %s %d" m x
+        Printf.ksprintf invalid_arg "slice_exn: invalid %s %d" m x
       else x
     in
     let _      = bound_check false "start" start
@@ -464,7 +464,7 @@ module Make_native (B :
     let lgth2 = (length t2) in
     match lgth1, lgth2 with
     | 0, 0 -> empty
-    | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
+    | _, _ when lgth1 <> lgth2 -> invalid_arg "map2_exn"
     | lgth1, lgth2 ->
         B.mapi ~f:(fun i c -> f c (B.get t2 i)) t1
 
