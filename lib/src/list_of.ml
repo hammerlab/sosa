@@ -43,9 +43,9 @@ module Make (Char: Api.BASIC_CHARACTER) :
     loop 0 [] s
 
   let get_exn s ~index =
-    match get s ~index with None -> failwith "get_exn" | Some s -> s
+    match get s ~index with None -> invalid_arg "get_exn" | Some s -> s
   let set_exn s ~index ~v =
-    match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
+    match set s ~index ~v with None -> invalid_arg "set_exn" | Some s -> s
 
   let iter t ~f = List.iter t ~f
   let iteri t ~f = List.iteri t ~f
@@ -119,17 +119,17 @@ module Make (Char: Api.BASIC_CHARACTER) :
   let sub_exn t ~index ~length =
     match sub t ~index ~length with
     | Some s -> s
-    | None -> ksprintf failwith "sub_exn(%d,%d)" index length
+    | None -> ksprintf invalid_arg "sub_exn(%d,%d)" index length
 
   let slice_exn ?(start=0) ?finish t =
     let length_of_t = List.length t in
     if start < 0 || (not (is_empty t) && start >= length_of_t) then
-      ksprintf failwith "slice_exn: invalid start %d" start
+      ksprintf invalid_arg "slice_exn: invalid start %d" start
     else
       match finish with
       | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
       | Some f -> if f < 0 || f > length_of_t then
-                    ksprintf failwith "slice_exn: invalid finish %d" f
+                    ksprintf invalid_arg "slice_exn: invalid finish %d" f
                   else
                     sub_exn t ~index:start ~length:(f - start)
 
@@ -192,20 +192,16 @@ module Make (Char: Api.BASIC_CHARACTER) :
     let l,r = unrevSplit t index in
     r
 
-
   let index_of_character t ?(from=0) c =
-    let index = ref 0 in
-    try begin
-      List.iter t ~f:(fun x ->
-          if !index >= from
-          then
-            if x = c
-            then failwith "found"
-            else incr index
-          else incr index);
-      None
-    end
-    with _ -> Some !index
+    let rec loop index = function
+      | []      -> None
+      | x :: tl ->
+        if index >= from && x = c then
+          Some index
+        else
+          loop (index + 1) tl
+    in
+    loop 0 t
 
   let index_of_character_reverse t ?from c =
     let length_of_t, rev =
