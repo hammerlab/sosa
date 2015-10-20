@@ -22,7 +22,7 @@ module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
 
   let get_exn s ~index = S.get s index
   let set_exn s ~index ~v =
-    match set s ~index ~v with None -> failwith "set_exn" | Some s -> s
+    match set s ~index ~v with None -> invalid_arg "set_exn" | Some s -> s
 
   let of_character c = make 1 c
 
@@ -104,7 +104,7 @@ module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
     let lgth2 = (length t2) in
     match lgth1, lgth2 with
     | 0, 0 -> init
-    | _, _ when lgth1 <> lgth2 -> failwith "fold2_exn"
+    | _, _ when lgth1 <> lgth2 -> invalid_arg "fold2_exn"
     | lgth1, lgth2 ->
        let res = ref init in
        for i = 0 to lgth1 - 1 do
@@ -152,7 +152,7 @@ module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
     let lgth2 = (length t2) in
     match lgth1, lgth2 with
     | 0, 0 -> empty
-    | _, _ when lgth1 <> lgth2 -> failwith "map2_exn"
+    | _, _ when lgth1 <> lgth2 -> invalid_arg "map2_exn"
     | lgth1, lgth2 ->
        let res = make lgth1 (S.get t1 0) in
        for i = 0 to lgth1 - 1 do
@@ -192,17 +192,17 @@ module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
   let sub_exn t ~index ~length =
     match sub t ~index ~length with
     | Some s -> s
-    | None -> ksprintf failwith "sub_exn(%d,%d)" index length
+    | None -> ksprintf invalid_arg "sub_exn(%d,%d)" index length
 
   let slice_exn ?(start=0) ?finish t =
     let length_of_t = S.length t in
     if start < 0 || (not (is_empty t) && start >= length_of_t) then
-      ksprintf failwith "slice_exn: invalid start %d" start
+      ksprintf invalid_arg "slice_exn: invalid start %d" start
     else
       match finish with
       | None   -> sub_exn t ~index:start ~length:(length_of_t - start)
       | Some f -> if f < 0 || f > length_of_t then
-                    ksprintf failwith "slice_exn: invalid finish %d" f
+                    ksprintf invalid_arg "slice_exn: invalid finish %d" f
                   else
                     sub_exn t ~index:start ~length:(f - start)
 
