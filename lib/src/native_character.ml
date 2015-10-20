@@ -13,7 +13,7 @@ let compare = Char.compare
 let size _ = 1
 
 let is_print t = ' ' <= t && t <= '~'
-let to_native_bytes x = Bytes.make 1 x
+let to_native_string x = String.make 1 x
 let to_string_hum x =
   if is_print x then String.make 1 x
   else sprintf "0x%2x" (int_of_char x)

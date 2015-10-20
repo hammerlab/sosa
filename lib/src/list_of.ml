@@ -344,7 +344,7 @@ module Make (Char: Api.BASIC_CHARACTER) :
       List.fold_left l ~init:(Model.return ()) ~f:(fun prev_m c ->
           prev_m >>= fun () ->
           (* TODO: Safe to call Bytes.unsafe_to_string? *)
-          Model.output chan (Char.to_native_bytes c |> Bytes.to_string))
+          Model.output chan (Char.to_native_string c))
 
   end
 

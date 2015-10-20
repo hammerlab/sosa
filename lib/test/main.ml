@@ -59,8 +59,7 @@ let random_ascii_string i =
 let random_utf8_string i =
   let length = Random.int i in
   list_dot_init length (fun _ -> Random.int 0x10_FFFF)
-  |> List.map ~f:Int_utf8_character.to_native_bytes
-  |> List.map ~f:Bytes.to_string
+  |> List.map ~f:Int_utf8_character.to_native_string
   |> String.concat ~sep:""
 
 let test_native_subjects =
@@ -1517,7 +1516,7 @@ let utf8_specific_test () =
     "ß", 0xDF; (* German Stuff *)
   ] in
   List.iter ground_truth (fun (s, i) ->
-      let actual_test = Utf8.to_native_bytes i |> Bytes.to_string in
+      let actual_test = Utf8.to_native_string i in
       test_assertf (actual_test = s) "utf8_specific_test: (%S, %d) Vs %S"
         s i actual_test;
       begin match Utf8.read_from_native_string ~buf:s ~index:0 with
