@@ -15,17 +15,17 @@ default:
 	@echo "  doc          create documentation"
 
 build:
-	ocamlbuild -use-ocamlfind -cflag -safe-string -I lib/src sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
+	ocamlbuild -use-ocamlfind -cflag -safe-string -I src/lib sosa.cmx sosa.cma sosa.cmxa sosa.cmxs
 
 test:
-	ocamlbuild -use-ocamlfind -package nonstd -package unix -package bigarray -cflag -safe-string -I lib/src -I lib/test main.native  && \
+	ocamlbuild -use-ocamlfind -package nonstd -package unix -package bigarray -cflag -safe-string -I src/lib -I src/test main.native  && \
 	rm -f main.native  && \
-	mv _build/lib/test/main.native sosa_tests
+	mv _build/src/test/main.native sosa_tests
 
 coverage:
-	ocamlbuild -use-ocamlfind -pkgs nonstd,unix,bigarray,bisect_ppx.fast -cflag -safe-string -I lib/src -I lib/test main.native  && \
+	ocamlbuild -use-ocamlfind -pkgs nonstd,unix,bigarray,bisect_ppx.fast -cflag -safe-string -I src/lib -I src/test main.native  && \
 	rm -f main.native  && \
-	mv _build/lib/test/main.native sosa_tests
+	mv _build/src/test/main.native sosa_tests
 
 clean:
 	ocamlbuild -clean && \
@@ -33,14 +33,14 @@ clean:
 
 install:
 	ocamlfind install sosa META \
-		_build/lib/src/sosa.cmi \
-		_build/lib/src/sosa.cmo \
-		_build/lib/src/sosa.cmx \
-		_build/lib/src/sosa.a \
-		_build/lib/src/sosa.o \
-		_build/lib/src/sosa.cma \
-		_build/lib/src/sosa.cmxa \
-		_build/lib/src/sosa.cmxs
+		_build/src/lib/sosa.cmi \
+		_build/src/lib/sosa.cmo \
+		_build/src/lib/sosa.cmx \
+		_build/src/lib/sosa.a \
+		_build/src/lib/sosa.o \
+		_build/src/lib/sosa.cma \
+		_build/src/lib/sosa.cmxa \
+		_build/src/lib/sosa.cmxs
 
 uninstall:
 	ocamlfind remove sosa
@@ -50,13 +50,13 @@ merlinize:
 	echo 'B _build' >> .merlin
 
 doc:
-	cp lib/src/sosa.mlpack sosa.odocl && \
-	ocamlbuild -I lib/src/ sosa.docdir/index.html && \
+	cp src/lib/sosa.mlpack sosa.odocl && \
+	ocamlbuild -I src/lib/ sosa.docdir/index.html && \
 	rm sosa.docdir && \
 	ln -s _build/sosa.docdir/ doc && \
 	rm sosa.odocl
 
-##ocamlfind ocamldoc -charset UTF-8 -keep-code -colorize-code -html lib/src/sosa.odocl -d doc/
+##ocamlfind ocamldoc -charset UTF-8 -keep-code -colorize-code -html src/lib/sosa.odocl -d doc/
 
 cov_report:
 	cd _build && \
