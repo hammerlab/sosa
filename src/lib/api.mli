@@ -1,10 +1,17 @@
 (** The module types that define Sosa's API. *)
 
+(* Document generation nuisances:
+   - Unfortunately, some of the internal references ie,  thinkgs like {!val:foo}
+   turn out to be horrible because ocamldoc generates the full path
+   (API.BASIC_CHARACTER.Foo) which distracts from the readability; so I've tried
+   to avoid using them. Tried to use [] instead.
+*)
+
 type ('a, 'b) result = [
   | `Ok of 'a
   | `Error of 'b
 ]
-(** The type [result] is a reusable version the classical [Result.t]
+(** The type [result] is a reusable version of the classical [Result.t]
     type. *)
 
 (** A monadic thread model (like [Lwt], [Async]) and an [output]
@@ -20,8 +27,7 @@ module type OUTPUT_MODEL = sig
       thread = ('a, 'b) Deferred_result.t]. *)
 
   type ('a, 'b, 'c) channel
-  (** The of the channels, channels can have up to 3 type-parameters
-      too.  *)
+  (** The channel type, channels can also have up to 3 type-parameters. *)
 
   val return: 'a -> ('a, 'b, 'c) thread
   (** The monadic [return]. *)
@@ -57,7 +63,7 @@ module type BASIC_CHARACTER = sig
 
   val write_to_native_bytes: t -> buf:Bytes.t -> index:int -> (int, [> `out_of_bounds]) result
   (** [write_to_native_bytes c ~buf ~index] serializes
-      the character [c] at position [index] in the native string
+      the character [c] at position [index] in the native bytes
       [buf] (writing [size c] units). Note, as with {!size} that the
       meaning of [index] is implementation dependent (can be the {i
       index-th} byte, the {i index-th} bit, etc.). *)
@@ -97,7 +103,7 @@ module type NATIVE_CONVERSIONS = sig
   (** Convert a native string to the current representation.
       [of_native_string] returns [`Error (`wrong_char_at index)]
       when the native string contains a character not representable
-      with the type [character]. *)
+      with the type [character] at [index]. *)
 
   val of_native_substring: string -> offset:int -> length:int ->
     (t, [> `wrong_char_at of int | `out_of_bounds ]) result
@@ -113,7 +119,7 @@ end (* NATIVE_CONVERSIONS *)
 module type BASIC_STRING = sig
 
   type character
-  (** A string is a string of characters. *)
+  (** A string is composed of characters. *)
 
   type t
   (** The type of the string. *)
@@ -123,16 +129,17 @@ module type BASIC_STRING = sig
       the maximum length of a string. *)
 
   val empty: t
-  (** An “empty” string. *)
+  (** A string of zero length. *)
 
   val is_empty: t -> bool
   (** Test whether a string is empty. *)
 
   val make: int -> character -> t
-  (** Build a new string like [String.make].
+  (** [make size char] builds a new string of the passed [length] where the
+      character at every position is [char], like [String.make].
 
-   @raise Invalid_argument if size is [< 0] or
-     [> {max_string_length}] if it is bounded.*)
+      @raise Invalid_argument if size is [< 0] or
+      [> {max_string_length}] if it is bounded.*)
 
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
@@ -156,21 +163,21 @@ module type BASIC_STRING = sig
       [index] is out of bounds. *)
 
   val get_exn: t -> index:int -> character
-  (** Like [get] but fail with an exception *)
+  (** Like [get] but fail with an exception. *)
 
   val set_exn: t -> index:int -> v:character -> t
-  (** Like [set] but fail with an exception *)
+  (** Like [set] but fail with an exception. *)
 
   val concat: ?sep:t -> t list -> t
   (** The classical [concat] function. *)
 
-  include NATIVE_CONVERSIONS with type t := t
   (** By including {!NATIVE_CONVERSIONS}, a
       basic string provides
-      {!NATIVE_CONVERSIONS.of_native_string},
-      {!NATIVE_CONVERSIONS.of_native_substring}, and
-      {!NATIVE_CONVERSIONS.to_native_string}.
+      {{!val:Api.NATIVE_CONVERSIONS.of_native_string} of_native_string},
+      {!val:Api.NATIVE_CONVERSIONS.of_native_substring}, and
+      {!val:Api.NATIVE_CONVERSIONS.to_native_string}.
   *)
+  include NATIVE_CONVERSIONS with type t := t
 
   val to_string_hum: t -> string
   (** Convert the string to a human-readable native string (à la
@@ -185,7 +192,7 @@ module type BASIC_STRING = sig
 
   val fold2_exn: t -> t -> init:'a -> f:('a -> character -> character -> 'a) -> 'a
   (** The standard [fold2] function, see [List.fold_left2] for example. Fails on
-  [t]s of different length. *)
+      [t]s of different length. *)
 
   val compare: t -> t -> int
   (** Comparison function (as expected by most common functors in the
@@ -193,33 +200,38 @@ module type BASIC_STRING = sig
 
   val sub: t -> index:int -> length:int -> t option
   (** Get the sub-string of size [length] at position [index]. If
-      [length] is 0, [sub] returns [Some empty] whichever the other
-      parameters are. *)
+      [length] is 0, [sub] returns [Some empty] regardless of the other
+      parameters. *)
 
   val sub_exn: t -> index:int -> length:int -> t
-  (** Do like [sub] but throw an exception instead of returning [None] *)
+  (** Like [sub] but throw an exception instead of returning [None] *)
 
   val slice: ?start:int -> ?finish:int -> t -> t option
-  (** Create a sub-string from the [start] (default 0, within \[0,length\))
-      position to before the [finish] (default length, within \[0,length\])
-      if all of the indices are in bounds.  *)
+  (** Create a sub-string from [start] to just before [finish] if all of the
+      indices are in bounds.
+
+      @param start defaults to [0], must be within [\[0,length)]
+      @param finish default to [length], must be within [\[0,length)]
+  *)
 
   val slice_exn: ?start:int -> ?finish:int -> t -> t
-  (** Like [slice] but throw an exception instead of returning [None] *)
+  (** Like [slice] but throw an exception instead of returning [None]
+      if the indices are out of bounds.*)
 
   val is_prefix: t -> prefix:t -> bool
-  (** Does [t] start with [prefix] ? *)
+  (** Does [t] start with [prefix]? *)
 
   val is_suffix: t -> suffix:t -> bool
-  (** Does [t] end with [suffix] ? *)
+  (** Does [t] end with [suffix]? *)
 
   val chop_prefix_exn: t -> prefix:t -> t
   (** Return a copy of [t] with [prefix] removed from the beginning.
-      Throws Invalid_argument if [t] does not start with [prefix]. *)
+
+      @raise Invalid_argument if [t] does not start with [prefix]. *)
 
   val chop_prefix: t -> prefix:t -> t option
   (** Like [chop_prefix_exn] but return [None] instead of throwing
-      an exception. *)
+      an [Invalid_argument]. *)
 
   val chop_suffix_exn: t -> suffix:t -> t
   (** Return a copy of [t] with [suffix] removed from the end.
@@ -237,10 +249,10 @@ module type BASIC_STRING = sig
       [empty]. *)
 
   val take: t -> index:int -> t
-  (** Just the first part of split_at *)
+  (** Just the first part of [split_at]. *)
 
   val drop: t -> index:int -> t
-  (** Just the second part of split_at *)
+  (** Just the second part of [split_at]. *)
 
   val compare_substring: t * int * int -> t * int * int -> int
   (** Comparison function for substrings: use as [compare_substring
