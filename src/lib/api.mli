@@ -507,22 +507,51 @@ module type NATIVE_BYTES = sig
 
 end (* NATIVE_BYTES *)
 
-(** Abstract mutable string used as argument of the {!module:Of_mutable} functor. *)
+(** Minimal mutable string used as argument to the {!module:Of_mutable} functor. *)
 module type MINIMALISTIC_MUTABLE_STRING = sig
+
   type character
+  (** A string is composed of character.*)
+
   type t
+  (** The type of the string. *)
 
   val empty: t
+  (** A string of zero length *)
+
   val max_string_length : int option
+  (** If the representation of strings is bounded,
+      the maximum length of a string. *)
+
   val make: int -> character -> t
+  (** [make size char] builds a new string of the passed [length] where the
+      character at every position is [char], like [String.make]. *)
+
   val length: t -> int
+  (** Get the length of the string (i.e. the number of characters). *)
+
   val compare: t -> t -> int
+  (** Comparison function for strings. *)
+
   val compare_char: character -> character -> int
+  (** Comparison function for characters. *)
+
   val get: t -> int -> character
+  (** Get the n-th char. *)
+
   val set: t -> int -> character -> unit
+  (** Set the n-th char. *)
+
   val blit: src:t -> src_pos:int -> dst:t -> dst_pos:int -> len:int -> unit
+  (** [blit src src_pos dst dst_pos len] copies [len] characters starting at
+      [src_pos] of [src] into [dst] starting from [dst_post]. *)
 
   val is_whitespace: character -> bool
+  (** Tell whether a character is considered whitespace. *)
+
+  (** {{!modtype:MINIMALISTIC_MUTABLE_STRING}MINIMALISTIC_MUTABLE_STRING} requires
+      {{!val:Api.NATIVE_CONVERSIONS.of_native_string} of_native_string},
+      {{!val:Api.NATIVE_CONVERSIONS.of_native_substring} of_native_substring},
+      and {{!val:Api.NATIVE_CONVERSIONS.to_native_string} to_native_string}.  *)
   include NATIVE_CONVERSIONS with type t := t
 end
-
