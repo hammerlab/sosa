@@ -483,26 +483,35 @@ module type UNSAFELY_MUTABLE = sig
 end (* UNSAFELY_MUTABLE *)
 
 (** Native {i OCaml} character. *)
-module type NATIVE_CHARACTER = BASIC_CHARACTER with type t = char
+module type NATIVE_CHARACTER = sig
+  type t = char
+  include BASIC_CHARACTER with type t := char
+end
 
 (** Native {i OCaml} string. *)
 module type NATIVE_STRING = sig
 
+  type character = char
+  type t = string
+
   include BASIC_STRING
-    with type t = String.t
-    with type character = char
+    with type t := string
+    with type character := char
 
 end (* NATIVE_STRING *)
 
 (** Native {i OCaml} byte. *)
 module type NATIVE_BYTES = sig
 
+  type character = char
+  type t = bytes
+
   include BASIC_STRING
-    with type t = Bytes.t
-    with type character = char
+    with type t := bytes
+    with type character := char
 
   include UNSAFELY_MUTABLE
-    with type t := Bytes.t
+    with type t := bytes
     with type character := char
 
 end (* NATIVE_BYTES *)
