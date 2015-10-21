@@ -26,25 +26,70 @@
 <h1>Module type <a href="type_Api.MINIMALISTIC_MUTABLE_STRING.html">Api.MINIMALISTIC_MUTABLE_STRING</a></h1>
 
 <pre><span class="keyword">module type</span> MINIMALISTIC_MUTABLE_STRING = <code class="code"><span class="keyword">sig</span></code> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info modtype top">
-Abstract mutable string used as argument of the <a href="Of_mutable.html"><code class="code"><span class="constructor">Of_mutable</span></code></a> functor.<br>
+Minimal mutable string used as argument to the <a href="Of_mutable.html"><code class="code"><span class="constructor">Of_mutable</span></code></a> functor.<br>
 </div>
 <hr width="100%">
 
 <pre><span id="TYPEcharacter"><span class="keyword">type</span> <code class="type"></code>character</span> </pre>
+<div class="info ">
+A string is composed of character.<br>
+</div>
 
 
 <pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type of the string.<br>
+</div>
 
 
-<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a></code></pre>
-<pre><span id="VALmax_string_length"><span class="keyword">val</span> max_string_length</span> : <code class="type">int option</code></pre>
-<pre><span id="VALmake"><span class="keyword">val</span> make</span> : <code class="type">int -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a></code></pre>
-<pre><span id="VALlength"><span class="keyword">val</span> length</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> int</code></pre>
-<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> int</code></pre>
-<pre><span id="VALcompare_char"><span class="keyword">val</span> compare_char</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> int</code></pre>
-<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       int -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a></code></pre>
-<pre><span id="VALset"><span class="keyword">val</span> set</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       int -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> unit</code></pre>
-<pre><span id="VALblit"><span class="keyword">val</span> blit</span> : <code class="type">src:<a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       src_pos:int -><br>       dst:<a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> dst_pos:int -> len:int -> unit</code></pre>
-<pre><span id="VALis_whitespace"><span class="keyword">val</span> is_whitespace</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> bool</code></pre>
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+A string of zero length<br>
+</div>
+
+<pre><span id="VALmax_string_length"><span class="keyword">val</span> max_string_length</span> : <code class="type">int option</code></pre><div class="info ">
+If the representation of strings is bounded,
+      the maximum length of a string.<br>
+</div>
+
+<pre><span id="VALmake"><span class="keyword">val</span> make</span> : <code class="type">int -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">make size char</code> builds a new string of the passed <code class="code">length</code> where the
+      character at every position is <code class="code">char</code>, like <code class="code"><span class="constructor">String</span>.make</code>.<br>
+</div>
+
+<pre><span id="VALlength"><span class="keyword">val</span> length</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+Get the length of the string (i.e. the number of characters).<br>
+</div>
+
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+Comparison function for strings.<br>
+</div>
+
+<pre><span id="VALcompare_char"><span class="keyword">val</span> compare_char</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> int</code></pre><div class="info ">
+Comparison function for characters.<br>
+</div>
+
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       int -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a></code></pre><div class="info ">
+Get the n-th char.<br>
+</div>
+
+<pre><span id="VALset"><span class="keyword">val</span> set</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       int -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> unit</code></pre><div class="info ">
+Set the n-th char.<br>
+</div>
+
+<pre><span id="VALblit"><span class="keyword">val</span> blit</span> : <code class="type">src:<a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       src_pos:int -><br>       dst:<a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> dst_pos:int -> len:int -> unit</code></pre><div class="info ">
+<code class="code">blit src src_pos dst dst_pos len</code> copies <code class="code">len</code> characters starting at
+      <code class="code">src_pos</code> of <code class="code">src</code> into <code class="code">dst</code> starting from <code class="code">dst_post</code>.<br>
+</div>
+
+<pre><span id="VALis_whitespace"><span class="keyword">val</span> is_whitespace</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> bool</code></pre><div class="info ">
+Tell whether a character is considered whitespace.<br>
+</div>
+
 <pre><span class="keyword">include</span> <a href="Api.NATIVE_CONVERSIONS.html">Api.NATIVE_CONVERSIONS</a></pre>
+<div class="info ">
+<a href="MINIMALISTIC_MUTABLE_STRING.html">MINIMALISTIC_MUTABLE_STRING</a> requires
+      <a href="Api.NATIVE_CONVERSIONS.html#VALof_native_string"> of_native_string</a>,
+      <a href="Api.NATIVE_CONVERSIONS.html#VALof_native_substring"> of_native_substring</a>,
+      and <a href="Api.NATIVE_CONVERSIONS.html#VALto_native_string"> to_native_string</a>.<br>
+</div>
 </body></html>
