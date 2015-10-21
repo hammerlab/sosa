@@ -1,10 +1,10 @@
 (** The module types that define Sosa's API. *)
 
 (* Document generation nuisances:
-   - Unfortunately, some of the internal references ie,  thinkgs like {!val:foo}
-   turn out to be horrible because ocamldoc generates the full path
-   (API.BASIC_CHARACTER.Foo) which distracts from the readability; so I've tried
-   to avoid using them. Tried to use [] instead.
+   - Unfortunately, some of the internal references ie,  things like {!val:foo}
+   turn out to look horrible because ocamldoc generates the full path
+   'Api.BASIC_CHARACTER.Foo' which distracts from the readability; so I've tried
+   to avoid using them, and replaced them with specific links: {{!val:foo}foo}.
 *)
 
 type ('a, 'b) result = [
@@ -163,19 +163,25 @@ module type BASIC_STRING = sig
       [index] is out of bounds. *)
 
   val get_exn: t -> index:int -> character
-  (** Like [get] but fail with an exception. *)
+  (** Like {{!val:get}get} but fail with an exception.
+
+      @raise Invalid_argument when [index] is not in [\[0,length)]
+  *)
 
   val set_exn: t -> index:int -> v:character -> t
-  (** Like [set] but fail with an exception. *)
+  (** Like {{!val:set} set} but fail with an exception.
+
+      @raise Invalid_argument when [index] is not in [\[0,length)]
+  *)
 
   val concat: ?sep:t -> t list -> t
   (** The classical [concat] function. *)
 
-  (** By including {!NATIVE_CONVERSIONS}, a
+  (** By including {{!modtype:Api.NATIVE_CONVERSIONS} NATIVE_CONVERSIONS}, a
       basic string provides
       {{!val:Api.NATIVE_CONVERSIONS.of_native_string} of_native_string},
-      {!val:Api.NATIVE_CONVERSIONS.of_native_substring}, and
-      {!val:Api.NATIVE_CONVERSIONS.to_native_string}.
+      {{!val:Api.NATIVE_CONVERSIONS.of_native_substring} of_native_substring},
+      and {{!val:Api.NATIVE_CONVERSIONS.to_native_string} to_native_string}.
   *)
   include NATIVE_CONVERSIONS with type t := t
 
@@ -204,7 +210,11 @@ module type BASIC_STRING = sig
       parameters. *)
 
   val sub_exn: t -> index:int -> length:int -> t
-  (** Like [sub] but throw an exception instead of returning [None] *)
+  (** Like {{!val:sub}sub} but throw an exception instead of returning [None].
+
+      @raise Invalid_argument when [index] and [length] do not represent a
+      valid substring.
+  *)
 
   val slice: ?start:int -> ?finish:int -> t -> t option
   (** Create a sub-string from [start] to just before [finish] if all of the
@@ -215,8 +225,12 @@ module type BASIC_STRING = sig
   *)
 
   val slice_exn: ?start:int -> ?finish:int -> t -> t
-  (** Like [slice] but throw an exception instead of returning [None]
-      if the indices are out of bounds.*)
+  (** Like {{!val:slice}slice} but throw an exception instead of returning [None]
+      if the indices are out of bounds.
+
+      @raise Invalid_argument when [start] or [finish] are not in their
+      respective bounds. See [slice].
+  *)
 
   val is_prefix: t -> prefix:t -> bool
   (** Does [t] start with [prefix]? *)
@@ -227,26 +241,30 @@ module type BASIC_STRING = sig
   val chop_prefix_exn: t -> prefix:t -> t
   (** Return a copy of [t] with [prefix] removed from the beginning.
 
-      @raise Invalid_argument if [t] does not start with [prefix]. *)
+      @raise Invalid_argument if [t] does not start with [prefix].
+  *)
 
   val chop_prefix: t -> prefix:t -> t option
-  (** Like [chop_prefix_exn] but return [None] instead of throwing
-      an [Invalid_argument]. *)
+  (** Like {{!val:chop_prefix_exn}chop_prefix_exn} but return [None] instead of
+      throwing an [Invalid_argument]. *)
 
   val chop_suffix_exn: t -> suffix:t -> t
   (** Return a copy of [t] with [suffix] removed from the end.
-      Throws Invalid_argument if [t] does not end with [suffix]. *)
+
+      @raise Invalid_argument if [t] does not end with [suffix].
+  *)
 
   val chop_suffix: t -> suffix:t -> t option
-  (** Like [chop_suffix_exn] but return [None] instead of throwing
-      an exception. *)
+  (** Like {{!val:chop_suffix_exn}chop_suffix_exn} but return [None] instead of
+      throwing an exception. *)
 
   val split_at: t -> index:int -> t * t
   (** Return a tuple where the first string is a prefix of the specified length
-      and the second is the rest. If index is [=< 0] then the first element is
-      empty and the string is returned in the second element, similarly if the
-      index is [>= length t] then the first element is [t] and the second is
-      [empty]. *)
+      and the second is the rest.
+
+      If index is [=< 0] then the first element is empty and the string is
+      returned in the second element, similarly if the index is [>= length t]
+      then the first element is [t] and the second is [empty]. *)
 
   val take: t -> index:int -> t
   (** Just the first part of [split_at]. *)
@@ -263,9 +281,9 @@ module type BASIC_STRING = sig
       smallest sub-string then [compare_substring] won't look
       further.
 
-      However, if {!compare_substring_strict} returns [Some c] then
-      [compare_substring] {i must} return [d] such as [c] = [d] or
-      [c] × [d] > 0 (i.e. strictly same sign).
+      However, if {{!val:compare_substring_strict}compare_substring_strict}
+      returns [Some c] then [compare_substring] {i must} return [d] such as
+      [c] = [d] or [c] × [d] > 0 (i.e. strictly same sign).
 
       In other words, if [sub a ~index:ia ~length:la] returns [Some suba] and
       [sub b ~index:ib ~length:lb] returns [Some subb], then
@@ -274,14 +292,13 @@ module type BASIC_STRING = sig
   *)
 
   val compare_substring_strict: t * int * int -> t * int * int -> int option
-  (** Do like {!compare_substring} but return [Some _] only when it is
-      well defined (same validity criteria as {!sub}: if [length]
-      is [0], [index] is irrelevant).
+  (** Like {{!val:compare_substring}compare_substring} but return [Some _] only
+      when it is well defined (same validity criteria as {{!val:sub}sub}: if
+      [length] is [0], [index] is irrelevant).
 
       Depending on the backend implementation, this function might be
       significantly slower than [compare_substring] (for example when
       calls to [length] are not {i O(1)}). *)
-
 
   val iter: t -> f:(character -> unit) -> unit
   (** Apply [f] on every character successively. *)
@@ -317,92 +334,112 @@ module type BASIC_STRING = sig
   (** Take a prefix of the string until [f] returns [false]. *)
 
   val take_while_with_index: t -> f:(int -> character -> bool) -> t
-  (** Like {!take_while} but the function also takes the current index. *)
+  (** Like {{!val:take_while}take_while} but the function also takes the
+      current index. *)
 
   val index_of_character: t -> ?from:int -> character -> int option
   (** Find the first occurrence of a character in the string (starting
       at position [from]).
 
-      Default value for [from] is [0].
+      @param from default value is [0].
       If [from] is negative, [0] will be used.
       If [from >= length t], [None] will be returned.
   *)
 
   val index_of_character_reverse: t -> ?from:int -> character -> int option
-  (** Do like [index_of_character] but start from the end of the string.
+  (** Like {{!val:index_of_character}index_of_character} but start from the
+      end of the string.
 
-      Default value for [from] is [length t - 1] (end of the string).
+      @param from defaults to [length t - 1] (end of the string).
       If [from] is negative, [None] will be returned.
       If [from >= length t], [length t - 1] will be used.
   *)
 
-  val index_of_string: ?from:int ->
-    ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
+  val index_of_string: ?from:int -> ?sub_index:int -> ?sub_length:int -> t ->
+      sub:t -> int option
   (** Find the first occurrence of the substring [(sub, sub_index,
-      sub_length)] in a given string, starting at index [from].
+      sub_length)] in a given string, starting at [from].
 
-      The [from] parameter behaves like for {!index_of_character}.
+      @param from behaves like [from] in
+      {{!val:index_of_character}index_of_character}.
 
-      The [(sub_index, sub_length)] parameters are constrained to [(0, length
-      sub)], for example, if [sub] is ["abc"], [(-1, 4)] will be equivalent to
-      [(0, 3)], [(1, 3)] will be equivalent to [(1, 2)].
+      @param sub_index is constrained to [\[0, length sub)]
+      @param sub_length is constrained to [\[0, length sub - sub_index)].
 
-      Searching for an empty string [from] a valid position always succeeds at
-      that position.
+      For example, if called with [~sub:"abc" ~sub_index:(-1) ~sub_length:4]
+      then [sub_index] and [sub_length] will be constrained to [0] and [3],
+      respectively.
+
+      If called with [~sub:"abc" ~sub_index:1 ~sub_length:3] then [sub_index]
+      and [sub_length] will be constrained to [1] and [2], respectively.
+
+      Searching for an empty string (if [sub] is empty or it is constrained via
+      [sub_index] or [sub_length]) from a valid position always succeeds at
+      that position ({i ie} [from]).
   *)
 
-  val index_of_string_reverse: ?from:int ->
-    ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
-  (** Do like [index_of_string] but start from the end of the string.
+  val index_of_string_reverse: ?from:int -> ?sub_index:int -> ?sub_length:int ->
+      t -> sub:t -> int option
+  (** Like {{!val:index_of_string}index_of_string} but start from the end of the
+      string.
 
-      The [from] parameter behaves like for {!index_of_character_reverse}.
-
-      The [(sub_index, sub_length)] parameters are constrained like in
-      {!index_of_string}.  *)
+      @param from behaves like [from] in
+      {{!val:index_of_character_reverse}index_of_character_reverse}.
+      @param sub_index is constrained like
+      {{!val:index_of_string}index_of_string}.
+      @param sub_length is constrained like
+      {{!val:index_of_string}index_of_string}.
+  *)
 
   val find: ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
-  (** Find the index of the first character [c] for which [f c] is [true]. One
-      can restrict to the sub-string [(from, length)] (the
-      default is to use the whole string, “out-of-bound” values are restricted
-      to the bounds of the string). *)
+  (** Find the index of the first character [c] for which [f c] is [true].
 
-  val find_reverse:
-    ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
-  (** Find the index of the last character [c] for which [f c] is [true]. One
-      can restrict to the reverse sub-string [(from, length)] (the
-      default is to use the whole string,  “out-of-bound” values are restricted
+      One can restrict to the sub-string [(from, length)] (the default is to use
+      the whole string, “out-of-bound” values are restricted to the bounds of
+      the string). *)
+
+  val find_reverse: ?from:int -> ?length:int -> t -> f:(character -> bool) ->
+    int option
+  (** Find the index of the last character [c] for which [f c] is [true].
+
+      One can restrict to the reverse sub-string [(from, length)] (the
+      default is to use the whole string, “out-of-bound” values are restricted
       to the bounds of the string). *)
 
   val filter_map: ?from:int -> ?length:int -> t ->
     f:(character -> character option) -> t
-  (** Create a new string with the characters for which [f c] returned
-      [Some c]. One can restrict to the sub-string [(from, length)] (the
-      default is to use the whole string, “out-of-bound” values are restricted
-      to the bounds of the string). *)
+  (** Create a new string with the characters for which [f c] returned [Some c].
+
+      One can restrict to the sub-string [(from, length)] (the default is to use
+      the whole string, “out-of-bound” values are restricted to the bounds of
+      the string). *)
 
   val filter: ?from:int -> ?length:int -> t -> f:(character -> bool) -> t
   (** Create a new string with the characters for which [f c] is true.
-      One can restrict to the sub-string [(from, length)] (the
-      default is to use the whole string, “out-of-bound” values are restricted
+
+      One can restrict to the sub-string [(from, length)] (the default is to use
+      the whole string, “out-of-bound” values are restricted
       to the bounds of the string). *)
 
-  val split: t ->
-    on:[ `Character of character | `String of t ] ->
-    t list
+  val split: t -> on:[ `Character of character | `String of t ] -> t list
   (** Split the string using [on] as separator.
-      Splitting the empty string returns  [[empty]], splitting [on] the empty
-      string explodes the string into a list of one-character strings. *)
 
-  val strip: ?on:[`Both | `Left | `Right] ->
-    ?whitespace:(character -> bool) -> t -> t
+      Splitting the empty string returns [\[\]].
+
+      Splitting with [~on:(`String empty)] explodes the [t] into a list of
+      one-character strings. *)
+
+  val strip: ?on:[`Both | `Left | `Right] -> ?whitespace:(character -> bool) ->
+      t -> t
   (** Remove any whitespace characters at the beginning and/or the end of the
-      string (default [`Both]).
+      string
 
-      The default is to call the {!BASIC_CHARACTER.is_whitespace} function of
-      the implemented character.
+      @param on defaults to [`Both].
+      @param whitespace defaults to calling
+      {{!val:Api.BASIC_CHARACTER.is_whitespace}is_whitespace} of the
+      implemented character.
   *)
 
-  (*module Make_output: functor (Model: OUTPUT_MODEL) -> sig *)
   module Make_output (Model : OUTPUT_MODEL) : sig
 
     val output:  ('a, 'b, 'c) Model.channel -> t -> (unit, 'e, 'f) Model.thread
@@ -410,7 +447,8 @@ module type BASIC_STRING = sig
 
   end
   (** [Make_output(Asynchronous_output_model)] provides a function
-      {!Make_output.output} given any {!OUTPUT_MODEL}. *)
+      {{!val:Api.BASIC_STRING.Make_output.output}output}
+      given an {{!modtype:Api.OUTPUT_MODEL}OUTPUT_MODEL}. *)
 
 end (* BASIC_STRING *)
 
