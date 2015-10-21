@@ -51,12 +51,10 @@ merlinize:
 
 doc:
 	cp src/lib/sosa.mlpack sosa.odocl && \
-	ocamlbuild -I src/lib/ sosa.docdir/index.html && \
+	ocamlbuild -I src/lib/ -docflags -charset,UTF-8,-keep-code,-colorize-code,-html,-short-functors sosa.docdir/index.html && \
 	rm sosa.docdir && \
 	ln -s _build/sosa.docdir/ doc && \
 	rm sosa.odocl
-
-##ocamlfind ocamldoc -charset UTF-8 -keep-code -colorize-code -html src/lib/sosa.odocl -d doc/
 
 cov_report:
 	cd _build && \
