@@ -1,0 +1,412 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="Up" href="List_of.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>List_of.Make</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="List_of.html" title="List_of">Up</a>
+&nbsp;</div>
+<h1>Functor <a href="type_List_of.Make.html">List_of.Make</a></h1>
+
+<pre><span class="keyword">module</span> Make <code class="code">(</code><code class="code"><span class="constructor">Char</span></code><code class="code"> : </code><code class="type"><a href="Api.BASIC_CHARACTER.html">Api.BASIC_CHARACTER</a></code><code class="code">) </code>: <code class="type"><a href="Api.BASIC_STRING.html">Api.BASIC_STRING</a></code><code class="type">  with type character = Char.t</code></pre><table border="0" cellpadding="3" width="100%">
+<tr>
+<td align="left" valign="top" width="1%%"><b>Parameters: </b></td>
+<td>
+<table class="paramstable">
+<tr>
+<td align="center" valign="top" width="15%">
+<code>Char</code></td>
+<td align="center" valign="top">:</td>
+<td><code class="type"><a href="Api.BASIC_CHARACTER.html">Api.BASIC_CHARACTER</a></code>
+</table>
+</td>
+</tr>
+</table>
+<hr width="100%">
+
+<pre><span id="TYPEcharacter"><span class="keyword">type</span> <code class="type"></code>character</span> </pre>
+<div class="info ">
+A string is composed of characters.<br>
+</div>
+
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type of the string.<br>
+</div>
+
+
+<pre><span id="VALmax_string_length"><span class="keyword">val</span> max_string_length</span> : <code class="type">int option</code></pre><div class="info ">
+If the representation of strings is bounded,
+      the maximum length of a string.<br>
+</div>
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+A string of zero length.<br>
+</div>
+
+<pre><span id="VALis_empty"><span class="keyword">val</span> is_empty</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+Test whether a string is empty.<br>
+</div>
+
+<pre><span id="VALmake"><span class="keyword">val</span> make</span> : <code class="type">int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">make size char</code> builds a new string of the passed <code class="code">length</code> where the
+      character at every position is <code class="code">char</code>, like <code class="code"><span class="constructor">String</span>.make</code>.<br>
+<b>Raises</b> <code>Invalid_argument</code> if size is <code class="code">&lt; 0</code> or
+      <code class="code">&gt; {max_string_length}</code> if it is bounded.<br>
+</div>
+
+<pre><span id="VALlength"><span class="keyword">val</span> length</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+Get the length of the string (i.e. the number of characters).<br>
+</div>
+
+<pre><span id="VALof_character"><span class="keyword">val</span> of_character</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Make a string with one character.<br>
+</div>
+
+<pre><span id="VALof_character_list"><span class="keyword">val</span> of_character_list</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> list -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Make a string out of a list of characters.<br>
+</div>
+
+<pre><span id="VALto_character_list"><span class="keyword">val</span> to_character_list</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> list</code></pre><div class="info ">
+Explode a string into a list of characters.<br>
+</div>
+
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> index:int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> option</code></pre><div class="info ">
+Get the n-th char, indexes are not necessarily bytes, they can
+      be bits. <code class="code">get</code> returns <code class="code"><span class="constructor">None</span></code> when <code class="code">index</code> is out of bounds.<br>
+</div>
+
+<pre><span id="VALset"><span class="keyword">val</span> set</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       index:int -> v:<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> option</code></pre><div class="info ">
+<code class="code">set str ~index ~v</code> creates a new string equal to <code class="code">t</code> with
+      character <code class="code">v</code> at position <code class="code">index</code>. <code class="code">set</code> returns <code class="code"><span class="constructor">None</span></code> when
+      <code class="code">index</code> is out of bounds.<br>
+</div>
+
+<pre><span id="VALget_exn"><span class="keyword">val</span> get_exn</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> index:int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a></code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALget">get</a> but fail with an exception.<br>
+<b>Raises</b> <code>Invalid_argument</code> when <code class="code">index</code> is not in <code class="code">[0,length)</code><br>
+</div>
+
+<pre><span id="VALset_exn"><span class="keyword">val</span> set_exn</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       index:int -> v:<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALset"> set</a> but fail with an exception.<br>
+<b>Raises</b> <code>Invalid_argument</code> when <code class="code">index</code> is not in <code class="code">[0,length)</code><br>
+</div>
+
+<pre><span id="VALconcat"><span class="keyword">val</span> concat</span> : <code class="type">?sep:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> list -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+The classical <code class="code">concat</code> function.<br>
+</div>
+
+<pre><span class="keyword">include</span> <a href="Api.NATIVE_CONVERSIONS.html">Api.NATIVE_CONVERSIONS</a></pre>
+<div class="info ">
+By including <a href="Api.NATIVE_CONVERSIONS.html"> NATIVE_CONVERSIONS</a>, a
+      basic string provides
+      <a href="Api.NATIVE_CONVERSIONS.html#VALof_native_string"> of_native_string</a>,
+      <a href="Api.NATIVE_CONVERSIONS.html#VALof_native_substring"> of_native_substring</a>,
+      and <a href="Api.NATIVE_CONVERSIONS.html#VALto_native_string"> to_native_string</a>.<br>
+</div>
+
+<pre><span id="VALto_string_hum"><span class="keyword">val</span> to_string_hum</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+Convert the string to a human-readable native string (à la
+      <code class="code">sprintf <span class="string">"%S"</span></code>).<br>
+</div>
+
+<pre><span id="VALfold"><span class="keyword">val</span> fold</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       init:'a -> f:('a -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> 'a) -> 'a</code></pre><div class="info ">
+The standard <code class="code">fold</code> function, see <code class="code"><span class="constructor">List</span>.fold_left</code> for example.<br>
+</div>
+
+<pre><span id="VALfoldi"><span class="keyword">val</span> foldi</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       init:'a -> f:(int -> 'a -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> 'a) -> 'a</code></pre><div class="info ">
+Pass an accumulator over the string's characters and their ordinals,
+      starting with the first; left most.<br>
+</div>
+
+<pre><span id="VALfold2_exn"><span class="keyword">val</span> fold2_exn</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       init:'a -><br>       f:('a -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> 'a) -><br>       'a</code></pre><div class="info ">
+The standard <code class="code">fold2</code> function, see <code class="code"><span class="constructor">List</span>.fold_left2</code> for example. Fails on
+      <code class="code">t</code>s of different length.<br>
+</div>
+
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+Comparison function (as expected by most common functors in the
+      ecosystem).<br>
+</div>
+
+<pre><span id="VALsub"><span class="keyword">val</span> sub</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> index:int -> length:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> option</code></pre><div class="info ">
+Get the sub-string of size <code class="code">length</code> at position <code class="code">index</code>. If
+      <code class="code">length</code> is 0, <code class="code">sub</code> returns <code class="code"><span class="constructor">Some</span> empty</code> regardless of the other
+      parameters.<br>
+</div>
+
+<pre><span id="VALsub_exn"><span class="keyword">val</span> sub_exn</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> index:int -> length:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALsub">sub</a> but throw an exception instead of returning <code class="code"><span class="constructor">None</span></code>.<br>
+<b>Raises</b> <code>Invalid_argument</code> when <code class="code">index</code> and <code class="code">length</code> do not represent a
+      valid substring.<br>
+</div>
+
+<pre><span id="VALslice"><span class="keyword">val</span> slice</span> : <code class="type">?start:int -> ?finish:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> option</code></pre><div class="info ">
+Create a sub-string from <code class="code">start</code> to just before <code class="code">finish</code> if all of the
+      indices are in bounds.<br>
+</div>
+<div class="param_info"><code class="code">start</code> : defaults to <code class="code">0</code>, must be within <code class="code">[0,length)</code></div>
+<div class="param_info"><code class="code">finish</code> : default to <code class="code">length</code>, must be within <code class="code">[0,length)</code></div>
+
+<pre><span id="VALslice_exn"><span class="keyword">val</span> slice_exn</span> : <code class="type">?start:int -> ?finish:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALslice">slice</a> but throw an exception instead of returning <code class="code"><span class="constructor">None</span></code>
+      if the indices are out of bounds.<br>
+<b>Raises</b> <code>Invalid_argument</code> when <code class="code">start</code> or <code class="code">finish</code> are not in their
+      respective bounds. See <code class="code">slice</code>.<br>
+</div>
+
+<pre><span id="VALis_prefix"><span class="keyword">val</span> is_prefix</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> prefix:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+Does <code class="code">t</code> start with <code class="code">prefix</code>?<br>
+</div>
+
+<pre><span id="VALis_suffix"><span class="keyword">val</span> is_suffix</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> suffix:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+Does <code class="code">t</code> end with <code class="code">suffix</code>?<br>
+</div>
+
+<pre><span id="VALchop_prefix_exn"><span class="keyword">val</span> chop_prefix_exn</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> prefix:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Return a copy of <code class="code">t</code> with <code class="code">prefix</code> removed from the beginning.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">t</code> does not start with <code class="code">prefix</code>.<br>
+</div>
+
+<pre><span id="VALchop_prefix"><span class="keyword">val</span> chop_prefix</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> prefix:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> option</code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALchop_prefix_exn">chop_prefix_exn</a> but return <code class="code"><span class="constructor">None</span></code> instead of
+      throwing an <code class="code"><span class="constructor">Invalid_argument</span></code>.<br>
+</div>
+
+<pre><span id="VALchop_suffix_exn"><span class="keyword">val</span> chop_suffix_exn</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> suffix:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Return a copy of <code class="code">t</code> with <code class="code">suffix</code> removed from the end.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">t</code> does not end with <code class="code">suffix</code>.<br>
+</div>
+
+<pre><span id="VALchop_suffix"><span class="keyword">val</span> chop_suffix</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> suffix:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> option</code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALchop_suffix_exn">chop_suffix_exn</a> but return <code class="code"><span class="constructor">None</span></code> instead of
+      throwing an exception.<br>
+</div>
+
+<pre><span id="VALsplit_at"><span class="keyword">val</span> split_at</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> index:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> * <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Return a tuple where the first string is a prefix of the specified length
+      and the second is the rest.
+<p>
+
+      If index is <code class="code">=&lt; 0</code> then the first element is empty and the string is
+      returned in the second element, similarly if the index is <code class="code">&gt;= length t</code>
+      then the first element is <code class="code">t</code> and the second is <code class="code">empty</code>.<br>
+</div>
+
+<pre><span id="VALtake"><span class="keyword">val</span> take</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> index:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Just the first part of <code class="code">split_at</code>.<br>
+</div>
+
+<pre><span id="VALdrop"><span class="keyword">val</span> drop</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> index:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Just the second part of <code class="code">split_at</code>.<br>
+</div>
+
+<pre><span id="VALcompare_substring"><span class="keyword">val</span> compare_substring</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> * int * int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> * int * int -> int</code></pre><div class="info ">
+Comparison function for substrings: use as <code class="code">compare_substring
+      (s1, index1, length1) (s2, index2, length2)</code>.
+<p>
+
+      Note that out-of-bounds accesses will <b>not</b> be reported: for
+      performance reasons, if the result can be decided with the
+      smallest sub-string then <code class="code">compare_substring</code> won't look
+      further.
+<p>
+
+      However, if <a href="Api.BASIC_STRING.html#VALcompare_substring_strict">compare_substring_strict</a>
+      returns <code class="code"><span class="constructor">Some</span> c</code> then <code class="code">compare_substring</code> <i>must</i> return <code class="code">d</code> such as
+      <code class="code">c</code> = <code class="code">d</code> or <code class="code">c</code> × <code class="code">d</code> &gt; 0 (i.e. strictly same sign).
+<p>
+
+      In other words, if <code class="code">sub a ~index:ia ~length:la</code> returns <code class="code"><span class="constructor">Some</span> suba</code> and
+      <code class="code">sub b ~index:ib ~length:lb</code> returns <code class="code"><span class="constructor">Some</span> subb</code>, then
+      <code class="code">compare_substring (a, ia, la) (b, ib, lb)</code> will behave like
+      <code class="code">compare suba subb</code> (again, with the same sign).<br>
+</div>
+
+<pre><span id="VALcompare_substring_strict"><span class="keyword">val</span> compare_substring_strict</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> * int * int -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> * int * int -> int option</code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALcompare_substring">compare_substring</a> but return <code class="code"><span class="constructor">Some</span> _</code> only
+      when it is well defined (same validity criteria as <a href="Api.BASIC_STRING.html#VALsub">sub</a>: if
+      <code class="code">length</code> is <code class="code">0</code>, <code class="code">index</code> is irrelevant).
+<p>
+
+      Depending on the backend implementation, this function might be
+      significantly slower than <code class="code">compare_substring</code> (for example when
+      calls to <code class="code">length</code> are not <i>O(1)</i>).<br>
+</div>
+
+<pre><span id="VALiter"><span class="keyword">val</span> iter</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> unit) -> unit</code></pre><div class="info ">
+Apply <code class="code">f</code> on every character successively.<br>
+</div>
+
+<pre><span id="VALiteri"><span class="keyword">val</span> iteri</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> f:(int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> unit) -> unit</code></pre><div class="info ">
+Apply <code class="code">f</code> on every character and its index.<br>
+</div>
+
+<pre><span id="VALiter_reverse"><span class="keyword">val</span> iter_reverse</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> unit) -> unit</code></pre><div class="info ">
+Apply <code class="code">f</code> on every character successively in reverse order.<br>
+</div>
+
+<pre><span id="VALrev"><span class="keyword">val</span> rev</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Reverse the string. *<br>
+</div>
+
+<pre><span id="VALmap"><span class="keyword">val</span> map</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a>) -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Make a new string by applying <code class="code">f</code> to all characters of the
+      input.<br>
+</div>
+
+<pre><span id="VALmapi"><span class="keyword">val</span> mapi</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       f:(int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a>) -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Make a new string by applying <code class="code">f</code> to all characters and their indices.<br>
+</div>
+
+<pre><span id="VALmap2_exn"><span class="keyword">val</span> map2_exn</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -><br>          <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a>) -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Make a new string by applying <code class="code">f</code> to all pairs of characters of the
+      inputs. Fail if strings are not the same length.<br>
+</div>
+
+<pre><span id="VALfor_all"><span class="keyword">val</span> for_all</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -> bool</code></pre><div class="info ">
+Return <code class="code"><span class="keyword">true</span></code> if-and-only-if <code class="code">f</code> returns <code class="code"><span class="keyword">true</span></code> on all characters.<br>
+</div>
+
+<pre><span id="VALexists"><span class="keyword">val</span> exists</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -> bool</code></pre><div class="info ">
+Return <code class="code"><span class="keyword">true</span></code> if-and-only-if <code class="code">f</code> returns <code class="code"><span class="keyword">true</span></code> on at least one
+      character.<br>
+</div>
+
+<pre><span id="VALtake_while"><span class="keyword">val</span> take_while</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Take a prefix of the string until <code class="code">f</code> returns <code class="code"><span class="keyword">false</span></code>.<br>
+</div>
+
+<pre><span id="VALtake_while_with_index"><span class="keyword">val</span> take_while_with_index</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       f:(int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALtake_while">take_while</a> but the function also takes the
+      current index.<br>
+</div>
+
+<pre><span id="VALindex_of_character"><span class="keyword">val</span> index_of_character</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> ?from:int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> int option</code></pre><div class="info ">
+Find the first occurrence of a character in the string (starting
+      at position <code class="code">from</code>).<br>
+</div>
+<div class="param_info"><code class="code">from</code> : default value is <code class="code">0</code>.
+      If <code class="code">from</code> is negative, <code class="code">0</code> will be used.
+      If <code class="code">from &gt;= length t</code>, <code class="code"><span class="constructor">None</span></code> will be returned.</div>
+
+<pre><span id="VALindex_of_character_reverse"><span class="keyword">val</span> index_of_character_reverse</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -> ?from:int -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> int option</code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALindex_of_character">index_of_character</a> but start from the
+      end of the string.<br>
+</div>
+<div class="param_info"><code class="code">from</code> : defaults to <code class="code">length t - 1</code> (end of the string).
+      If <code class="code">from</code> is negative, <code class="code"><span class="constructor">None</span></code> will be returned.
+      If <code class="code">from &gt;= length t</code>, <code class="code">length t - 1</code> will be used.</div>
+
+<pre><span id="VALindex_of_string"><span class="keyword">val</span> index_of_string</span> : <code class="type">?from:int -><br>       ?sub_index:int -><br>       ?sub_length:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> sub:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> int option</code></pre><div class="info ">
+Find the first occurrence of the substring <code class="code">(sub, sub_index,
+      sub_length)</code> in a given string, starting at <code class="code">from</code>.<br>
+</div>
+<div class="param_info"><code class="code">from</code> : behaves like <code class="code">from</code> in
+      <a href="Api.BASIC_STRING.html#VALindex_of_character">index_of_character</a>.</div>
+<div class="param_info"><code class="code">sub_index</code> : is constrained to <code class="code">[0, length sub)</code></div>
+<div class="param_info"><code class="code">sub_length</code> : is constrained to <code class="code">[0, length sub - sub_index)</code>.
+<p>
+
+      For example, if called with <code class="code">~sub:<span class="string">"abc"</span> ~sub_index:(-1) ~sub_length:4</code>
+      then <code class="code">sub_index</code> and <code class="code">sub_length</code> will be constrained to <code class="code">0</code> and <code class="code">3</code>,
+      respectively.
+<p>
+
+      If called with <code class="code">~sub:<span class="string">"abc"</span> ~sub_index:1 ~sub_length:3</code> then <code class="code">sub_index</code>
+      and <code class="code">sub_length</code> will be constrained to <code class="code">1</code> and <code class="code">2</code>, respectively.
+<p>
+
+      Searching for an empty string (if <code class="code">sub</code> is empty or it is constrained via
+      <code class="code">sub_index</code> or <code class="code">sub_length</code>) from a valid position always succeeds at
+      that position (<i>ie</i> <code class="code">from</code>).</div>
+
+<pre><span id="VALindex_of_string_reverse"><span class="keyword">val</span> index_of_string_reverse</span> : <code class="type">?from:int -><br>       ?sub_index:int -><br>       ?sub_length:int -> <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> sub:<a href="Api.BASIC_STRING.html#TYPEt">t</a> -> int option</code></pre><div class="info ">
+Like <a href="Api.BASIC_STRING.html#VALindex_of_string">index_of_string</a> but start from the end of the
+      string.<br>
+</div>
+<div class="param_info"><code class="code">from</code> : behaves like <code class="code">from</code> in
+      <a href="Api.BASIC_STRING.html#VALindex_of_character_reverse">index_of_character_reverse</a>.</div>
+<div class="param_info"><code class="code">sub_index</code> : is constrained like
+      <a href="Api.BASIC_STRING.html#VALindex_of_string">index_of_string</a>.</div>
+<div class="param_info"><code class="code">sub_length</code> : is constrained like
+      <a href="Api.BASIC_STRING.html#VALindex_of_string">index_of_string</a>.</div>
+
+<pre><span id="VALfind"><span class="keyword">val</span> find</span> : <code class="type">?from:int -><br>       ?length:int -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -> int option</code></pre><div class="info ">
+Find the index of the first character <code class="code">c</code> for which <code class="code">f c</code> is <code class="code"><span class="keyword">true</span></code>.
+<p>
+
+      One can restrict to the sub-string <code class="code">(from, length)</code> (the default is to use
+      the whole string, “out-of-bound” values are restricted to the bounds of
+      the string).<br>
+</div>
+
+<pre><span id="VALfind_reverse"><span class="keyword">val</span> find_reverse</span> : <code class="type">?from:int -><br>       ?length:int -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -> int option</code></pre><div class="info ">
+Find the index of the last character <code class="code">c</code> for which <code class="code">f c</code> is <code class="code"><span class="keyword">true</span></code>.
+<p>
+
+      One can restrict to the reverse sub-string <code class="code">(from, length)</code> (the
+      default is to use the whole string, “out-of-bound” values are restricted
+      to the bounds of the string).<br>
+</div>
+
+<pre><span id="VALfilter_map"><span class="keyword">val</span> filter_map</span> : <code class="type">?from:int -><br>       ?length:int -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> option) -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Create a new string with the characters for which <code class="code">f c</code> returned <code class="code"><span class="constructor">Some</span> c</code>.
+<p>
+
+      One can restrict to the sub-string <code class="code">(from, length)</code> (the default is to use
+      the whole string, “out-of-bound” values are restricted to the bounds of
+      the string).<br>
+</div>
+
+<pre><span id="VALfilter"><span class="keyword">val</span> filter</span> : <code class="type">?from:int -><br>       ?length:int -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       f:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Create a new string with the characters for which <code class="code">f c</code> is true.
+<p>
+
+      One can restrict to the sub-string <code class="code">(from, length)</code> (the default is to use
+      the whole string, “out-of-bound” values are restricted
+      to the bounds of the string).<br>
+</div>
+
+<pre><span id="VALsplit"><span class="keyword">val</span> split</span> : <code class="type"><a href="Api.BASIC_STRING.html#TYPEt">t</a> -><br>       on:[ `Character of <a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> | `String of <a href="Api.BASIC_STRING.html#TYPEt">t</a> ] -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> list</code></pre><div class="info ">
+Split the string using <code class="code">on</code> as separator.
+<p>
+
+      Splitting the empty string returns <code class="code">[]</code>.
+<p>
+
+      Splitting with <code class="code">~on:(<span class="keywordsign">`</span><span class="constructor">String</span> empty)</code> explodes the <code class="code">t</code> into a list of
+      one-character strings.<br>
+</div>
+
+<pre><span id="VALstrip"><span class="keyword">val</span> strip</span> : <code class="type">?on:[ `Both | `Left | `Right ] -><br>       ?whitespace:(<a href="Api.BASIC_STRING.html#TYPEcharacter">character</a> -> bool) -><br>       <a href="Api.BASIC_STRING.html#TYPEt">t</a> -> <a href="Api.BASIC_STRING.html#TYPEt">t</a></code></pre><div class="info ">
+Remove any whitespace characters at the beginning and/or the end of the
+      string<br>
+</div>
+<div class="param_info"><code class="code">on</code> : defaults to <code class="code"><span class="keywordsign">`</span><span class="constructor">Both</span></code>.</div>
+<div class="param_info"><code class="code">whitespace</code> : defaults to calling
+      <a href="Api.BASIC_CHARACTER.html#VALis_whitespace">is_whitespace</a> of the
+      implemented character.</div>
+
+<pre><span class="keyword">module</span> <a href="Api.BASIC_STRING.Make_output.html">Make_output</a> <code class="code">(</code><code class="code"><span class="constructor">Model</span></code><code class="code"> : </code><code class="type"><a href="Api.OUTPUT_MODEL.html">Api.OUTPUT_MODEL</a></code><code class="code">) </code>: <code class="code"><span class="keyword">sig</span></code> <a href="Api.BASIC_STRING.Make_output.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+<code class="code"><span class="constructor">Make_output</span>(<span class="constructor">Asynchronous_output_model</span>)</code> provides a function
+      <a href="Api.BASIC_STRING.Make_output.html#VALoutput">output</a>
+      given an <a href="Api.OUTPUT_MODEL.html">OUTPUT_MODEL</a>.
+</div>
+</body></html>

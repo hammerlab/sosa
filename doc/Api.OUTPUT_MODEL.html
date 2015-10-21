@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Api.BASIC_CHARACTER.html">
+<link rel="Up" href="Api.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Api.OUTPUT_MODEL</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="Api.html" title="Api">Up</a>
+&nbsp;<a class="post" href="Api.BASIC_CHARACTER.html" title="Api.BASIC_CHARACTER">Next</a>
+</div>
+<h1>Module type <a href="type_Api.OUTPUT_MODEL.html">Api.OUTPUT_MODEL</a></h1>
+
+<pre><span class="keyword">module type</span> OUTPUT_MODEL = <code class="code"><span class="keyword">sig</span></code> <a href="Api.OUTPUT_MODEL.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info modtype top">
+A monadic thread model (like <code class="code"><span class="constructor">Lwt</span></code>, <code class="code"><span class="constructor">Async</span></code>) and an <code class="code">output</code>
+    function.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEthread"><span class="keyword">type</span> <code class="type">('a, 'b, 'c)</code> thread</span> </pre>
+<div class="info ">
+The type of the threads, the type parameters are there in case
+      the user needs up to 3 of them.
+<p>
+
+      For instance, if implement with <code class="code"><span class="constructor">Lwt</span></code>, we will have <code class="code"><span class="keyword">type</span> (<span class="keywordsign">'</span>a, <span class="keywordsign">'</span>b, <span class="keywordsign">'</span>c)
+      thread = <span class="keywordsign">'</span>a <span class="constructor">Lwt</span>.t</code>, but with <code class="code"><span class="constructor">Pvem</span>.<span class="constructor">DEFERRED_RESULT</span></code>: <code class="code"><span class="keyword">type</span> (<span class="keywordsign">'</span>a, <span class="keywordsign">'</span>b, <span class="keywordsign">'</span>c)
+      thread = (<span class="keywordsign">'</span>a, <span class="keywordsign">'</span>b) <span class="constructor">Deferred_result</span>.t</code>.<br>
+</div>
+
+
+<pre><span id="TYPEchannel"><span class="keyword">type</span> <code class="type">('a, 'b, 'c)</code> channel</span> </pre>
+<div class="info ">
+The channel type, channels can also have up to 3 type-parameters.<br>
+</div>
+
+
+<pre><span id="VALreturn"><span class="keyword">val</span> return</span> : <code class="type">'a -> ('a, 'b, 'c) <a href="Api.OUTPUT_MODEL.html#TYPEthread">thread</a></code></pre><div class="info ">
+The monadic <code class="code">return</code>.<br>
+</div>
+
+<pre><span id="VALbind"><span class="keyword">val</span> bind</span> : <code class="type">('a, 'b, 'c) <a href="Api.OUTPUT_MODEL.html#TYPEthread">thread</a> -><br>       ('a -> ('d, 'b, 'c) <a href="Api.OUTPUT_MODEL.html#TYPEthread">thread</a>) -><br>       ('d, 'b, 'c) <a href="Api.OUTPUT_MODEL.html#TYPEthread">thread</a></code></pre><div class="info ">
+The monadic <code class="code">bind</code>.<br>
+</div>
+
+<pre><span id="VALoutput"><span class="keyword">val</span> output</span> : <code class="type">('a, 'b, 'c) <a href="Api.OUTPUT_MODEL.html#TYPEchannel">channel</a> -><br>       String.t -> (unit, 'e, 'f) <a href="Api.OUTPUT_MODEL.html#TYPEthread">thread</a></code></pre><div class="info ">
+The function to output a given native string to a channel.<br>
+</div>
+</body></html>

@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Api.NATIVE_BYTES.html">
+<link rel="Up" href="Api.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Api.MINIMALISTIC_MUTABLE_STRING</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Api.NATIVE_BYTES.html" title="Api.NATIVE_BYTES">Previous</a>
+&nbsp;<a class="up" href="Api.html" title="Api">Up</a>
+&nbsp;</div>
+<h1>Module type <a href="type_Api.MINIMALISTIC_MUTABLE_STRING.html">Api.MINIMALISTIC_MUTABLE_STRING</a></h1>
+
+<pre><span class="keyword">module type</span> MINIMALISTIC_MUTABLE_STRING = <code class="code"><span class="keyword">sig</span></code> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info modtype top">
+Abstract mutable string used as argument of the <a href="Of_mutable.html"><code class="code"><span class="constructor">Of_mutable</span></code></a> functor.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEcharacter"><span class="keyword">type</span> <code class="type"></code>character</span> </pre>
+
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a></code></pre>
+<pre><span id="VALmax_string_length"><span class="keyword">val</span> max_string_length</span> : <code class="type">int option</code></pre>
+<pre><span id="VALmake"><span class="keyword">val</span> make</span> : <code class="type">int -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a></code></pre>
+<pre><span id="VALlength"><span class="keyword">val</span> length</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> int</code></pre>
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> int</code></pre>
+<pre><span id="VALcompare_char"><span class="keyword">val</span> compare_char</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -><br>       <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> int</code></pre>
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       int -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a></code></pre>
+<pre><span id="VALset"><span class="keyword">val</span> set</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       int -> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> unit</code></pre>
+<pre><span id="VALblit"><span class="keyword">val</span> blit</span> : <code class="type">src:<a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -><br>       src_pos:int -><br>       dst:<a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEt">t</a> -> dst_pos:int -> len:int -> unit</code></pre>
+<pre><span id="VALis_whitespace"><span class="keyword">val</span> is_whitespace</span> : <code class="type"><a href="Api.MINIMALISTIC_MUTABLE_STRING.html#TYPEcharacter">character</a> -> bool</code></pre>
+<pre><span class="keyword">include</span> <a href="Api.NATIVE_CONVERSIONS.html">Api.NATIVE_CONVERSIONS</a></pre>
+</body></html>

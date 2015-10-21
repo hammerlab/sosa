@@ -1,0 +1,24 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Functors.Make_native.of_character_list</title>
+</head>
+<body>
+<code class="code"><span class="keyword">let</span>&nbsp;of_character_list&nbsp;cl&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;r&nbsp;=&nbsp;ref&nbsp;cl&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">B</span>.init&nbsp;(<span class="constructor">List</span>.length&nbsp;cl)&nbsp;~f:(<span class="keyword">fun</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;c&nbsp;=&nbsp;<span class="constructor">List</span>.hd&nbsp;!r&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;r&nbsp;:=&nbsp;<span class="constructor">List</span>.tl&nbsp;!r;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c)</code></body></html>

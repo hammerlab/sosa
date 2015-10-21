@@ -1,0 +1,144 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Functors.Make_split_at_index_functions.html">
+<link rel="Up" href="Functors.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Functors.Make_native</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Functors.Make_split_at_index_functions.html" title="Functors.Make_split_at_index_functions">Previous</a>
+&nbsp;<a class="up" href="Functors.html" title="Functors">Up</a>
+&nbsp;</div>
+<h1>Functor <a href="type_Functors.Make_native.html">Functors.Make_native</a> (<a href="code_Functors.Make_native.html">.ml</a>)</h1>
+
+<pre><span class="keyword">module</span> Make_native <code class="code">(</code><code class="code"><span class="constructor">B</span></code><code class="code"> : </code><code class="code"><span class="keyword">sig</span></code><div class="sig_block">
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type">t</code></pre>
+<pre><span id="VALlength"><span class="keyword">val</span> length</span> : <code class="type">t -> int</code></pre>
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type">t -> int -> char</code></pre>
+<pre><span id="VALmake"><span class="keyword">val</span> make</span> : <code class="type">int -> char -> t</code></pre>
+<pre><span id="VALinit"><span class="keyword">val</span> init</span> : <code class="type">int -> f:(int -> char) -> t</code></pre>
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type">t -> t -> int</code></pre>
+<pre><span id="VALconcat"><span class="keyword">val</span> concat</span> : <code class="type">sep:t -> t list -> t</code></pre>
+<pre><span id="VALiter"><span class="keyword">val</span> iter</span> : <code class="type">f:(char -> unit) -> t -> unit</code></pre>
+<pre><span id="VALiteri"><span class="keyword">val</span> iteri</span> : <code class="type">f:(int -> char -> unit) -> t -> unit</code></pre>
+<pre><span id="VALmap"><span class="keyword">val</span> map</span> : <code class="type">f:(char -> char) -> t -> t</code></pre>
+<pre><span id="VALmapi"><span class="keyword">val</span> mapi</span> : <code class="type">f:(int -> char -> char) -> t -> t</code></pre>
+<pre><span id="VALindex_from"><span class="keyword">val</span> index_from</span> : <code class="type">t -> int -> char -> int</code></pre>
+<pre><span id="VALrindex_from"><span class="keyword">val</span> rindex_from</span> : <code class="type">t -> int -> char -> int</code></pre>
+<pre><span id="VALsub"><span class="keyword">val</span> sub</span> : <code class="type">t -> pos:int -> len:int -> t</code></pre>
+<pre><span id="VALof_buffer"><span class="keyword">val</span> of_buffer</span> : <code class="type">Buffer.t -> t</code></pre>
+<pre><span id="VALstring_for_output"><span class="keyword">val</span> string_for_output</span> : <code class="type">t -> string</code></pre></div><code class="code"><span class="keyword">end</span></code><code class="code">) </code>: <code class="code"><span class="keyword">sig</span></code> <a href="Functors.Make_native.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><table border="0" cellpadding="3" width="100%">
+<tr>
+<td align="left" valign="top" width="1%%"><b>Parameters: </b></td>
+<td>
+<table class="paramstable">
+<tr>
+<td align="center" valign="top" width="15%">
+<code>B</code></td>
+<td align="center" valign="top">:</td>
+<td><code class="type">sig
+    type t
+    val empty : t
+    val length : t -> int
+    val get : t -> int -> char
+    val make : int -> char -> t
+    val init : int -> f:(int -> char) -> t
+    val compare : t -> t -> int
+    val concat : sep:t -> t list -> t
+    val iter : f:(char -> unit) -> t -> unit
+    val iteri : f:(int -> char -> unit) -> t-> unit
+    val map : f:(char -> char) -> t -> t
+    val mapi : f:(int -> char -> char) -> t -> t
+    val index_from : t -> int -> char -> int
+    val rindex_from : t -> int -> char -> int
+    val sub : t -> pos:int -> len:int -> t
+    val of_buffer : Buffer.t -> t
+    val string_for_output : t -> string
+  end</code>
+</table>
+</td>
+</tr>
+</table>
+<hr width="100%">
+
+<pre><span id="TYPEcharacter"><span class="keyword">type</span> <code class="type"></code>character</span> = <code class="type">char</code> </pre>
+
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type">B.t</code> </pre>
+
+
+<pre><span id="VALmax_string_length"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.max_string_length.html">max_string_length</a></span> : <code class="type">int option</code></pre>
+<pre><span id="VALempty"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.empty.html">empty</a></span> : <code class="type">B.t</code></pre>
+<pre><span id="VALcompare"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.compare.html">compare</a></span> : <code class="type">B.t -> B.t -> int</code></pre>
+<pre><span id="VALis_empty"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.is_empty.html">is_empty</a></span> : <code class="type">B.t -> bool</code></pre>
+<pre><span id="VALmake"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.make.html">make</a></span> : <code class="type">int -> char -> B.t</code></pre>
+<pre><span id="VALlength"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.length.html">length</a></span> : <code class="type">B.t -> int</code></pre>
+<pre><span id="VALof_character"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.of_character.html">of_character</a></span> : <code class="type">char -> B.t</code></pre>
+<pre><span id="VALof_character_list"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.of_character_list.html">of_character_list</a></span> : <code class="type">char list -> B.t</code></pre>
+<pre><span id="VALto_character_list"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.to_character_list.html">to_character_list</a></span> : <code class="type">B.t -> char list</code></pre>
+<pre><span id="VALget"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.get.html">get</a></span> : <code class="type">B.t -> index:int -> char option</code></pre>
+<pre><span id="VALset"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.set.html">set</a></span> : <code class="type">B.t -> index:int -> v:char -> B.t option</code></pre>
+<pre><span id="VALget_exn"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.get_exn.html">get_exn</a></span> : <code class="type">B.t -> index:int -> char</code></pre>
+<pre><span id="VALset_exn"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.set_exn.html">set_exn</a></span> : <code class="type">B.t -> index:int -> v:char -> B.t</code></pre>
+<pre><span id="VALcompare"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.compare.html">compare</a></span> : <code class="type">B.t -> B.t -> int</code></pre>
+<pre><span id="VALcompare_substring"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.compare_substring.html">compare_substring</a></span> : <code class="type">B.t * int * int -> B.t * int * int -> int</code></pre>
+<pre><span id="TYPEs"><span class="keyword">type</span> <code class="type"></code>s</span> = <code class="type"><a href="Functors.Make_native.html#TYPEt">t</a></code> </pre>
+
+
+<pre><span class="keyword">module</span> <a href="Functors.Make_native.T_length_and_compsub.html">T_length_and_compsub</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Functors.Make_native.T_length_and_compsub.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">include</span> struct ... end</pre>
+
+<pre><span class="keyword">include</span> struct ... end</pre>
+
+<pre><span id="VALconcat"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.concat.html">concat</a></span> : <code class="type">?sep:B.t -> B.t list -> B.t</code></pre>
+<pre><span id="VALfold"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.fold.html">fold</a></span> : <code class="type">B.t -> init:'a -> f:('a -> char -> 'a) -> 'a</code></pre>
+<pre><span id="VALfoldi"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.foldi.html">foldi</a></span> : <code class="type">B.t -> init:'a -> f:(int -> 'a -> char -> 'a) -> 'a</code></pre>
+<pre><span id="VALfold2_exn"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.fold2_exn.html">fold2_exn</a></span> : <code class="type">B.t -> B.t -> init:'a -> f:('a -> char -> char -> 'a) -> 'a</code></pre>
+<pre><span id="VALsub_exn"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.sub_exn.html">sub_exn</a></span> : <code class="type">B.t -> index:int -> length:int -> B.t</code></pre>
+<pre><span id="VALsub"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.sub.html">sub</a></span> : <code class="type">B.t -> index:int -> length:int -> B.t option</code></pre>
+<pre><span id="VALslice_exn"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.slice_exn.html">slice_exn</a></span> : <code class="type">?start:int -> ?finish:int -> B.t -> B.t</code></pre>
+<pre><span id="VALslice"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.slice.html">slice</a></span> : <code class="type">?start:int -> ?finish:int -> B.t -> B.t option</code></pre>
+<pre><span id="VALiter"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.iter.html">iter</a></span> : <code class="type">B.t -> f:(char -> unit) -> unit</code></pre>
+<pre><span id="VALiteri"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.iteri.html">iteri</a></span> : <code class="type">B.t -> f:(int -> char -> unit) -> unit</code></pre>
+<pre><span id="VALiter_reverse"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.iter_reverse.html">iter_reverse</a></span> : <code class="type">B.t -> f:(char -> 'a) -> unit</code></pre>
+<pre><span id="VALrev"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.rev.html">rev</a></span> : <code class="type">B.t -> B.t</code></pre>
+<pre><span id="VALmap"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.map.html">map</a></span> : <code class="type">B.t -> f:(char -> char) -> B.t</code></pre>
+<pre><span id="VALmap2_exn"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.map2_exn.html">map2_exn</a></span> : <code class="type">B.t -> B.t -> f:(char -> char -> char) -> B.t</code></pre>
+<pre><span id="VALmapi"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.mapi.html">mapi</a></span> : <code class="type">B.t -> f:(int -> char -> char) -> B.t</code></pre>
+<pre><span id="VALfor_all"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.for_all.html">for_all</a></span> : <code class="type">B.t -> f:(char -> bool) -> bool</code></pre>
+<pre><span id="VALexists"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.exists.html">exists</a></span> : <code class="type">B.t -> f:(char -> bool) -> bool</code></pre>
+<pre><span id="VALindex_of_character"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.index_of_character.html">index_of_character</a></span> : <code class="type">B.t -> ?from:int -> char -> int option</code></pre>
+<pre><span id="VALindex_of_character_reverse"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.index_of_character_reverse.html">index_of_character_reverse</a></span> : <code class="type">B.t -> ?from:int -> char -> int option</code></pre>
+<pre><span id="VALresize_from_length"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.resize_from_length.html">resize_from_length</a></span> : <code class="type">from:int -> ?length:int -> length_of_s:int -> int * int</code></pre>
+<pre><span id="VALfind"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.find.html">find</a></span> : <code class="type">?from:int -> ?length:int -> B.t -> f:(char -> bool) -> int option</code></pre>
+<pre><span id="VALfind_reverse"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.find_reverse.html">find_reverse</a></span> : <code class="type">?from:int -> ?length:int -> B.t -> f:(char -> bool) -> int option</code></pre>
+<pre><span id="VALfilter_map"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.filter_map.html">filter_map</a></span> : <code class="type">?from:int -> ?length:int -> B.t -> f:(char -> char option) -> B.t</code></pre>
+<pre><span id="VALfilter"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.filter.html">filter</a></span> : <code class="type">?from:int -> ?length:int -> B.t -> f:(char -> bool) -> B.t</code></pre>
+<pre><span class="keyword">include</span> struct ... end</pre>
+
+<pre><span class="keyword">include</span> struct ... end</pre>
+
+<pre><span class="keyword">include</span> struct ... end</pre>
+
+<pre><span class="keyword">include</span> struct ... end</pre>
+
+<pre><span class="keyword">module</span> <a href="Functors.Make_native.Make_output.html">Make_output</a> <code class="code">(</code><code class="code"><span class="constructor">Model</span></code><code class="code"> : </code><code class="type"><a href="Api.OUTPUT_MODEL.html">Api.OUTPUT_MODEL</a></code><code class="code">) </code>: <code class="code"><span class="keyword">sig</span></code> <a href="Functors.Make_native.Make_output.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span id="VALtake_while_with_index"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.take_while_with_index.html">take_while_with_index</a></span> : <code class="type">B.t -> f:(int -> char -> bool) -> B.t</code></pre>
+<pre><span id="VALtake_while"><span class="keyword">val</span> <a href="code_VALFunctors.Make_native.take_while.html">take_while</a></span> : <code class="type">B.t -> f:(char -> bool) -> B.t</code></pre></body></html>

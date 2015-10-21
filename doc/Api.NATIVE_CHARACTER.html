@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Api.UNSAFELY_MUTABLE.html">
+<link rel="next" href="Api.NATIVE_STRING.html">
+<link rel="Up" href="Api.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Api.NATIVE_CHARACTER</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Api.UNSAFELY_MUTABLE.html" title="Api.UNSAFELY_MUTABLE">Previous</a>
+&nbsp;<a class="up" href="Api.html" title="Api">Up</a>
+&nbsp;<a class="post" href="Api.NATIVE_STRING.html" title="Api.NATIVE_STRING">Next</a>
+</div>
+<h1>Module type <a href="type_Api.NATIVE_CHARACTER.html">Api.NATIVE_CHARACTER</a></h1>
+
+<pre><span class="keyword">module type</span> NATIVE_CHARACTER = <code class="type"><a href="Api.BASIC_CHARACTER.html">BASIC_CHARACTER</a></code><code class="type">  with type t = char</code></pre><div class="info modtype top">
+Native <i>OCaml</i> character.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type representing the character.<br>
+</div>
+
+
+<pre><span id="VALof_native_char"><span class="keyword">val</span> of_native_char</span> : <code class="type">char -> <a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> option</code></pre><div class="info ">
+Import a native <code class="code">char</code>, returns <code class="code"><span class="constructor">None</span></code> if the character is not
+      representable.<br>
+</div>
+
+<pre><span id="VALof_int"><span class="keyword">val</span> of_int</span> : <code class="type">int -> <a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> option</code></pre><div class="info ">
+Import an integer, returns <code class="code"><span class="constructor">None</span></code> if there is no character for
+      that value.<br>
+</div>
+
+<pre><span id="VALto_int"><span class="keyword">val</span> to_int</span> : <code class="type"><a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+Returns the integer representation of the character.<br>
+</div>
+
+<pre><span id="VALsize"><span class="keyword">val</span> size</span> : <code class="type"><a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+Get the size of the character, the exact semantics are
+      implementation-specific (c.f. <a href="Api.BASIC_CHARACTER.html#VALwrite_to_native_bytes"><code class="code"><span class="constructor">Api</span>.<span class="constructor">BASIC_CHARACTER</span>.write_to_native_bytes</code></a>)<br>
+</div>
+
+<pre><span id="VALwrite_to_native_bytes"><span class="keyword">val</span> write_to_native_bytes</span> : <code class="type"><a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -><br>       buf:Bytes.t -> index:int -> (int, [> `out_of_bounds ]) <a href="Api.html#TYPEresult">Api.result</a></code></pre><div class="info ">
+<code class="code">write_to_native_bytes c ~buf ~index</code> serializes
+      the character <code class="code">c</code> at position <code class="code">index</code> in the native bytes
+      <code class="code">buf</code> (writing <code class="code">size c</code> units). Note, as with <a href="Api.BASIC_CHARACTER.html#VALsize"><code class="code"><span class="constructor">Api</span>.<span class="constructor">BASIC_CHARACTER</span>.size</code></a> that the
+      meaning of <code class="code">index</code> is implementation dependent (can be the <i>      index-th</i> byte, the <i>index-th</i> bit, etc.).<br>
+</div>
+
+<pre><span id="VALto_native_string"><span class="keyword">val</span> to_native_string</span> : <code class="type"><a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -> String.t</code></pre><div class="info ">
+<code class="code">to_native_string c</code> creates a string containing the
+      serialization of the character <code class="code">c</code> (if <code class="code">size c</code> is not a
+      multiple of 8, the end-padding is undefined).<br>
+</div>
+
+<pre><span id="VALread_from_native_string"><span class="keyword">val</span> read_from_native_string</span> : <code class="type">buf:String.t -> index:int -> (<a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> * int) option</code></pre><div class="info ">
+Read a character at a given <code class="code">index</code> in a native string, returns
+      <code class="code"><span class="constructor">Some</span> (c, s)</code>, the character <code class="code">c</code> and the number of units read <code class="code">s</code>,
+      or <code class="code"><span class="constructor">None</span></code> if there is no representable/valid character at that
+      index.<br>
+</div>
+
+<pre><span id="VALto_string_hum"><span class="keyword">val</span> to_string_hum</span> : <code class="type"><a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -> String.t</code></pre><div class="info ">
+Convert the character to a human-readable native string (in the
+      spirit of <code class="code">sprintf <span class="string">"%s"</span></code>).<br>
+</div>
+
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -> <a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+Comparison function (as expected by most common functors in the
+      ecosystem).<br>
+</div>
+
+<pre><span id="VALis_whitespace"><span class="keyword">val</span> is_whitespace</span> : <code class="type"><a href="Api.BASIC_CHARACTER.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+Tell whether a character is considered whitespace.<br>
+</div>
+</body></html>

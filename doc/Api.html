@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Functors.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Api</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Functors.html" title="Functors">Next</a>
+</div>
+<h1>Module <a href="type_Api.html">Api</a></h1>
+
+<pre><span class="keyword">module</span> Api: <code class="code"><span class="keyword">sig</span></code> <a href="Api.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+The module types that define Sosa's API.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEresult"><span class="keyword">type</span> <code class="type">('a, 'b)</code> result</span> = <code class="type">[ `Error of 'b | `Ok of 'a ]</code> </pre>
+<div class="info ">
+The type <code class="code">result</code> is a reusable version of the classical <code class="code"><span class="constructor">Result</span>.t</code>
+    type.<br>
+</div>
+
+
+<pre><span class="keyword">module type</span> <a href="Api.OUTPUT_MODEL.html">OUTPUT_MODEL</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.OUTPUT_MODEL.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+A monadic thread model (like <code class="code"><span class="constructor">Lwt</span></code>, <code class="code"><span class="constructor">Async</span></code>) and an <code class="code">output</code>
+    function.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.BASIC_CHARACTER.html">BASIC_CHARACTER</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.BASIC_CHARACTER.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+The minimal API implemented by characters.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.NATIVE_CONVERSIONS.html">NATIVE_CONVERSIONS</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.NATIVE_CONVERSIONS.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+API definition of conversions from native OCaml strings to a
+    given string type or vice-versa.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.BASIC_STRING.html">BASIC_STRING</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.BASIC_STRING.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+The minimal API implemented by string modules.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.UNSAFELY_MUTABLE.html">UNSAFELY_MUTABLE</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.UNSAFELY_MUTABLE.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+This interface defines functions that may be implemented by
+    particular string types that are actually mutable.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.NATIVE_CHARACTER.html">NATIVE_CHARACTER</a> = <code class="type"><a href="Api.BASIC_CHARACTER.html">BASIC_CHARACTER</a></code><code class="type">  with type t = char</code></pre><div class="info">
+Native <i>OCaml</i> character.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.NATIVE_STRING.html">NATIVE_STRING</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.NATIVE_STRING.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Native <i>OCaml</i> string.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.NATIVE_BYTES.html">NATIVE_BYTES</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.NATIVE_BYTES.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Native <i>OCaml</i> byte.
+</div>
+
+<pre><span class="keyword">module type</span> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html">MINIMALISTIC_MUTABLE_STRING</a> = <code class="code"><span class="keyword">sig</span></code> <a href="Api.MINIMALISTIC_MUTABLE_STRING.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Abstract mutable string used as argument of the <a href="Of_mutable.html"><code class="code"><span class="constructor">Of_mutable</span></code></a> functor.
+</div>
+</body></html>

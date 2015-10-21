@@ -1,0 +1,69 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Functors.Make_split_function.html">
+<link rel="next" href="Functors.Make_prefix_suffix_array.html">
+<link rel="Up" href="Functors.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Functors.Make_strip_function</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Functors.Make_split_function.html" title="Functors.Make_split_function">Previous</a>
+&nbsp;<a class="up" href="Functors.html" title="Functors">Up</a>
+&nbsp;<a class="post" href="Functors.Make_prefix_suffix_array.html" title="Functors.Make_prefix_suffix_array">Next</a>
+</div>
+<h1>Functor <a href="type_Functors.Make_strip_function.html">Functors.Make_strip_function</a> (<a href="code_Functors.Make_strip_function.html">.ml</a>)</h1>
+
+<pre><span class="keyword">module</span> Make_strip_function <code class="code">(</code><code class="code"><span class="constructor">S</span></code><code class="code"> : </code><code class="code"><span class="keyword">sig</span></code><div class="sig_block">
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+
+
+<pre><span id="TYPEcharacter"><span class="keyword">type</span> <code class="type"></code>character</span> </pre>
+
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type">t</code></pre>
+<pre><span id="VALis_whitespace"><span class="keyword">val</span> is_whitespace</span> : <code class="type">character -> bool</code></pre>
+<pre><span id="VALlength"><span class="keyword">val</span> length</span> : <code class="type">t -> int</code></pre>
+<pre><span id="VALfind"><span class="keyword">val</span> find</span> : <code class="type">?from:int -><br>       ?length:int -> t -> f:(character -> bool) -> int option</code></pre>
+<pre><span id="VALfind_reverse"><span class="keyword">val</span> find_reverse</span> : <code class="type">?from:int -><br>       ?length:int -> t -> f:(character -> bool) -> int option</code></pre>
+<pre><span id="VALsub_exn"><span class="keyword">val</span> sub_exn</span> : <code class="type">t -> index:int -> length:int -> t</code></pre></div><code class="code"><span class="keyword">end</span></code><code class="code">) </code>: <code class="code"><span class="keyword">sig</span></code> <a href="Functors.Make_strip_function.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><table border="0" cellpadding="3" width="100%">
+<tr>
+<td align="left" valign="top" width="1%%"><b>Parameters: </b></td>
+<td>
+<table class="paramstable">
+<tr>
+<td align="center" valign="top" width="15%">
+<code>S</code></td>
+<td align="center" valign="top">:</td>
+<td><code class="type">sig
+     type t
+     type character
+     val empty : t
+     val is_whitespace: character -> bool
+     val length: t -> int
+     val find:
+       ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
+     val find_reverse:
+       ?from:int -> ?length:int -> t -> f:(character -> bool) -> int option
+     val sub_exn: t -> index:int -> length:int -> t
+   end</code>
+</table>
+</td>
+</tr>
+</table>
+<hr width="100%">
+
+<pre><span id="VALstrip"><span class="keyword">val</span> <a href="code_VALFunctors.Make_strip_function.strip.html">strip</a></span> : <code class="type">?on:[< `Both | `Left | `Right > `Both ] -><br>       ?whitespace:(S.character -> bool) -> S.t -> S.t</code></pre></body></html>

@@ -1,0 +1,62 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Api" rel="Chapter" href="Api.html">
+<link title="Functors" rel="Chapter" href="Functors.html">
+<link title="Native_character" rel="Chapter" href="Native_character.html">
+<link title="Native_string" rel="Chapter" href="Native_string.html">
+<link title="Native_bytes" rel="Chapter" href="Native_bytes.html">
+<link title="List_of" rel="Chapter" href="List_of.html">
+<link title="Of_mutable" rel="Chapter" href="Of_mutable.html">
+<link title="Int_utf8_character" rel="Chapter" href="Int_utf8_character.html"><title>Functors.Make_prefix_suffix_array</title>
+</head>
+<body>
+<code class="code">(<span class="constructor">A</span>:<br>
+&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;character<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;get&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;character<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;length:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;int<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;sub_exn:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;index:int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;length:int&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;t<br>
+&nbsp;&nbsp;<span class="keyword">end</span>)&nbsp;=&nbsp;<span class="keyword">struct</span><br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;sub_same_tl&nbsp;t&nbsp;~comp&nbsp;~len&nbsp;~off&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;<span class="keyword">rec</span>&nbsp;loop&nbsp;i&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i&nbsp;=&nbsp;len&nbsp;<span class="keywordsign">||</span>&nbsp;(<span class="constructor">A</span>.get&nbsp;t&nbsp;(off&nbsp;+&nbsp;i)&nbsp;=&nbsp;<span class="constructor">A</span>.get&nbsp;comp&nbsp;i)&nbsp;<span class="keywordsign">&amp;&amp;</span>&nbsp;loop&nbsp;(i&nbsp;+&nbsp;1)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="constructor">A</span>.length&nbsp;t&nbsp;&gt;=&nbsp;len)&nbsp;<span class="keywordsign">&amp;&amp;</span>&nbsp;loop&nbsp;0<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;is_prefix&nbsp;t&nbsp;~prefix&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;len&nbsp;=&nbsp;<span class="constructor">A</span>.length&nbsp;prefix&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;sub_same_tl&nbsp;t&nbsp;~comp:prefix&nbsp;~len&nbsp;~off:0<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;is_suffix&nbsp;t&nbsp;~suffix&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;len&nbsp;=&nbsp;<span class="constructor">A</span>.length&nbsp;suffix&nbsp;<span class="keyword">and</span>&nbsp;lt&nbsp;=&nbsp;<span class="constructor">A</span>.length&nbsp;t&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;sub_same_tl&nbsp;t&nbsp;~comp:suffix&nbsp;~len&nbsp;~off:(lt&nbsp;-&nbsp;len)<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;chop_prefix_exn&nbsp;t&nbsp;~prefix&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;len&nbsp;=&nbsp;<span class="constructor">A</span>.length&nbsp;prefix&nbsp;<span class="keyword">and</span>&nbsp;lt&nbsp;=&nbsp;<span class="constructor">A</span>.length&nbsp;t&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;sub_same_tl&nbsp;t&nbsp;~comp:prefix&nbsp;~len&nbsp;~off:0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">then</span>&nbsp;<span class="constructor">A</span>.sub_exn&nbsp;t&nbsp;~index:len&nbsp;~length:(lt&nbsp;-&nbsp;len)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">else</span>&nbsp;raise&nbsp;(<span class="constructor">Invalid_argument</span>&nbsp;<span class="string">"not&nbsp;a&nbsp;prefix"</span>)<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;chop_prefix&nbsp;t&nbsp;~prefix&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span>&nbsp;<span class="constructor">Some</span>&nbsp;(chop_prefix_exn&nbsp;t&nbsp;prefix)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">with</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">None</span><br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;chop_suffix_exn&nbsp;t&nbsp;~suffix&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;len&nbsp;=&nbsp;<span class="constructor">A</span>.length&nbsp;suffix&nbsp;<span class="keyword">and</span>&nbsp;lt&nbsp;=&nbsp;<span class="constructor">A</span>.length&nbsp;t&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;sub_same_tl&nbsp;t&nbsp;~comp:suffix&nbsp;~len&nbsp;~off:(lt&nbsp;-&nbsp;len)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">then</span>&nbsp;<span class="constructor">A</span>.sub_exn&nbsp;t&nbsp;~index:0&nbsp;~length:(lt&nbsp;-&nbsp;len)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">else</span>&nbsp;raise&nbsp;(<span class="constructor">Invalid_argument</span>&nbsp;<span class="string">"not&nbsp;a&nbsp;suffix"</span>)<br>
+<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;chop_suffix&nbsp;t&nbsp;~suffix&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">try</span>&nbsp;<span class="constructor">Some</span>&nbsp;(chop_suffix_exn&nbsp;t&nbsp;suffix)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">with</span>&nbsp;_&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">None</span><br>
+<br>
+<span class="keyword">end</span></code></body></html>
