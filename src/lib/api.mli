@@ -125,9 +125,10 @@ module type BASIC_STRING = sig
   (** The type of the string. *)
 
   val max_string_length : int option
-  (** If the representation of strings is bounded (by a constant,
-      something else that the process memory), the maximum length of a
-      string (assumed to be a {i number of [character]s}). *)
+  (** If the representation of strings is bounded 
+      (by a constant other than the process memory), the maximum
+      length of a string is assumed to be this
+      {i number of [character]s}. *)
 
   val empty: t
   (** A string of zero length. *)
@@ -139,9 +140,10 @@ module type BASIC_STRING = sig
   (** [make size char] builds a new string of the passed [length] where the
       character at every position is [char], like [String.make].
 
-      [make size] may raise an exception when [size] is [< 0] or
-      [> {max_string_length}] (if it is [Some _]) depending on the
-      backend implementing the API. *)
+      The behavior of [make size] is undefined when
+      [size] is [< 0] or [> {max_string_length}] (if it is [Some _]).
+      Depending on the backend implementing the API, the function
+      may raise an exception. *)
 
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
@@ -196,8 +198,9 @@ module type BASIC_STRING = sig
   (** Convert the string to a human-readable native string (à la
       [sprintf "%S"]).
 
-      Returning an OCaml native string, the function may raise an
-      exception when try to exceed [Sys.max_string_length]. *)
+      Returning an OCaml native [string], the function may raise an
+      exception when the resulting [string] exceeds
+      [Sys.max_string_length]. *)
 
   val fold: t -> init:'a -> f:('a -> character -> 'a) -> 'a
   (** The standard [fold] function, see [List.fold_left] for example. *)
