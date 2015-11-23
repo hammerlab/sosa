@@ -125,8 +125,10 @@ module type BASIC_STRING = sig
   (** The type of the string. *)
 
   val max_string_length : int option
-  (** If the representation of strings is bounded,
-      the maximum length of a string. *)
+  (** If the representation of strings is bounded 
+      (by a constant other than the process memory), the maximum
+      length of a string is assumed to be this
+      {i number of [character]s}. *)
 
   val empty: t
   (** A string of zero length. *)
@@ -138,8 +140,10 @@ module type BASIC_STRING = sig
   (** [make size char] builds a new string of the passed [length] where the
       character at every position is [char], like [String.make].
 
-      @raise Invalid_argument if size is [< 0] or
-      [> {max_string_length}] if it is bounded.*)
+      The behavior of [make size] is undefined when
+      [size] is [< 0] or [> {max_string_length}] (if it is [Some _]).
+      Depending on the backend implementing the API, the function
+      may raise an exception. *)
 
   val length: t -> int
   (** Get the length of the string (i.e. the number of characters). *)
@@ -148,7 +152,9 @@ module type BASIC_STRING = sig
   (** Make a string with one character. *)
 
   val of_character_list: character list -> t
-  (** Make a string out of a list of characters. *)
+  (** Make a string out of a list of characters. This function may
+      also raise an exception when the required length is larger than
+      {!max_string_length} (depends on the backend implementation). *)
 
   val to_character_list: t -> character list
   (** Explode a string into a list of characters. *)
@@ -175,7 +181,10 @@ module type BASIC_STRING = sig
   *)
 
   val concat: ?sep:t -> t list -> t
-  (** The classical [concat] function. *)
+  (** The classical [concat] function. 
+
+      The function is subject to same limitations as
+      {!of_character_list} regarding {!max_string_length}. *)
 
   (** By including {{!modtype:Api.NATIVE_CONVERSIONS} NATIVE_CONVERSIONS}, a
       basic string provides
@@ -187,7 +196,11 @@ module type BASIC_STRING = sig
 
   val to_string_hum: t -> string
   (** Convert the string to a human-readable native string (à la
-      [sprintf "%S"]). *)
+      [sprintf "%S"]).
+
+      Returning an OCaml native [string], the function may raise an
+      exception when the resulting [string] exceeds
+      [Sys.max_string_length]. *)
 
   val fold: t -> init:'a -> f:('a -> character -> 'a) -> 'a
   (** The standard [fold] function, see [List.fold_left] for example. *)
