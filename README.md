@@ -14,10 +14,12 @@ This is the development branch of the library, the latest released version is
 
 See the [INSTALL](INSTALL.md) file for build instructions.
 
+The library is “packed” in the `Sosa` toplevel module name.
+
 Module Types (APIs)
 -------------------
 
-We have:
+We have, in the sub-module `Api`:
 
 - `BASIC_CHARACTER`: characters of any length.
 - `NATIVE_CONVERSIONS`: functions to transform from/to native OCaml
@@ -43,9 +45,13 @@ OCaml's `char` type.
 
 ### Native OCaml Strings
 
-The `Native_string` module implements `BASIC_STRING` and
-`UNSAFELY_MUTABLE` with OCaml's `string` type (and hence
-`Native_character`).
+The `Native_string` module implements `BASIC_STRING` with OCaml's `string` type
+considered immutable (and hence `Native_character`).
+
+### Native Mutable OCaml Strings (Bytes)
+
+The `Native_bytes` module implements `BASIC_STRING`
+and `UNSAFELY_MUTABLE` with OCaml's `bytes` type.
 
 ### Lists Of Arbitrary Characters
 
@@ -69,7 +75,7 @@ only ASCII whitespace (useful while writing parsers for example).
 Examples, Tests, and Benchmarks
 -------------------------------
 
-See the file [`sosa_test.ml`](test/sosa_test.ml) for usage examples, the
+See the file [`test/main.ml`](src/test/main.ml) for usage examples, the
 library is tested with:
 
 - native strings and characters,
@@ -78,15 +84,15 @@ library is tested with:
 - arrays of integers representing UTF-8 characters (`Of_mutable(utf8-int array)`),
 - bigarrays of 8-bit integers (`Of_mutable(int8 Bigarray1.t)`).
 
-The tests are a self-compiling *“Shell-then-OCaml-script”* which
-depends on the [Nonstd](https://bitbucket.org/smondet/nonstd), and the OCaml
-`Bigarray` libraries:
+The tests depend on the [Nonstd](https://bitbucket.org/smondet/nonstd),
+`unix`, and `bigarray` libraries:
 
-    ./test/sosa_test.ml
+    make test
+    ./sosa_tests
 
 and you may add the basic benchmarks to the process with:
 
-    ./test/sosa_test.ml bench
+    ./sosa_tests bench
 
 [wikipedia:UTF-8]: http://en.wikipedia.org/wiki/UTF-8
 [RFC3629]: http://tools.ietf.org/html/rfc3629
