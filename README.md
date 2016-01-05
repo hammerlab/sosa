@@ -10,7 +10,7 @@ The APIs define what a *character* and a *string of characters* should
 be.
 
 This is the development branch of the library, the latest released version is 
-[0.0.1](http://seb.mondet.org/software/sosa/doc.0.0.1/).
+[0.2.0](http://seb.mondet.org/software/sosa/doc.0.2.0/).
 
 See the [INSTALL](INSTALL.md) file for build instructions.
 
