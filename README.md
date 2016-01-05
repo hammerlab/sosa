@@ -9,8 +9,7 @@ modules and functors implementing one or more of those interfaces.
 The APIs define what a *character* and a *string of characters* should
 be.
 
-This is the development branch of the library, the latest released version is 
-[0.0.1](http://seb.mondet.org/software/sosa/doc.0.0.1/).
+This is the 0.2.0 version of Sosa released on Tue, 05 Jan 2016 16:36:49 -0500.
 
 See the [INSTALL](INSTALL.md) file for build instructions.
 
