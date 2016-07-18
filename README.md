@@ -81,7 +81,7 @@ library is tested with:
 - native strings and characters,
 - lists of native characters (`List_of(Native_character)`),
 - lists of integers representing UTF-8 characters (`List_of(utf8-int array)`),
-- arrays of integers representing UTF-8 characters (`Of_mutable(utf8-int array)`),
+- arrays of integers representing UTF-8 characters (`Of_mutable(utf8-int)`),
 - bigarrays of 8-bit integers (`Of_mutable(int8 Bigarray1.t)`).
 
 The tests depend on the [Nonstd](https://bitbucket.org/smondet/nonstd),
