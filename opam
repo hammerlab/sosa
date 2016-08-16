@@ -17,4 +17,7 @@ install: [
 remove: [
     [ make "uninstall"]
 ]
-depends: ["ocamlfind"]
+depends: [
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+]
