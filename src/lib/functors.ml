@@ -130,7 +130,7 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
 end
 
 (* This functor implements the `BASIC_STRING.split` function out of a
-   `T_LENGTH_AND_SEARCH` *)
+   `T_LENGTH_SUB_AND_SEARCH` *)
 module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
 
   let split t ~on =
