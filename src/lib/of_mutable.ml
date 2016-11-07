@@ -354,10 +354,13 @@ module Make (S: Api.MINIMALISTIC_MUTABLE_STRING) : Api.BASIC_STRING
   include F.Make_split_function(struct
       type t = S.t
       type character = S.character
+      let empty = empty
       let length = length
       let sub_exn = sub_exn
       let index_of_string = index_of_string
+      let index_of_string_reverse = index_of_string_reverse
       let index_of_character = index_of_character
+      let index_of_character_reverse = index_of_character_reverse
     end)
 
 
