@@ -442,8 +442,6 @@ module type BASIC_STRING = sig
       Splitting with [~on:(`String empty)] explodes the [t] into a list of
       one-character strings. *)
 
-  val split_rev: t -> on:[ `Character of character | `String of t ] -> t list
-
   val strip: ?on:[`Both | `Left | `Right] -> ?whitespace:(character -> bool) ->
       t -> t
   (** Remove any whitespace characters at the beginning and/or the end of the

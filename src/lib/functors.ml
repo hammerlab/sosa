@@ -15,16 +15,24 @@ end (* T_LENGTH_AND_COMPSUB *)
 module type T_LENGTH_SUB_AND_SEARCH = sig
   type t
   type character
-  val empty: t
   val length: t -> int
   val sub_exn: t -> index:int -> length:int -> t
   val index_of_character: t -> ?from:int -> character -> int option
-  val index_of_character_reverse: t -> ?from:int -> character -> int option
   val index_of_string: ?from:int ->
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
+end (* T_LENGTH_SUB_AND_SEARCH *)
+
+module type T_LENGTH_SUB_AND_SEARCH_REV = sig
+  type t
+  type character
+  val empty: t
+  val length: t -> int
+  val sub_exn: t -> index:int -> length:int -> t
+  val index_of_character_reverse: t -> ?from:int -> character -> int option
   val index_of_string_reverse: ?from:int ->
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
-end (* T_LENGTH_SUB_AND_SEARCH *)
+
+end (* T_LENGTH_SUB_AND_SEARCH_REV *)
 
 (* This functor builds a `compare_substring_strict` function out of a
    `compare_substring` function.
@@ -173,7 +181,14 @@ module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
       end
   end
 
-  let split_rev t ~on =
+end
+
+(* This functor implements the `BASIC_STRING.split` function out of a
+   `T_LENGTH_SUB_AND_SEARCH_REV` by looping through the string backwards,
+   on some representations it is the more effective option. *)
+module Make_split_rev_function (S: T_LENGTH_SUB_AND_SEARCH_REV) = struct
+
+  let split t ~on =
     let length_of_t = S.length t in
     begin match on with
     | `Character c ->
@@ -619,15 +634,13 @@ module Make_native (B :
       let is_whitespace = Native_character.is_whitespace
     end)
 
-  include Make_split_function(struct
+  include Make_split_rev_function(struct
       type t = s
       type character = char
       let empty = empty
       let length = length
       let sub_exn = sub_exn
-      let index_of_string = index_of_string
       let index_of_string_reverse = index_of_string_reverse
-      let index_of_character = index_of_character
       let index_of_character_reverse = index_of_character_reverse
     end)
 

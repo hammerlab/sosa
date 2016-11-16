@@ -328,13 +328,10 @@ module Make (Char: Api.BASIC_CHARACTER) :
   include F.Make_split_function(struct
       type t = Char.t list
       type character = Char.t
-      let empty = empty
       let length = length
       let sub_exn = sub_exn
       let index_of_string = index_of_string
-      let index_of_string_reverse = index_of_string_reverse
       let index_of_character = index_of_character
-      let index_of_character_reverse = index_of_character_reverse
     end)
 
   module Make_output (Model: Api.OUTPUT_MODEL) = struct
