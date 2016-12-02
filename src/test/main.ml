@@ -1495,6 +1495,17 @@ let do_basic_test (module Test : TEST_STRING) =
     (fun () -> ignore (
          Str.index_of_string_reverse cated ~sub ~from ~sub_index ~sub_length
        ));
+
+  Benchmark.declare
+    ~experiment:(sprintf "Split On Char")
+    ~implementation
+    ~repeats:40
+    (fun () ->
+      match Chr.of_int (int_of_char 'A') with
+      | None -> say "Skipping split test since can't convert 'A'"
+      | Some a -> ignore (List.iter converted_dna_reads
+                    (fun s -> ignore (Str.split ~on:(`Character a) s))));
+
   ()
 
 (*M

@@ -22,6 +22,18 @@ module type T_LENGTH_SUB_AND_SEARCH = sig
     ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
 end (* T_LENGTH_SUB_AND_SEARCH *)
 
+module type T_LENGTH_SUB_AND_SEARCH_REV = sig
+  type t
+  type character
+  val empty: t
+  val length: t -> int
+  val sub_exn: t -> index:int -> length:int -> t
+  val index_of_character_reverse: t -> ?from:int -> character -> int option
+  val index_of_string_reverse: ?from:int ->
+    ?sub_index:int -> ?sub_length:int -> t -> sub:t -> int option
+
+end (* T_LENGTH_SUB_AND_SEARCH_REV *)
+
 (* This functor builds a `compare_substring_strict` function out of a
    `compare_substring` function.
 
@@ -130,7 +142,7 @@ module Make_index_of_string (S: T_LENGTH_AND_COMPSUB) = struct
 end
 
 (* This functor implements the `BASIC_STRING.split` function out of a
-   `T_LENGTH_AND_SEARCH` *)
+   `T_LENGTH_SUB_AND_SEARCH` *)
 module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
 
   let split t ~on =
@@ -158,6 +170,54 @@ module Make_split_function (S: T_LENGTH_SUB_AND_SEARCH) = struct
       in
       if length_of_s > 0
       then List.rev (loop [] 0)
+      else if length_of_t = 0
+      then [ t ]
+      else begin
+        let res = ref [] in
+        for index = length_of_t - 1 downto 0 do
+          res := S.sub_exn t ~index ~length:1 :: !res
+        done;
+        !res
+      end
+  end
+
+end
+
+(* This functor implements the `BASIC_STRING.split` function out of a
+   `T_LENGTH_SUB_AND_SEARCH_REV` by looping through the string backwards,
+   on some representations it is the more effective option. *)
+module Make_split_rev_function (S: T_LENGTH_SUB_AND_SEARCH_REV) = struct
+
+  let split t ~on =
+    let length_of_t = S.length t in
+    begin match on with
+    | `Character c ->
+      let rec loop acc from =
+        match S.index_of_character_reverse t ~from c with
+        | Some index when index = length_of_t - 1 ->
+          loop (S.empty :: acc) (index - 1)
+        | Some index ->
+          loop (S.sub_exn t ~index:(index + 1) ~length:(from - index) :: acc)
+            (index - 1)
+        | None ->
+          S.sub_exn t ~index:0 ~length:(from + 1) :: acc
+      in
+      loop [] (length_of_t - 1)
+    | `String s ->
+      let length_of_s = S.length s in
+      let rec loop acc from =
+        match S.index_of_string_reverse t ~from ~sub:s with
+        | Some index when index = length_of_t - length_of_s ->
+          loop (S.empty :: acc) (index - 1)
+        | Some index ->
+          let offset = index + length_of_s in
+          let length = from - offset + 1 in
+          loop (S.sub_exn t ~index:offset ~length :: acc) (index - 1)
+        | None ->
+          S.sub_exn t ~index:0 ~length:(from + 1) :: acc
+      in
+      if length_of_s > 0
+      then loop [] (length_of_t - 1)
       else if length_of_t = 0
       then [ t ]
       else begin
@@ -574,13 +634,14 @@ module Make_native (B :
       let is_whitespace = Native_character.is_whitespace
     end)
 
-  include Make_split_function(struct
+  include Make_split_rev_function(struct
       type t = s
       type character = char
+      let empty = empty
       let length = length
       let sub_exn = sub_exn
-      let index_of_string = index_of_string
-      let index_of_character = index_of_character
+      let index_of_string_reverse = index_of_string_reverse
+      let index_of_character_reverse = index_of_character_reverse
     end)
 
   include Make_prefix_suffix_array (struct
