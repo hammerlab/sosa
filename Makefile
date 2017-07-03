@@ -23,7 +23,7 @@ test:
 	mv _build/src/test/main.native sosa_tests
 
 coverage:
-	ocamlbuild -use-ocamlfind -pkgs nonstd,unix,bigarray,bisect_ppx.fast -cflag -safe-string -I src/lib -I src/test main.native  && \
+	ocamlbuild -use-ocamlfind -pkgs nonstd,unix,bigarray,bisect_ppx -cflag -safe-string -I src/lib -I src/test main.native  && \
 	rm -f main.native  && \
 	mv _build/src/test/main.native sosa_tests
 
@@ -48,6 +48,9 @@ uninstall:
 merlinize:
 	echo 'S .' > .merlin
 	echo 'B _build' >> .merlin
+	echo 'S .' > src/test/.merlin
+	echo 'B ../../_build' >> src/test/.merlin
+	echo 'PKG nonstd' >> src/test/.merlin
 
 doc:
 	cp src/lib/sosa.mlpack sosa.odocl && \

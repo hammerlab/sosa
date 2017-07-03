@@ -105,7 +105,7 @@ module Benchmark = struct
   let benchmarks_table = ref []
 
   let add ~implementation ~experiment ~result =
-    match (try Some (List.assoc implementation !benchmarks_table) with _ -> None) with
+    match List.Assoc.get implementation !benchmarks_table with
     | Some exps ->
        exps := (experiment, result) :: !exps
     | None ->
@@ -143,8 +143,9 @@ module Benchmark = struct
           let w = List.nth_exn row_widths 0 in
           w := max !w (String.length impl);
           impl :: List.mapi experiments (fun i exp ->
-              let res = List.assoc exp !l in
-               let w = List.nth_exn row_widths (i  + 1) in
+              let res = List.Assoc.get exp !l
+                        |> Option.value_exn ~msg:"assoc experiments" in
+              let w = List.nth_exn row_widths (i  + 1) in
               (* say "w: %d, i: %d lgth: %d" !w i (String.length res); *)
               w := max !w (String.length res);
               res)) in
