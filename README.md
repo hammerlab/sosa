@@ -9,10 +9,8 @@ modules and functors implementing one or more of those interfaces.
 The APIs define what a *character* and a *string of characters* should
 be.
 
-This is the development branch of the library, the latest released version is 
-[0.2.0](http://seb.mondet.org/software/sosa/doc.0.2.0/).
-
-See the [INSTALL](INSTALL.md) file for build instructions.
+See the [INSTALL](INSTALL.md) file for build instructions and/or the
+[documentation](http://www.hammerlab.org/docs/sosa/master/index.html) website.
 
 The library is “packed” in the `Sosa` toplevel module name.
 
